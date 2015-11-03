@@ -111,26 +111,31 @@ public:
         return 256;
     }
 private:
-    struct cmp{
-        std::map< std::string, int > mp;
-        cmp() {
-            mp["preprocess"] = 1;
-            mp["assemble"] = 2;
-            mp["copy_num_estimate"] = 3;
-            mp["scaffold"] = 4;
-            mp["solveLP"] = 5;
-            mp["remove_repeats"] = 6;
-            mp["gapfill"] = 7;
+    struct Cmp{
+        Cmp() {
+            _mp["preprocess"] = 1;
+            _mp["assemble"] = 2;
+            _mp["copy_num_estimate"] = 3;
+            _mp["scaffold"] = 4;
+            _mp["solveLP"] = 5;
+            _mp["remove_repeats"] = 6;
+            _mp["gapfill"] = 7;
         }
-        bool operator()(const std::string& a, const std::string &b) const{
-            if (mp.find(a) == mp.end() || mp.find(b) == mp.end()) {
+        bool operator()(const std::string& l, const std::string& r) const {
+            std::map< std::string, size_t >::const_iterator x = _mp.find(l), y = _mp.find(r);
+            if (x != _mp.end() && y != _mp.end()) {
+                return x->second < y->second;
+            } else if (x != _mp.end()) {
                 return true;
+            } else if (y != _mp.end()) {
+                return false;
             }
-            return mp.find(a)->second < mp.find(b)->second;
+            return l < r;
         }
+        std::map< std::string, size_t > _mp;
     };
     typedef std::tuple< RunnerPtr, std::string > RunnerInfo;
-    typedef std::map< std::string, RunnerInfo, cmp> RunnerList;
+    typedef std::map< std::string, RunnerInfo, Cmp> RunnerList;
     RunnerList _runners;
 };
 

@@ -1,6 +1,12 @@
 bin_PROGRAMS=moga
-moga_SOURCES=constant.cpp \
+moga_SOURCES=assembler.cpp \
+			 assembler.h \
+			 constant.cpp \
 			 constant.h \
+			 indexer.cpp \
+			 indexer.h \
+			 preprocess.cpp \
+			 preprocess.h \
 			 runner.h \
 			 main.cpp
 moga_CXXFLAGS=${LOG4CXX_CFLAGS}
