@@ -26,9 +26,6 @@ public:
 
     SuffixArray() : _strings(0) {
     }
-
-    bool build(const DNASeqList& reads);
-
 private:
     friend std::ostream& operator<<(std::ostream& stream, const SuffixArray& sa);
     friend std::istream& operator>>(std::istream& stream, SuffixArray& sa);

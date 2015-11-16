@@ -12,6 +12,8 @@ moga_SOURCES=assembler.cpp \
 			 scaffold.cpp \
 			 suffix_array.cpp \
 			 suffix_array.h \
+			 suffix_array_builder.cpp \
+			 suffix_array_builder.h \
 			 runner.h \
 			 main.cpp
 moga_CXXFLAGS=${LOG4CXX_CFLAGS} \

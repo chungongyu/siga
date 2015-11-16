@@ -19,11 +19,6 @@ private:
     const DNASeqList& _reads;
 };
 
-bool SuffixArray::build(const DNASeqList& reads) {
-    //DNAIndex< reads > i(0);
-    return true;
-}
-
 static const uint16_t FILE_MAGIC = 0xCACA;
 
 class SAWriter {
