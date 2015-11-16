@@ -1,16 +1,23 @@
 bin_PROGRAMS=moga
 moga_SOURCES=assembler.cpp \
-			 assembler.h \
+			 bwt.cpp \
+			 bwt.h \
 			 constant.cpp \
 			 constant.h \
 			 indexer.cpp \
-			 indexer.h \
+			 gapfiller.cpp \
+			 kseq.cpp \
+			 kseq.h \
 			 preprocess.cpp \
-			 preprocess.h \
+			 scaffold.cpp \
+			 suffix_array.cpp \
+			 suffix_array.h \
 			 runner.h \
 			 main.cpp
-moga_CXXFLAGS=${LOG4CXX_CFLAGS}
+moga_CXXFLAGS=${LOG4CXX_CFLAGS} \
+			  ${DIVSUFSORT_CFLAGS}
 moga_LDFLAGS=${LOG4CXX_LIBS} \
+			 ${DIVSUFSORT_LIBS} \
 			 -lboost_filesystem \
 			 -lboost_system
 

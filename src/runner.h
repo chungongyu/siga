@@ -114,11 +114,9 @@ private:
     struct Cmp{
         Cmp() {
             _mp["preprocess"] = 1;
-            _mp["assemble"] = 2;
-            _mp["copy_num_estimate"] = 3;
+            _mp["index"] = 2;
+            _mp["assemble"] = 3;
             _mp["scaffold"] = 4;
-            _mp["solveLP"] = 5;
-            _mp["remove_repeats"] = 6;
             _mp["gapfill"] = 7;
         }
         bool operator()(const std::string& l, const std::string& r) const {
