@@ -12,11 +12,15 @@ class SuffixArray;
 //
 class BWT {
 public:
+    BWT() {
+    }
     BWT(const SuffixArray& sa, const DNASeqList& sequences);
 
 private:
     friend std::ostream& operator<<(std::ostream& stream, const BWT& bwt);
     friend std::istream& operator>>(std::istream& stream, BWT& bwt);
+
+    std::string _data;
 };
 
 #endif // bwt_h_

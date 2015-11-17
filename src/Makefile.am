@@ -4,8 +4,10 @@ moga_SOURCES=assembler.cpp \
 			 bwt.h \
 			 constant.cpp \
 			 constant.h \
-			 indexer.cpp \
+			 fmindex.cpp \
+			 fmindex.h \
 			 gapfiller.cpp \
+			 indexer.cpp \
 			 kseq.cpp \
 			 kseq.h \
 			 preprocess.cpp \
