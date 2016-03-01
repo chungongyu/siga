@@ -23,7 +23,7 @@ public:
 
     void make_complement();
 private:
-    friend class DNASeqReader;
+    friend class FASTQReader;
     friend std::ostream& operator << (std::ostream& os, const DNASeq& seq);
 };
 
@@ -31,6 +31,21 @@ typedef std::vector< DNASeq > DNASeqList;
 bool ReadDNASequences(std::istream& stream, DNASeqList& sequences);
 bool ReadDNASequences(const std::string& file, DNASeqList& sequences);
 bool ReadDNASequences(const std::vector< std::string >& filelist, DNASeqList& sequences);
+
+class DNASeqReader {
+public:
+    DNASeqReader(std::istream& stream) : _stream(stream) {
+    }
+
+    virtual bool read(DNASeq& sequence) = 0;
+protected:
+    std::istream& _stream;
+};
+
+class DNASeqReaderFactory {
+public:
+    static DNASeqReader* create(std::istream& stream);
+};
 
 //
 // FASTQ Format Specification
@@ -54,28 +69,21 @@ bool ReadDNASequences(const std::vector< std::string >& filelist, DNASeqList& se
 //        $Q = ord($q) - 33;
 //    where ord() gives the ASCII code of a character.
 // 
-class DNASeqReader {
+class FASTQReader : public DNASeqReader {
 public:
-    DNASeqReader(std::istream& stream, double percent=1.0, size_t read_cutoff=-1) : _stream(stream), _percent(percent), _read_cutoff(read_cutoff) {
+    FASTQReader(std::istream& stream) : DNASeqReader(stream) {
     }
     
     bool read(DNASeq& sequence);
-private:
-    void cutoff(DNASeq& sequence) const;
-
-    std::istream& _stream;
-    double _percent;
-    size_t _read_cutoff;
 };
 
-class FASTAReader {
+class FASTAReader : public DNASeqReader {
 public:
-    FASTAReader(std::istream& stream) : _stream(stream) {
+    FASTAReader(std::istream& stream) : DNASeqReader(stream) {
     }
 
     bool read(DNASeq& sequence);
 private:
-    std::istream& _stream;
     std::string _name;
 };
 

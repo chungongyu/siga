@@ -61,14 +61,31 @@ void DNASeq::make_complement() {
 }
 
 std::ostream& operator << (std::ostream& os, const DNASeq& seq) {
-    os << '@' << seq.name << std::endl;
-    os << seq.seq << std::endl;
-    os << '+' << std::endl;
-    os << seq.quality << std::endl;
+    if (seq.quality.empty()) {
+        os << '>' << seq.name << '\n';
+        os << seq.seq << '\n';
+    } else {
+        os << '@' << seq.name << '\n';
+        os << seq.seq << '\n';
+        os << '+' << '\n';
+        os << seq.quality << '\n';
+    }
     return os;
 }
 
-bool DNASeqReader::read(DNASeq& sequence) {
+DNASeqReader* DNASeqReaderFactory::create(std::istream& stream) {
+    if (stream) {
+        int c = stream.peek();
+        if (c == '@') {
+            return new FASTQReader(stream);
+        } else if (c == '>') {
+            return new FASTAReader(stream);
+        }
+    }
+    return NULL;
+}
+
+bool FASTQReader::read(DNASeq& sequence) {
     enum {
         kName, 
         kSequence, 
@@ -104,7 +121,6 @@ bool DNASeqReader::read(DNASeq& sequence) {
             } else if (state == kQuality) {
                 if (buf.length() == sequence.seq.length()) {
                     sequence.quality = buf;
-                    cutoff(sequence);
                     return true;
                 } else {
                     LOG4CXX_WARN(logger, boost::format("fastq=>length of sequence and quality are not equal: %s") % buf);
@@ -115,18 +131,6 @@ bool DNASeqReader::read(DNASeq& sequence) {
     }
 
     return false;
-}
-
-void DNASeqReader::cutoff(DNASeq& sequence) const {
-    size_t length = sequence.seq.length();
-    if (_percent < 1.0) {
-        length = (size_t)(length * _percent);
-    }
-    length = std::min(length, _read_cutoff);
-    if (sequence.seq.length() > length) {
-        sequence.seq = sequence.seq.substr(0, length);
-        sequence.quality = sequence.quality.substr(0, length);
-    }
 }
 
 bool FASTAReader::read(DNASeq& sequence) {
@@ -168,7 +172,7 @@ bool ReadDNASequences(std::istream& stream, DNASeqList& sequences) {
     if (!stream) {
         return false;
     }
-    DNASeqReader reader(stream);
+    FASTQReader reader(stream);
     DNASeq seq;
     while (reader.read(seq)) {
         sequences.push_back(seq);
