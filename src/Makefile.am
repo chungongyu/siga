@@ -11,6 +11,8 @@ moga_SOURCES=assembler.cpp \
 			 kseq.cpp \
 			 kseq.h \
 			 preprocess.cpp \
+			 primer_screen.cpp \
+			 primer_screen.h \
 			 runner.h \
 			 scaffold.cpp \
 			 suffix_array.cpp \
