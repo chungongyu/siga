@@ -92,21 +92,37 @@ private:
         BOOST_FOREACH(const std::string& file, inputs) {
             LOG4CXX_INFO(logger, boost::format("Processing %s") % file);
 
-            std::ifstream stream(file.c_str());
-            std::shared_ptr< DNASeqReader > reader(DNASeqReaderFactory::create(stream));
-            if (reader) {
-                DNASeq seq;
-                while (reader->read(seq)) {
-                    if (processRead(options, seq)) {
-                        output << seq;
-                    }
-                }
+            int r = 0;
+            if (file == "-") {
+                r = processSingleEnds(options, std::cin, output);
             } else {
+                std::ifstream stream(file.c_str());
+                r = processSingleEnds(options, stream, output);
+            }
+            if (r != 0) {
                 LOG4CXX_ERROR(logger, boost::format("Failed to open input stream %s") % file);
-                return -1;
+                return r;
             }
         }
         return 0;
+    }
+
+    int processSingleEnds(const Properties& options, std::istream& input, std::ostream& output) {
+        std::shared_ptr< DNASeqReader > reader(DNASeqReaderFactory::create(input));
+        return processSingleEnds(options, reader.get(), output);
+    }
+
+    int processSingleEnds(const Properties& options, DNASeqReader* reader, std::ostream& output) {
+        if (reader) {
+            DNASeq seq;
+            while (reader->read(seq)) {
+                if (processRead(options, seq)) {
+                    output << seq;
+                }
+            }
+            return 0;
+        }
+        return -1;
     }
 
     int processPairEnds1(const Properties& options, const std::vector< std::string >& inputs, std::ostream& output) {
@@ -138,14 +154,25 @@ private:
         BOOST_FOREACH(const std::string& file, inputs) {
             LOG4CXX_INFO(logger, boost::format("Processing %s") % file);
 
-            std::ifstream stream(file.c_str());
-            std::shared_ptr< DNASeqReader > reader1(DNASeqReaderFactory::create(stream));
-            int r = processPairEnds(options, reader1.get(), reader1.get(), output);
+            int r = 0;
+            if (file == "-") {
+                r = processPairEnds(options, std::cin, std::cin, output);
+            } else {
+                std::ifstream stream(file.c_str());
+                r = processPairEnds(options, stream, stream, output);
+            }
             if (r != 0) {
                 LOG4CXX_ERROR(logger, boost::format("Failed to process pair ends: %s") % file);
                 return r;
             }
         }
+        return 0;
+    }
+
+    int processPairEnds(const Properties& options, std::istream& input1, std::istream& input2, std::ostream& output) {
+        std::shared_ptr< DNASeqReader > reader1(DNASeqReaderFactory::create(input1));
+        std::shared_ptr< DNASeqReader > reader2(DNASeqReaderFactory::create(input2));
+        return processPairEnds(options, reader1.get(), reader2.get(), output);
     }
 
     int processPairEnds(const Properties& options, DNASeqReader* reader1, DNASeqReader* reader2, std::ostream& output) {
