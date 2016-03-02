@@ -77,6 +77,14 @@ public:
     bool read(DNASeq& sequence);
 };
 
+//
+// FASTA Format Specification
+// Syntax
+//    <fasta>	:=	<block>+
+//    <block>	:=	><seqname>\n<seq>\n
+//    <seqname>	:=	[A-Za-z0-9_.:-]+
+//    <seq>	:=	[A-Za-z\n\.~]+
+// 
 class FASTAReader : public DNASeqReader {
 public:
     FASTAReader(std::istream& stream) : DNASeqReader(stream) {

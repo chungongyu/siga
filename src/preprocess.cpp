@@ -1,7 +1,9 @@
 #include "config.h"
 #include "constant.h"
 #include "kseq.h"
+#include "quality.h"
 #include "runner.h"
+#include "utils.h"
 
 #include <fstream>
 #include <memory>
@@ -16,6 +18,8 @@
 
 static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.Preprocess"));
 
+static int LOW_QUALITY_PHRED_SCORE = 3;
+
 class Preprocess : public Runner {
 public:
     int run(const Properties& options, const Arguments& arguments) {
@@ -27,38 +31,36 @@ public:
 
         // parameters
         LOG4CXX_INFO(logger, "Parameters:");
-        LOG4CXX_INFO(logger, boost::format("Min length: %d") % options.get< size_t >("min-length", 40));
+        LOG4CXX_INFO(logger, boost::format("PE Mode: %d") % options.get< int >("pe-mode", 0));
+        if (options.find("min-length") != options.not_found()) {
+            LOG4CXX_INFO(logger, boost::format("Min length: %d") % options.get< int >("min-length"));
+        }
+        if (options.find("max-length") != options.not_found()) {
+            LOG4CXX_INFO(logger, boost::format("Max length: %d") % options.get< int >("max-length"));
+        }
+        if (options.find("quality-trim") != options.not_found()) {
+            LOG4CXX_INFO(logger, boost::format("Quality Trim: %d") % options.get< int >("quality-trim"));
+        }
+        if (options.find("quality-filter") != options.not_found()) {
+            LOG4CXX_INFO(logger, boost::format("Quality Filter: %d") % options.get< int >("quality-filter"));
+        }
 
         // input
         std::vector< std::string > filelist;
         std::copy(arguments.begin(), arguments.end(), std::back_inserter(filelist));
-        LOG4CXX_DEBUG(logger, boost::format("input: %s") % boost::algorithm::join(filelist, ":"));
+        LOG4CXX_INFO(logger, boost::format("input: %s") % boost::algorithm::join(filelist, ":"));
 
         // output
         std::ostream* out = &std::cout;
         if (options.find("out") != options.not_found()) {
             std::string file = options.get< std::string >("out");
             out = new std::ofstream(file.c_str());
+            LOG4CXX_INFO(logger, boost::format("output: %s") % file);
         }
 
         // process
         if (*out) {
-            BOOST_FOREACH(const std::string& file, filelist) {
-                LOG4CXX_INFO(logger, boost::format("Processing %s") % file);
-
-                std::ifstream stream(file.c_str());
-                std::shared_ptr< DNASeqReader > reader(DNASeqReaderFactory::create(stream));
-                if (reader) {
-                    DNASeq seq;
-                    while (reader->read(seq)) {
-                        if (processRead(options, seq)) {
-                            *out << seq;
-                        }
-                    }
-                } else {
-                    LOG4CXX_ERROR(logger, boost::format("Failed to open %s") % file);
-                }
-            }
+            r = processReads(options, filelist, *out);
         } else {
             LOG4CXX_ERROR(logger, "Failed to open output stream");
         }
@@ -71,19 +73,225 @@ public:
     }
 
 private:
+    int processReads(const Properties& options, const std::vector< std::string >& inputs, std::ostream& output) {
+        int peMode = options.get< int >("pe-mode", 0);
+
+        if (peMode == 0) {
+            return processSingleEnds(options, inputs, output);
+        } else if (peMode == 1) {
+            return processPairEnds1(options, inputs, output);
+        } else if (peMode == 2) {
+            return processPairEnds2(options, inputs, output);
+        }
+
+        LOG4CXX_ERROR(logger, boost::format("Invalid pe mode parameter: %d") % peMode);
+        return -1;
+    }
+
+    int processSingleEnds(const Properties& options, const std::vector< std::string >& inputs, std::ostream& output) {
+        BOOST_FOREACH(const std::string& file, inputs) {
+            LOG4CXX_INFO(logger, boost::format("Processing %s") % file);
+
+            std::ifstream stream(file.c_str());
+            std::shared_ptr< DNASeqReader > reader(DNASeqReaderFactory::create(stream));
+            if (reader) {
+                DNASeq seq;
+                while (reader->read(seq)) {
+                    if (processRead(options, seq)) {
+                        output << seq;
+                    }
+                }
+            } else {
+                LOG4CXX_ERROR(logger, boost::format("Failed to open input stream %s") % file);
+                return -1;
+            }
+        }
+        return 0;
+    }
+
+    int processPairEnds1(const Properties& options, const std::vector< std::string >& inputs, std::ostream& output) {
+        if (inputs.size() % 2 != 0) {
+            LOG4CXX_ERROR(logger, boost::format("An even number of files must be given for pe-mode 1"));
+            return -1;
+        }
+
+        size_t i = 0;
+        while (i < inputs.size()) {
+            std::string file1 = inputs[i++];
+            std::string file2 = inputs[i++];
+            LOG4CXX_INFO(logger, boost::format("Processing %s,%s") % file1 % file2);
+
+            std::ifstream stream1(file1.c_str()), stream2(file2.c_str());
+            std::shared_ptr< DNASeqReader > reader1(DNASeqReaderFactory::create(stream1));
+            std::shared_ptr< DNASeqReader > reader2(DNASeqReaderFactory::create(stream2));
+            int r = processPairEnds(options, reader1.get(), reader2.get(), output);
+            if (r != 0) {
+                LOG4CXX_ERROR(logger, boost::format("Failed to process pair ends: %s,%s") % file1 % file2);
+                return r;
+            }
+        }
+
+        return 0;
+    }
+
+    int processPairEnds2(const Properties& options, const std::vector< std::string >& inputs, std::ostream& output) {
+        BOOST_FOREACH(const std::string& file, inputs) {
+            LOG4CXX_INFO(logger, boost::format("Processing %s") % file);
+
+            std::ifstream stream(file.c_str());
+            std::shared_ptr< DNASeqReader > reader1(DNASeqReaderFactory::create(stream));
+            int r = processPairEnds(options, reader1.get(), reader1.get(), output);
+            if (r != 0) {
+                LOG4CXX_ERROR(logger, boost::format("Failed to process pair ends: %s") % file);
+                return r;
+            }
+        }
+    }
+
+    int processPairEnds(const Properties& options, DNASeqReader* reader1, DNASeqReader* reader2, std::ostream& output) {
+        if (reader1 != NULL && reader2 != NULL) {
+            DNASeq read1, read2;
+            while (reader1->read(read1) && reader2->read(read2)) {
+                // If the names of the records are the same, append a /1 and /2 to them
+                if (read1.name == read2.name) {
+                    read1.name += "/1";
+                    read2.name += "/2";
+                }
+
+                // Ensure the read names are sensible
+                std::string expectedID2 = PairEnd::id(read1.name);
+                std::string expectedID1 = PairEnd::id(read2.name);
+
+                if (expectedID1 != read1.name || expectedID2 != read2.name) {
+                    LOG4CXX_WARN(logger, "Pair names do not match (expected format /1,/2 or /A,/B)");
+                    LOG4CXX_WARN(logger, boost::format("Read1 name: %s") % read1.name);
+                    LOG4CXX_WARN(logger, boost::format("Read2 name: %s") % read2.name);
+                }
+
+                bool passed1 = processRead(options, read1);
+                bool passed2 = processRead(options, read2);
+                if (passed1 && passed2) {
+                    output << read1 << read2;
+                }
+            }
+            return 0;
+        }
+        return -1;
+    }
+
     bool processRead(const Properties& options, DNASeq& record) const {
         // Ensure sequence is entirely ACGT
         if (record.seq.find_first_not_of("ACGT") != std::string::npos) {
             return false;
         }
+
+        // Validate the quality string (if present) and
+        // perform any necessary transformations
+        if (!record.quality.empty()) {
+
+            // Calculate the range of phred scores for validation
+            bool allValid = true;
+            BOOST_FOREACH(char q, record.quality) {
+                allValid = Quality::Phred::isValid(q) && allValid;
+            }
+
+            if (!allValid) {
+                LOG4CXX_ERROR(logger, boost::format("Error: read %s has out of range quality values.") % record.name);
+                LOG4CXX_ERROR(logger, boost::format("Expected phred%d.") % 33);
+                LOG4CXX_ERROR(logger, boost::format("Quality string: %s") % record.quality);
+                LOG4CXX_ERROR(logger, boost::format("Check your data and re-run preprocess with the correct quality scaling flag."));
+            }
+        }
+
+        // Hard clip
+        {
+            int maxLength = options.get< int >("max-length", 0);
+            if (maxLength > 0) {
+                hardClip(maxLength, record);
+            }
+        }
+
+        // Quality trim
+        {
+            int qualityTrim = options.get< int >("quality-trim", 0);
+            if (qualityTrim > 0 && !record.quality.empty()) {
+                softClip(qualityTrim, record);
+            }
+        }
+
+        // Quality filter
+        {
+            int qualityFilter = options.get< int >("quality-filter", -1);
+            if (qualityFilter >= 0 && !record.quality.empty()) {
+                size_t numLowQuality = countLowQuality(record);
+                if (numLowQuality >= qualityFilter) {
+                    return false;
+                }
+            }
+        }
+
+        // Min length
         if (record.seq.length() < options.get< size_t >("min-length", 40)) {
             return false;
         }
         return true;
     }
 
-    Preprocess() : Runner("c:s:o:p:q:m:h", boost::assign::map_list_of('o', "out")('p', "pe-mode")('m', "min-length")) {
+    // Count the number of low quality bases in the read
+    size_t countLowQuality(const DNASeq& record) const {
+        assert(record.seq.length() == record.quality.length());
+
+        size_t n = 0;
+        BOOST_FOREACH(char q, record.quality) {
+            int ps = Quality::Phred::fromchar(q);
+            if (ps <= LOW_QUALITY_PHRED_SCORE) {
+                ++n;
+            }
+        }
+        return n;
+    }
+
+    Preprocess() : Runner("c:s:o:p:q:f:m:L:h", boost::assign::map_list_of('o', "out")('p', "pe-mode")('q', "quality-trim")('f', "quality-filter")('m', "min-length")('L', "max-length")) {
         RUNNER_INSTALL("preprocess", this, "filter and quality-trim reads");
+    }
+
+    // Perform a soft-clipping of the sequence by removing low quality bases from the
+    // 3' end using Heng Li's algorithm from bwa
+    void softClip(int qualityTrim, DNASeq& record) const {
+        assert(record.seq.length() == record.quality.length());
+
+        size_t i = record.seq.length();
+        int terminalScore = Quality::Phred::fromchar(record.quality[i - 1]);
+        // Only perform soft-clipping if the last base has qual less than qualTrim
+        if (terminalScore < qualityTrim) {
+            size_t endpoint = 0; // not inclusive
+            int max = 0;
+
+            int subSum = 0;
+            while (i > 0) {
+                int ps = Quality::Phred::fromchar(record.quality[i - 1]);
+                int score = qualityTrim - ps;
+                subSum += score;
+                if (subSum > max) {
+                    max = subSum;
+                    endpoint = i;
+                }
+                --i;
+            }
+
+            // Clip the read
+            hardClip(endpoint, record);
+        }
+    }
+
+    // Perform a hard-clipping
+    void hardClip(size_t endpoint, DNASeq& record) const {
+        if (record.seq.length() > endpoint) {
+            record.seq.resize(endpoint);
+        }
+        if (record.quality.length() > endpoint) {
+            record.quality.resize(endpoint);
+        }
     }
 
     int checkOptions(const Properties& options, const Arguments& arguments) const {

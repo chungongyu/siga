@@ -121,6 +121,11 @@ bool FASTQReader::read(DNASeq& sequence) {
             } else if (state == kQuality) {
                 if (buf.length() == sequence.seq.length()) {
                     sequence.quality = buf;
+                    // name
+                    size_t i = sequence.name.find_first_of(" \t");
+                    if (i != std::string::npos) {
+                        sequence.name.resize(i);
+                    }
                     return true;
                 } else {
                     LOG4CXX_WARN(logger, boost::format("fastq=>length of sequence and quality are not equal: %s") % buf);

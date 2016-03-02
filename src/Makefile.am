@@ -11,12 +11,14 @@ moga_SOURCES=assembler.cpp \
 			 kseq.cpp \
 			 kseq.h \
 			 preprocess.cpp \
+			 runner.h \
 			 scaffold.cpp \
 			 suffix_array.cpp \
 			 suffix_array.h \
 			 suffix_array_builder.cpp \
 			 suffix_array_builder.h \
-			 runner.h \
+			 utils.cpp \
+			 utils.h \
 			 main.cpp
 moga_CXXFLAGS=${LOG4CXX_CFLAGS} \
 			  ${DIVSUFSORT_CFLAGS}
