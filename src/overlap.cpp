@@ -1,7 +1,6 @@
 #include "config.h"
 #include "constant.h"
 #include "runner.h"
-#include "suffix_array.h"
 
 #include <iostream>
 #include <memory>
@@ -14,9 +13,9 @@
 
 #include <log4cxx/logger.h>
 
-static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.Indexer"));
+static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.Overlap"));
 
-class Indexer : public Runner {
+class Overlap : public Runner {
 public:
     int run(const Properties& options, const Arguments& arguments) {
         int r = 0;
@@ -25,19 +24,12 @@ public:
             return r;
         }
 
-        std::string input = arguments[0];
-        LOG4CXX_INFO(logger, boost::format("input: %s") % input);
-
-        SuffixArray sa;
-        std::cin >> sa;
-        std::cout << sa;
-
         return r;
     }
 
 private:
-    Indexer() : Runner("c:s:a:t:p:g:h", boost::assign::map_list_of('a', "algorithm")('t', "threads")('p', "prefix")('g', "gap-array")) {
-        RUNNER_INSTALL("index", this, "build the BWT and FM-index for a set of reads");
+    Overlap() : Runner("c:s:a:t:p:g:h", boost::assign::map_list_of('a', "algorithm")('t', "threads")('p', "prefix")('g', "gap-array")) {
+        RUNNER_INSTALL("overlap", this, "build the BWT and FM-index for a set of reads");
     }
     int checkOptions(const Properties& options, const Arguments& arguments) const {
         if (options.find("h") != options.not_found() || arguments.size() != 1) {
@@ -72,8 +64,8 @@ private:
         return 256;
     }
 
-    static Indexer _runner;
+    static Overlap _runner;
 };
 
-Indexer Indexer::_runner;
+Overlap Overlap::_runner;
 

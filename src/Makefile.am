@@ -1,5 +1,5 @@
-bin_PROGRAMS=moga
-moga_SOURCES=assembler.cpp \
+bin_PROGRAMS=arcs
+arcs_SOURCES=assembler.cpp \
 			 bwt.cpp \
 			 bwt.h \
 			 constant.cpp \
@@ -10,6 +10,7 @@ moga_SOURCES=assembler.cpp \
 			 indexer.cpp \
 			 kseq.cpp \
 			 kseq.h \
+			 overlap.cpp \
 			 preprocess.cpp \
 			 primer_screen.cpp \
 			 primer_screen.h \
@@ -22,9 +23,9 @@ moga_SOURCES=assembler.cpp \
 			 utils.cpp \
 			 utils.h \
 			 main.cpp
-moga_CXXFLAGS=${LOG4CXX_CFLAGS} \
+arcs_CXXFLAGS=${LOG4CXX_CFLAGS} \
 			  ${DIVSUFSORT_CFLAGS}
-moga_LDFLAGS=${LOG4CXX_LIBS} \
+arcs_LDFLAGS=${LOG4CXX_LIBS} \
 			 ${DIVSUFSORT_LIBS} \
 			 -lboost_filesystem \
 			 -lboost_system

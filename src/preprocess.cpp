@@ -367,7 +367,7 @@ private:
     }
 
     int checkOptions(const Properties& options, const Arguments& arguments) const {
-        if (options.find("h") != options.not_found()) {
+        if (options.find("h") != options.not_found() || arguments.empty()) {
             return printHelps();
         }
         return 0;

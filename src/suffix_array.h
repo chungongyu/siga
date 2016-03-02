@@ -26,6 +26,8 @@ public:
 
     SuffixArray() : _strings(0) {
     }
+    SuffixArray(size_t strings, size_t suffixes) : _strings(strings), _elems(suffixes) {
+    }
 
     size_t size() const {
         return _elems.size();
@@ -33,6 +35,10 @@ public:
     const Elem& operator[](size_t i) const {
         return _elems[i];
     }
+    Elem& operator[](size_t i) {
+        return _elems[i];
+    }
+
 private:
     friend std::ostream& operator<<(std::ostream& stream, const SuffixArray& sa);
     friend std::istream& operator>>(std::istream& stream, SuffixArray& sa);
