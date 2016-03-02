@@ -24,36 +24,15 @@ public:
             return r;
         }
 
-        LOG4CXX_DEBUG(logger, "indexer reads begin");
-
-        std::vector< std::string > filelist;
-        std::copy(arguments.begin(), arguments.end(), std::back_inserter(filelist));
-        LOG4CXX_DEBUG(logger, boost::format("input: %s") % boost::algorithm::join(filelist, ":"));
-
-        char* text = "abracadabra";
-        size_t n = strlen(text);
-        int* sa = new int[n];
-
-        divsufsort((const sauchar_t *)text, sa, n);
-        for (size_t i = 0; i < n; ++i) {
-            for (size_t j = sa[i]; j < n; ++j) {
-                std::cout << text[j];
-            }
-            std::cout << std::endl;
-        }
-
-        delete[] sa;
-
-        LOG4CXX_DEBUG(logger, "indexer reads end");
         return r;
     }
 
 private:
-    Indexer() : Runner("c:s:n:d:i:o:t:ESe:h", boost::assign::map_list_of('e', "READ_LENGTH_CUTOFF")('t', "THRESHOLD")) {
+    Indexer() : Runner("c:s:a:t:p:g:h", boost::assign::map_list_of('a', "algorithm")('t', "threads")('p', "prefix")('g', "gap-array")) {
         RUNNER_INSTALL("index", this, "build the BWT and FM-index for a set of reads");
     }
     int checkOptions(const Properties& options, const Arguments& arguments) const {
-        if (options.find("h") != options.not_found()) {
+        if (options.find("h") != options.not_found() || arguments.size() != 1) {
             return printHelps();
         }
         return 0;
@@ -68,9 +47,6 @@ private:
                 "      -a, --algorithm=STR              BWT construction algorithm. STR can be:\n"
                 "                                       sais - induced sort algorithm, slower but works for very long sequences (default)\n"
                 "                                       ropebwt - very fast and memory efficient. use this for short (<200bp) reads\n"
-                "      -d, --disk=NUM                   use disk-based BWT construction algorithm. The suffix array/BWT will be constructed\n"
-                "                                       for batchs of NUM reads at a time. To construct the suffix array of 200 megabases of sequence\n"
-                "                                       requires ~2GB of memory, set this parameter accordingly.\n"
                 "      -t, --threads=NUM                use NUM threads to construct the index (default: 1)\n"
                 "      -c, --check                      validate that the suffix array/bwt is correct\n"
                 "      -p, --prefix=PREFIX              write index to file using PREFIX instead of prefix of READSFILE\n"
