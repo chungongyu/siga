@@ -16,6 +16,9 @@ public:
         bool empty() const {
             return i == -1 || j == -1;
         }
+        bool full() const {
+            return j == 0;
+        }
         operator bool() const {
             return not empty();
         }

@@ -175,7 +175,7 @@ private:
                 LOG4CXX_TRACE(logger, boost::format("Curr: %d %d") % ielem.i % ielem.j);
 
                 SuffixArray::Elem jelem(ielem.i, ielem.j - 1);
-                if (!getBit(type_array, jelem.i, jelem.j)) {
+                if (getBit(type_array, jelem.i, jelem.j)) {
                     const DNASeq& read = reads[jelem.i];
                     char c = read.seq[jelem.j];
                     LOG4CXX_TRACE(logger,  boost::format("<iSA1>Placing %d %d at position %d") % jelem.i % jelem.j % (buckets[DNAAlphabet::baserank(c)] - 1));

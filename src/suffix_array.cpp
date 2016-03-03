@@ -12,7 +12,7 @@ public:
     SAWriter(std::ostream& stream) : _stream(stream) {
     }
     bool write(const SuffixArray& sa) {
-        if (!writeHeader(sa._strings, sa._elems.size())) {
+        if (!writeHeader(sa._strings, sa._strings)) {
             return false;
         }
         BOOST_FOREACH(const SuffixArray::Elem& elem, sa._elems) {
@@ -33,7 +33,9 @@ private:
     }
     bool writeElem(const SuffixArray::Elem& elem) {
         if (_stream) {
-            _stream << elem.i << ' ' << elem.j << "\n";
+            if (elem.full()) {
+                _stream << elem.i << ' ' << elem.j << "\n";
+            }
         }
         return _stream;
     }
