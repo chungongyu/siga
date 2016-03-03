@@ -1,20 +1,24 @@
 #include "config.h"
 #include "constant.h"
+#include "kseq.h"
 #include "runner.h"
 #include "suffix_array.h"
+#include "suffix_array_builder.h"
 
 #include <iostream>
 #include <memory>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/assign.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/fstream.hpp>
 #include <boost/format.hpp>
-
-#include <divsufsort.h>
 
 #include <log4cxx/logger.h>
 
 static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.Indexer"));
+
+#define SAI_EXT ".sai"
 
 class Indexer : public Runner {
 public:
@@ -28,9 +32,30 @@ public:
         std::string input = arguments[0];
         LOG4CXX_INFO(logger, boost::format("input: %s") % input);
 
-        SuffixArray sa;
-        std::cin >> sa;
-        std::cout << sa;
+        std::string output = boost::filesystem::path(input).stem().string();
+        if (options.find("prefix") != options.not_found()) {
+            output = options.get< std::string >("prefix");
+        }
+        LOG4CXX_INFO(logger, boost::format("output: %s") % output);
+
+        DNASeqList reads;
+        if (ReadDNASequences(input, reads)) {
+            std::string algorithm = options.get< std::string >("algorithm", "sais");
+            std::shared_ptr< SuffixArrayBuilder > builder(SuffixArrayBuilder::create(algorithm));
+            if (builder) {
+                std::shared_ptr< SuffixArray > sa(builder->build(reads));
+                if (sa) {
+                    boost::filesystem::ofstream out(output + SAI_EXT);
+                    out << *sa;
+                    LOG4CXX_INFO(logger, "ok");
+                }
+            } else {
+                LOG4CXX_ERROR(logger, boost::format("Failed to create suffix array builder algorithm %s") % algorithm);
+            }
+        } else {
+            LOG4CXX_ERROR(logger, boost::format("Failed to open input stream %s") % input);
+            r = -1;
+        }
 
         return r;
     }

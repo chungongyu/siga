@@ -63,6 +63,7 @@ public:
         if (*out) {
             Statistics stats;
             if ((r = processReads(options, filelist, *out, stats)) == 0) {
+                // report statistics
                 LOG4CXX_INFO(logger, "Preprocess stats:");
                 LOG4CXX_INFO(logger, boost::format("Reads parsed:\t%d") % stats.numReadsRead);
                 if (stats.numReadsRead > 0) {
@@ -97,6 +98,7 @@ private:
         size_t numReadsPrimer;
         size_t numInvalidPE;
     };
+
     int processReads(const Properties& options, const std::vector< std::string >& inputs, std::ostream& output, Statistics& stats) {
         int peMode = options.get< int >("pe-mode", 0);
 

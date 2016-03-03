@@ -10,6 +10,7 @@ arcs_SOURCES=assembler.cpp \
 			 indexer.cpp \
 			 kseq.cpp \
 			 kseq.h \
+			 mkqs.h \
 			 overlap.cpp \
 			 preprocess.cpp \
 			 primer_screen.cpp \
