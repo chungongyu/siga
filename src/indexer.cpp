@@ -1,3 +1,4 @@
+#include "bwt.h"
 #include "config.h"
 #include "constant.h"
 #include "kseq.h"
@@ -53,8 +54,17 @@ public:
                 {
                     std::shared_ptr< SuffixArray > sa(builder->build(reads));
                     if (sa) {
-                        boost::filesystem::ofstream out(output + SAI_EXT);
-                        out << *sa;
+                        // suffix array
+                        {
+                            boost::filesystem::ofstream out(output + SAI_EXT);
+                            out << *sa;
+                        }
+                        // bwt
+                        {
+                            boost::filesystem::ofstream out(output + BWT_EXT);
+                            BWTWriter w(out);
+                            w.write(*sa, reads);
+                        }
                     }
                 }
 
@@ -66,8 +76,17 @@ public:
                 {
                     std::shared_ptr< SuffixArray > sa(builder->build(reads));
                     if (sa) {
-                        boost::filesystem::ofstream out(output + RSAI_EXT);
-                        out << *sa;
+                        // suffix array
+                        {
+                            boost::filesystem::ofstream out(output + RSAI_EXT);
+                            out << *sa;
+                        }
+                        // bwt
+                        {
+                            boost::filesystem::ofstream out(output + RBWT_EXT);
+                            BWTWriter w(out);
+                            w.write(*sa, reads);
+                        }
                     }
                 }
             } else {
