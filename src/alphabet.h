@@ -5,16 +5,15 @@
 
 namespace DNAAlphabet {
     const size_t ALL_SIZE = 5;
-    const char RANK_ALL[ALL_SIZE] = {'$', 'A', 'C', 'G', 'T'};
 
     inline int torank(char c) {
-        static int RANK[256] = {
+        static int RANK_ALL[256] = {
             0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
             0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
             0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
             0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-            0,0,0,1,0,0,0,2,0,0,0,0,0,0,0,0,
-            0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,
+            0,1,0,2,0,0,0,3,0,0,0,0,0,0,0,0,
+            0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,
             0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
             0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
             0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -26,11 +25,12 @@ namespace DNAAlphabet {
             0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
             0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
         };
-        return RANK[(size_t)c];
+        return RANK_ALL[(size_t)c];
     }
 
     inline char tochar(int rank) {
-        return RANK_ALL[rank];
+        static char DNA_ALL[ALL_SIZE] = {'$', 'A', 'C', 'G', 'T'};
+        return DNA_ALL[rank];
     }
 };
 
