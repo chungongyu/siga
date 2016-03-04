@@ -13,15 +13,19 @@ class SuffixArray;
 //
 class BWT {
 public:
-    BWT() {
+    BWT() : _strings(0), _suffixes(0) {
     }
     BWT(const SuffixArray& sa, const DNASeqList& sequences);
 
 private:
     friend std::ostream& operator<<(std::ostream& stream, const BWT& bwt);
     friend std::istream& operator>>(std::istream& stream, BWT& bwt);
+    friend class BWTReader;
+    friend class BWTWriter;
 
-    std::string _data;
+    RLList _runs;       // The run-length encoded string
+    size_t _strings;    // The number of strings in the collection
+    size_t _suffixes;   // The total length of the bw string
 };
 
 enum BWFlag {       
@@ -29,6 +33,26 @@ enum BWFlag {
     BWF_HASFMI
 };
 
+//
+// Read a run length encoded binary BWT file from disk
+//
+class BWTReader {
+public:
+    BWTReader(std::istream& stream) : _stream(stream) {
+    }
+
+    bool read(BWT& bwt);
+private:
+    bool readHeader(size_t& num_strings, size_t& num_suffixes, BWFlag& flag);
+    bool readRuns(RLList& runs, size_t numRuns);
+
+    std::istream& _stream;
+    size_t _numRuns;
+};
+
+//
+// Write a run-length encoded BWT to a binary file
+//
 class BWTWriter {
 public:
     BWTWriter(std::ostream& stream) : _stream(stream), _numRuns(0), _posRun(0) {

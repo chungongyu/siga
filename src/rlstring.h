@@ -62,6 +62,8 @@ public:
     uint8_t data;
 };
 
+typedef std::vector< RLUnit > RLList;
+
 class RLString {
 public:
 };

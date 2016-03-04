@@ -1,3 +1,4 @@
+#include "bwt.h"
 #include "config.h"
 #include "constant.h"
 #include "runner.h"
@@ -7,6 +8,8 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/assign.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/fstream.hpp>
 #include <boost/format.hpp>
 
 #include <divsufsort.h>
@@ -24,11 +27,30 @@ public:
             return r;
         }
 
+        std::string input = arguments[0];
+        LOG4CXX_INFO(logger, boost::format("input: %s") % input);
+        input = boost::filesystem::path(input).stem().string();
+
+        std::string output = boost::filesystem::path(input).stem().string();
+        if (options.find("prefix") != options.not_found()) {
+            output = options.get< std::string >("prefix");
+        }
+        LOG4CXX_INFO(logger, boost::format("output: %s") % output);
+
+        BWT bwt;
+        {
+            boost::filesystem::ifstream stream(input + BWT_EXT);
+            BWTReader reader(stream);
+            if (reader.read(bwt)) {
+                LOG4CXX_INFO(logger, "ok");
+            }
+        }
+
         return r;
     }
 
 private:
-    Overlap() : Runner("c:s:a:t:p:g:h", boost::assign::map_list_of('a', "algorithm")('t', "threads")('p', "prefix")('m', "min-overlap")) {
+    Overlap() : Runner("c:s:a:t:p:m:h", boost::assign::map_list_of('a', "algorithm")('t', "threads")('p', "prefix")('m', "min-overlap")) {
         RUNNER_INSTALL("overlap", this, "compute overlaps between reads");
     }
     int checkOptions(const Properties& options, const Arguments& arguments) const {

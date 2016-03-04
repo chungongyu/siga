@@ -3,6 +3,11 @@
 
 #include <cstdio>
 
+#define SAI_EXT  ".sai"
+#define RSAI_EXT ".rsai"
+#define BWT_EXT  ".bwt"
+#define RBWT_EXT ".rbwt"
+
 // common
 extern const char* kLogConfig;
 extern const char* kWorkDir;

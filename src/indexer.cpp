@@ -20,11 +20,6 @@
 
 static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.Indexer"));
 
-#define SAI_EXT  ".sai"
-#define RSAI_EXT ".rsai"
-#define BWT_EXT  ".bwt"
-#define RBWT_EXT ".rbwt"
-
 class Indexer : public Runner {
 public:
     int run(const Properties& options, const Arguments& arguments) {

@@ -1,26 +1,59 @@
 #include "bwt.h"
 #include "suffix_array.h"
 
-BWT::BWT(const SuffixArray& sa, const DNASeqList& sequences) : _data(sa.size(), ' ') {
-    for (size_t i = 0; i < sa.size(); ++i) {
-        const SuffixArray::Elem& elem = sa[i];
-        const DNASeq& read = sequences[elem.i];
-        char c = (elem.j == 0) ? '$' : read.seq[elem.j - 1];
-        _data[i] = c;
-    }
+BWT::BWT(const SuffixArray& sa, const DNASeqList& sequences) {
 }
 
 std::ostream& operator<<(std::ostream& stream, const BWT& bwt) {
-    stream << bwt._data;
     return stream;
 }
 
 std::istream& operator>>(std::istream& stream, BWT& bwt) {
-    stream >> bwt._data;
     return stream;
 }
 
 const uint16_t BWT_FILE_MAGIC = 0xCACA;
+
+bool BWTReader::read(BWT& bwt) {
+    BWFlag flag;
+    if (!readHeader(bwt._strings, bwt._suffixes, flag)) {
+        return false;
+    }
+    if (!readRuns(bwt._runs, _numRuns)) {
+        return false;
+    }
+    return true;
+}
+
+bool BWTReader::readHeader(size_t& num_strings, size_t& num_suffixes, BWFlag& flag) {
+    uint16_t magic;
+    if (!_stream.read((char *)&magic, sizeof(magic)) || magic != BWT_FILE_MAGIC) {
+        return false;
+    }
+    if (!_stream.read((char *)&num_strings, sizeof(num_strings))) {
+        return false;
+    }
+    if (!_stream.read((char *)&num_suffixes, sizeof(num_suffixes))) {
+        return false;
+    }
+    if (!_stream.read((char *)&_numRuns, sizeof(_numRuns))) {
+        return false;
+    }
+    if (!_stream.read((char *)&flag, sizeof(flag))) {
+        return false;
+    }
+    return true;
+}
+
+bool BWTReader::readRuns(RLList& runs, size_t numRuns) {
+    runs.resize(numRuns);
+    if (!runs.empty()) {
+        if (!_stream.read((char *)&runs[0], numRuns * sizeof(runs[0]))) {
+            return false;
+        }
+    }
+    return true;
+}
 
 bool BWTWriter::write(const SuffixArray& sa, const DNASeqList& sequences) {
     size_t num_strings = sa.strings(), num_suffixes = sa.size();
