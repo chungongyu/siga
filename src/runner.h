@@ -115,9 +115,10 @@ private:
         Cmp() {
             _mp["preprocess"] = 1;
             _mp["index"] = 2;
-            _mp["overlap"] = 3;
-            _mp["assemble"] = 4;
-            _mp["scaffold"] = 5;
+            _mp["correct"] = 3;
+            _mp["overlap"] = 4;
+            _mp["assemble"] = 5;
+            _mp["scaffold"] = 6;
             _mp["gapfill"] = 7;
         }
         bool operator()(const std::string& l, const std::string& r) const {

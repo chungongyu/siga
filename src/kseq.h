@@ -22,6 +22,7 @@ public:
     std::string quality;
 
     void make_complement();
+    void make_reverse();
 private:
     friend class FASTQReader;
     friend std::ostream& operator << (std::ostream& os, const DNASeq& seq);

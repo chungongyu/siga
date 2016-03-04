@@ -4,7 +4,10 @@
 #include <string>
 
 namespace DNAAlphabet {
-    inline int baserank(char c) {
+    const size_t ALL_SIZE = 5;
+    const char RANK_ALL[ALL_SIZE] = {'$', 'A', 'C', 'G', 'T'};
+
+    inline int torank(char c) {
         static int RANK[256] = {
             0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
             0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -24,6 +27,10 @@ namespace DNAAlphabet {
             0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
         };
         return RANK[(size_t)c];
+    }
+
+    inline char tochar(int rank) {
+        return RANK_ALL[rank];
     }
 };
 

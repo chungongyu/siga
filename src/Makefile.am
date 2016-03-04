@@ -4,6 +4,7 @@ arcs_SOURCES=assembler.cpp \
 			 bwt.h \
 			 constant.cpp \
 			 constant.h \
+			 correct.cpp \
 			 fmindex.cpp \
 			 fmindex.h \
 			 gapfiller.cpp \

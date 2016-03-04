@@ -107,7 +107,7 @@ public:
             (*sa)[i - 1] = SuffixArray::Elem(); // empty
             const DNASeq& read = reads[elem.i];
             char c = read.seq[elem.j];
-            (*sa)[--buckets[DNAAlphabet::baserank(c)]] = elem;
+            (*sa)[--buckets[DNAAlphabet::torank(c)]] = elem;
         }
 
         induceSAl(reads, sa, type_array, bucket_counts, buckets, num_suffixes, ALPHABET_SIZE, false);
@@ -160,8 +160,8 @@ private:
                 if (!getBit(type_array, jelem.i, jelem.j)) {
                     const DNASeq& read = reads[jelem.i];
                     char c = read.seq[jelem.j];
-                    LOG4CXX_TRACE(logger,  boost::format("<iSA1>Placing %d %d at position %d") % jelem.i % jelem.j % buckets[DNAAlphabet::baserank(c)]);
-                    (*sa)[buckets[DNAAlphabet::baserank(c)]++] = jelem;
+                    LOG4CXX_TRACE(logger,  boost::format("<iSA1>Placing %d %d at position %d") % jelem.i % jelem.j % buckets[DNAAlphabet::torank(c)]);
+                    (*sa)[buckets[DNAAlphabet::torank(c)]++] = jelem;
                 }
             }
         }
@@ -178,8 +178,8 @@ private:
                 if (getBit(type_array, jelem.i, jelem.j)) {
                     const DNASeq& read = reads[jelem.i];
                     char c = read.seq[jelem.j];
-                    LOG4CXX_TRACE(logger,  boost::format("<iSA1>Placing %d %d at position %d") % jelem.i % jelem.j % (buckets[DNAAlphabet::baserank(c)] - 1));
-                    (*sa)[--buckets[DNAAlphabet::baserank(c)]] = jelem;
+                    LOG4CXX_TRACE(logger,  boost::format("<iSA1>Placing %d %d at position %d") % jelem.i % jelem.j % (buckets[DNAAlphabet::torank(c)] - 1));
+                    (*sa)[--buckets[DNAAlphabet::torank(c)]] = jelem;
                 }
             }
         }
@@ -194,9 +194,9 @@ private:
             const DNASeq& read = reads[i];
             size_t len = read.seq.length();
             for (size_t j = 0; j < len; ++j) {
-                ++counts[DNAAlphabet::baserank(read.seq[j])];
+                ++counts[DNAAlphabet::torank(read.seq[j])];
             }
-            ++counts[DNAAlphabet::baserank('\0')];
+            ++counts[DNAAlphabet::torank('\0')];
         }
     }
     // If end is true, calculate the end of the buckets, otherwise 

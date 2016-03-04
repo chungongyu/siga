@@ -32,6 +32,9 @@ public:
     SuffixArray(size_t strings, size_t suffixes) : _strings(strings), _elems(suffixes) {
     }
 
+    size_t strings() const {
+        return _strings;
+    }
     size_t size() const {
         return _elems.size();
     }

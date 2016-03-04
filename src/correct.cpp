@@ -1,30 +1,21 @@
 #include "config.h"
 #include "constant.h"
-#include "kseq.h"
 #include "runner.h"
-#include "suffix_array.h"
-#include "suffix_array_builder.h"
 
 #include <iostream>
 #include <memory>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/assign.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/filesystem/fstream.hpp>
-#include <boost/foreach.hpp>
 #include <boost/format.hpp>
+
+#include <divsufsort.h>
 
 #include <log4cxx/logger.h>
 
-static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.Indexer"));
+static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.Correct"));
 
-#define SAI_EXT  ".sai"
-#define RSAI_EXT ".rsai"
-#define BWT_EXT  ".bwt"
-#define RBWT_EXT ".rbwt"
-
-class Indexer : public Runner {
+class Correct : public Runner {
 public:
     int run(const Properties& options, const Arguments& arguments) {
         int r = 0;
@@ -33,57 +24,12 @@ public:
             return r;
         }
 
-        std::string input = arguments[0];
-        LOG4CXX_INFO(logger, boost::format("input: %s") % input);
-
-        std::string output = boost::filesystem::path(input).stem().string();
-        if (options.find("prefix") != options.not_found()) {
-            output = options.get< std::string >("prefix");
-        }
-        LOG4CXX_INFO(logger, boost::format("output: %s") % output);
-
-        std::string algorithm = options.get< std::string >("algorithm", "sais");
-        LOG4CXX_INFO(logger, boost::format("algorithm: %s") % algorithm);
-
-        DNASeqList reads;
-        if (ReadDNASequences(input, reads)) {
-            std::shared_ptr< SuffixArrayBuilder > builder(SuffixArrayBuilder::create(algorithm));
-            if (builder) {
-                // forward
-                {
-                    std::shared_ptr< SuffixArray > sa(builder->build(reads));
-                    if (sa) {
-                        boost::filesystem::ofstream out(output + SAI_EXT);
-                        out << *sa;
-                    }
-                }
-
-                BOOST_FOREACH(DNASeq& read, reads) {
-                    read.make_reverse();
-                }
-
-                // reverse
-                {
-                    std::shared_ptr< SuffixArray > sa(builder->build(reads));
-                    if (sa) {
-                        boost::filesystem::ofstream out(output + RSAI_EXT);
-                        out << *sa;
-                    }
-                }
-            } else {
-                LOG4CXX_ERROR(logger, boost::format("Failed to create suffix array builder algorithm %s") % algorithm);
-            }
-        } else {
-            LOG4CXX_ERROR(logger, boost::format("Failed to open input stream %s") % input);
-            r = -1;
-        }
-
         return r;
     }
 
 private:
-    Indexer() : Runner("c:s:a:t:p:g:h", boost::assign::map_list_of('a', "algorithm")('t', "threads")('p', "prefix")('g', "gap-array")) {
-        RUNNER_INSTALL("index", this, "build the BWT and FM-index for a set of reads");
+    Correct() : Runner("c:s:a:t:p:g:h", boost::assign::map_list_of('a', "algorithm")('t', "threads")('p', "prefix")('g', "gap-array")) {
+        RUNNER_INSTALL("correct", this, "build the BWT and FM-index for a set of reads");
     }
     int checkOptions(const Properties& options, const Arguments& arguments) const {
         if (options.find("h") != options.not_found() || arguments.size() != 1) {
@@ -118,8 +64,8 @@ private:
         return 256;
     }
 
-    static Indexer _runner;
+    static Correct _runner;
 };
 
-Indexer Indexer::_runner;
+Correct Correct::_runner;
 
