@@ -7,7 +7,7 @@
 
 class FMIndex {
 public:
-    FMIndex() {
+    FMIndex(const BWT& bwt) {
     }
 private:
     friend std::ostream& operator<<(std::ostream& stream, const FMIndex& index);

@@ -1,3 +1,4 @@
+#include "asqg.h"
 #include "bwt.h"
 #include "config.h"
 #include "constant.h"
@@ -18,7 +19,7 @@
 
 static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.Overlap"));
 
-class Overlap : public Runner {
+class Overlapping : public Runner {
 public:
     int run(const Properties& options, const Arguments& arguments) {
         int r = 0;
@@ -50,7 +51,7 @@ public:
     }
 
 private:
-    Overlap() : Runner("c:s:a:t:p:m:h", boost::assign::map_list_of('a', "algorithm")('t', "threads")('p', "prefix")('m', "min-overlap")) {
+    Overlapping() : Runner("c:s:a:t:p:m:h", boost::assign::map_list_of('a', "algorithm")('t', "threads")('p', "prefix")('m', "min-overlap")) {
         RUNNER_INSTALL("overlap", this, "compute overlaps between reads");
     }
     int checkOptions(const Properties& options, const Arguments& arguments) const {
@@ -74,8 +75,8 @@ private:
         return 256;
     }
 
-    static Overlap _runner;
+    static Overlapping _runner;
 };
 
-Overlap Overlap::_runner;
+Overlapping Overlapping::_runner;
 

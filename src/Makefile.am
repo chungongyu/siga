@@ -1,10 +1,14 @@
 bin_PROGRAMS=arcs
 arcs_SOURCES=assembler.cpp \
+			 asqg.cpp \
+			 asqg.h \
 			 bwt.cpp \
 			 bwt.h \
 			 constant.cpp \
 			 constant.h \
 			 correct.cpp \
+			 coord.cpp \
+			 coord.h \
 			 fmindex.cpp \
 			 fmindex.h \
 			 gapfiller.cpp \
@@ -25,10 +29,8 @@ arcs_SOURCES=assembler.cpp \
 			 utils.cpp \
 			 utils.h \
 			 main.cpp
-arcs_CXXFLAGS=${LOG4CXX_CFLAGS} \
-			  ${DIVSUFSORT_CFLAGS}
+arcs_CXXFLAGS=${LOG4CXX_CFLAGS}
 arcs_LDFLAGS=${LOG4CXX_LIBS} \
-			 ${DIVSUFSORT_LIBS} \
 			 -lboost_filesystem \
 			 -lboost_system
 

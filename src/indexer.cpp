@@ -36,7 +36,7 @@ public:
         if (options.find("prefix") != options.not_found()) {
             output = options.get< std::string >("prefix");
         }
-        LOG4CXX_INFO(logger, boost::format("output: %s") % output);
+        LOG4CXX_INFO(logger, boost::format("output: %s.(%s|%s|%s|%s)") % output % SAI_EXT % BWT_EXT % RSAI_EXT % RBWT_EXT);
 
         std::string algorithm = options.get< std::string >("algorithm", "sais");
         LOG4CXX_INFO(logger, boost::format("algorithm: %s") % algorithm);
@@ -46,46 +46,17 @@ public:
             std::shared_ptr< SuffixArrayBuilder > builder(SuffixArrayBuilder::create(algorithm));
             if (builder) {
                 // forward
-                {
-                    std::shared_ptr< SuffixArray > sa(builder->build(reads));
-                    if (sa) {
-                        // suffix array
-                        {
-                            boost::filesystem::ofstream out(output + SAI_EXT);
-                            out << *sa;
-                        }
-                        // bwt
-                        {
-                            boost::filesystem::ofstream out(output + BWT_EXT);
-                            BWTWriter w(out);
-                            w.write(*sa, reads);
-                        }
-                    }
-                }
+                build(builder.get(), reads, output + SAI_EXT, output + BWT_EXT);
 
                 BOOST_FOREACH(DNASeq& read, reads) {
                     read.make_reverse();
                 }
 
                 // reverse
-                {
-                    std::shared_ptr< SuffixArray > sa(builder->build(reads));
-                    if (sa) {
-                        // suffix array
-                        {
-                            boost::filesystem::ofstream out(output + RSAI_EXT);
-                            out << *sa;
-                        }
-                        // bwt
-                        {
-                            boost::filesystem::ofstream out(output + RBWT_EXT);
-                            BWTWriter w(out);
-                            w.write(*sa, reads);
-                        }
-                    }
-                }
+                build(builder.get(), reads, output + RSAI_EXT, output + RBWT_EXT);
             } else {
                 LOG4CXX_ERROR(logger, boost::format("Failed to create suffix array builder algorithm %s") % algorithm);
+                r = -1;
             }
         } else {
             LOG4CXX_ERROR(logger, boost::format("Failed to open input stream %s") % input);
@@ -96,6 +67,31 @@ public:
     }
 
 private:
+    bool build(SuffixArrayBuilder* builder, const DNASeqList& reads, const std::string& safile, const std::string& bwtfile) {
+        std::shared_ptr< SuffixArray > sa(builder->build(reads));
+        if (!sa) {
+            return false;
+        }
+
+        // suffix array
+        {
+            boost::filesystem::ofstream out(safile);
+            out << *sa;
+            if (!out) {
+                return false;
+            }
+        }
+        // bwt
+        {
+            boost::filesystem::ofstream out(bwtfile);
+            BWTWriter w(out);
+            if (!w.write(*sa, reads)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     Indexer() : Runner("c:s:a:t:p:g:h", boost::assign::map_list_of('a', "algorithm")('t', "threads")('p', "prefix")('g', "gap-array")) {
         RUNNER_INSTALL("index", this, "build the BWT and FM-index for a set of reads");
     }
