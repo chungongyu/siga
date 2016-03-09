@@ -41,8 +41,8 @@ public:
         BWT bwt;
         {
             boost::filesystem::ifstream stream(input + BWT_EXT);
-            BWTReader reader(stream);
-            if (reader.read(bwt)) {
+            stream >> bwt;
+            if (stream) {
                 LOG4CXX_INFO(logger, "ok");
             }
         }

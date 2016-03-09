@@ -83,9 +83,10 @@ private:
         }
         // bwt
         {
+            BWT bwt(*sa, reads);
             boost::filesystem::ofstream out(bwtfile);
-            BWTWriter w(out);
-            if (!w.write(*sa, reads)) {
+            out << bwt;
+            if (!out) {
                 return false;
             }
         }

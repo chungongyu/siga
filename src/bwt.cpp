@@ -1,18 +1,56 @@
 #include "bwt.h"
 #include "suffix_array.h"
 
-BWT::BWT(const SuffixArray& sa, const DNASeqList& sequences) {
-}
+#include <boost/foreach.hpp>
 
-std::ostream& operator<<(std::ostream& stream, const BWT& bwt) {
-    return stream;
-}
+BWT::BWT(const SuffixArray& sa, const DNASeqList& sequences) : _strings(sa.strings()), _suffixes(sa.size()) {
+    RLUnit run;
+    for (size_t i = 0; i < _suffixes; ++i) {
+        const SuffixArray::Elem& elem = sa[i];
+        const DNASeq& read = sequences[elem.i];
+        char c = (elem.j == 0 ? '$' : read.seq[elem.j - 1]);
 
-std::istream& operator>>(std::istream& stream, BWT& bwt) {
-    return stream;
+        if (run.initialized()) {
+            if (run == c && !run.full()) {
+                ++run;
+            } else {
+                // Write out the old run and start a new one
+                _runs.push_back(run);
+                run = RLUnit(c);
+            }
+        } else {
+            // Start a new run 
+            run = RLUnit(c);
+        }
+    }
+    if (run.initialized()) {
+        _runs.push_back(run);
+    }
 }
 
 const uint16_t BWT_FILE_MAGIC = 0xCACA;
+
+enum BWFlag {       
+    BWF_NOFMI = 0,
+    BWF_HASFMI
+};
+
+//
+// Read a run length encoded binary BWT file from disk
+//
+class BWTReader {
+public:
+    BWTReader(std::istream& stream) : _stream(stream) {
+    }
+
+    bool read(BWT& bwt);
+private:
+    bool readHeader(size_t& num_strings, size_t& num_suffixes, BWFlag& flag);
+    bool readRuns(RLString& runs, size_t numRuns);
+
+    std::istream& _stream;
+    size_t _numRuns;
+};
 
 bool BWTReader::read(BWT& bwt) {
     BWFlag flag;
@@ -45,7 +83,7 @@ bool BWTReader::readHeader(size_t& num_strings, size_t& num_suffixes, BWFlag& fl
     return true;
 }
 
-bool BWTReader::readRuns(RLList& runs, size_t numRuns) {
+bool BWTReader::readRuns(RLString& runs, size_t numRuns) {
     runs.resize(numRuns);
     if (!runs.empty()) {
         if (!_stream.read((char *)&runs[0], numRuns * sizeof(runs[0]))) {
@@ -55,17 +93,33 @@ bool BWTReader::readRuns(RLList& runs, size_t numRuns) {
     return true;
 }
 
-bool BWTWriter::write(const SuffixArray& sa, const DNASeqList& sequences) {
-    size_t num_strings = sa.strings(), num_suffixes = sa.size();
+//
+// Write a run-length encoded BWT to a binary file
+//
+class BWTWriter {
+public:
+    BWTWriter(std::ostream& stream) : _stream(stream), _numRuns(0), _posRun(0) {
+    }
+    
+    bool write(const BWT& bwt);
+private:
+    bool writeHeader(size_t num_strings, size_t num_suffixes, BWFlag flag);
+    bool writeRun(const RLUnit& run);
+    bool finalize();
 
+    size_t _numRuns;
+    std::streampos _posRun;
+
+    std::ostream& _stream;
+};
+
+bool BWTWriter::write(const BWT& bwt) {
+    size_t num_strings = bwt._strings, num_suffixes = bwt._suffixes;
     if (!writeHeader(num_strings, num_suffixes, BWF_NOFMI)) {
         return false;
     }
-    for (size_t i = 0; i < num_suffixes; ++i) {
-        const SuffixArray::Elem& elem = sa[i];
-        const DNASeq& read = sequences[elem.i];
-        char c = (elem.j == 0 ? '$' : read.seq[elem.j - 1]);
-        if (!writeChar(c)) {
+    BOOST_FOREACH(const RLUnit& run, bwt._runs) {
+        if (!writeRun(run)) {
             return false;
         }
     }
@@ -103,30 +157,7 @@ bool BWTWriter::writeHeader(size_t num_strings, size_t num_suffixes, BWFlag flag
     return true;
 }
 
-bool BWTWriter::writeChar(char c) {
-    if (_currRun.initialized()) {
-        if (_currRun == c && !_currRun.full()) {
-            ++_currRun;
-        } else {
-            // Write out the old run and start a new one
-            if (!writeRun(_currRun)) {
-                return false;
-            }
-            _currRun = RLUnit(c);
-        }
-    } else {
-        // Start a new run 
-        _currRun = RLUnit(c);
-    }
-    return true;
-}
-
 bool BWTWriter::finalize() {
-    if (_currRun.initialized()) {
-        if (!writeRun(_currRun)) {
-            return false;
-        }
-    }
     _stream.seekp(_posRun);
     _stream.write((const char *)&_numRuns, sizeof(_numRuns));
     _stream.seekp(std::ios_base::end);
@@ -139,4 +170,16 @@ bool BWTWriter::writeRun(const RLUnit& run) {
     }
     ++_numRuns;
     return true;
+}
+
+std::ostream& operator<<(std::ostream& stream, const BWT& bwt) {
+    BWTWriter w(stream);
+    w.write(bwt);
+    return stream;
+}
+
+std::istream& operator>>(std::istream& stream, BWT& bwt) {
+    BWTReader r(stream);
+    r.read(bwt);
+    return stream;
 }
