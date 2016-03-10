@@ -71,6 +71,11 @@ public:
         initialize();
     }
 
+    size_t getPC(char c) const {
+        return _pred[DNAAlphabet::torank(c)];
+    }
+    size_t getOcc(char c, size_t i) const;
+
     void info() const;
 private:
     void initialize();

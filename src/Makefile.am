@@ -17,6 +17,8 @@ arcs_SOURCES=assembler.cpp \
 			 kseq.h \
 			 mkqs.h \
 			 overlap.cpp \
+			 overlap_builder.cpp \
+			 overlap_builder.h \
 			 preprocess.cpp \
 			 primer_screen.cpp \
 			 primer_screen.h \

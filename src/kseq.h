@@ -7,6 +7,8 @@
 
 void make_complement_dna(std::string& dna);
 std::string make_complement_dna(const std::string& dna);
+void make_reverse_complement_dna(std::string& dna);
+std::string make_reverse_complement_dna(const std::string& dna);
 
 //
 // DNASeq represents a DNA sequence.

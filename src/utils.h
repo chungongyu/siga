@@ -15,6 +15,11 @@
 #define IS_POWER_OF_2(x) ((x) & ((x) - 1)) == 0
 #endif
 
+// return the x % y given that y is a power of 2
+#ifndef MOD_POWER_2
+#define MOD_POWER_2(x, y) (x) & ((y) - 1)
+#endif
+
 namespace PairEnd {
     std::string basename(const std::string& name);
     std::string id(const std::string& name);

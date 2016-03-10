@@ -26,37 +26,25 @@ void make_complement_dna(std::string& sequence) {
     for (size_t i = 0; i < N; ++i) {
         sequence[i] = mapping[sequence[i]];
     }
-    std::reverse(sequence.begin(), sequence.end());
 }
 std::string make_complement_dna(const std::string& sequence) {
-    size_t N = sequence.length();
-
-    std::string complement(N, 'N');
-
-    static std::unordered_map< char, char > mapping = boost::assign::map_list_of
-        ('A', 'T')
-        ('C', 'G')
-        ('G', 'C')
-        ('T', 'A')
-        ('N', 'N');
-
-    for (size_t i = 0; i < N; ++i) {
-        complement[N - i - 1] = mapping[sequence[i]];
-    }
-    /*
-    BOOST_FOREACH(char c, sequence) {
-        complement += mapping[c];
-    }
-
-    std::reverse(complement.begin(), complement.end());
-    */
-
+    std::string complement = sequence;
+    make_complement_dna(complement);
     return complement;
 }
 
+void make_reverse_complement_dna(std::string& sequence) {
+    make_complement_dna(sequence);
+    std::reverse(sequence.begin(), sequence.end());
+}
+
+std::string make_reverse_complement_dna(const std::string& sequence) {
+    std::string complement = make_complement_dna(sequence);
+    std::reverse(complement.begin(), complement.end());
+}
+
 void DNASeq::make_complement() {
-//    std::reverse(seq.begin(), seq.end());
-    make_complement_dna(seq);
+    make_reverse_complement_dna(seq);
     if (!quality.empty()) {
         std::reverse(quality.begin(), quality.end());
     }
