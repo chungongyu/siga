@@ -1,7 +1,7 @@
 #include "asqg.h"
-#include "bwt.h"
 #include "config.h"
 #include "constant.h"
+#include "fmindex.h"
 #include "runner.h"
 
 #include <iostream>
@@ -38,12 +38,12 @@ public:
         }
         LOG4CXX_INFO(logger, boost::format("output: %s") % output);
 
-        BWT bwt;
+        FMIndex index;
         {
             boost::filesystem::ifstream stream(input + BWT_EXT);
-            stream >> bwt;
+            stream >> index;
             if (stream) {
-                LOG4CXX_INFO(logger, "ok");
+                index.info();
             }
         }
 

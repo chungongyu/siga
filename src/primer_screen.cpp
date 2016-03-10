@@ -21,7 +21,7 @@
 #define ILLUMINA_SANGER_PCR_FREE_B "GATCGGAAGAGCGGTTCAGCAGGAATGC"
 
 PrimerScreen::PrimerScreen() {
-    boost::assign::push_back(_db)("AATGATACGGCGACCACCGAGATCTACA")("GATCGGAAGAGCGGTTCAGCAGGAATGC");
+    boost::assign::push_back(_db)(ILLUMINA_SANGER_PCR_FREE_A)(ILLUMINA_SANGER_PCR_FREE_B);
 }
 
 // Check seq against the primer database

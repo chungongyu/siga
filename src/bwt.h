@@ -17,8 +17,11 @@ public:
     }
     BWT(const SuffixArray& sa, const DNASeqList& sequences);
 
-    const RLString& strings() const {
+    const RLString& str() const {
         return _runs;
+    }
+    size_t length() const {
+        return _suffixes;
     }
 private:
     friend std::ostream& operator<<(std::ostream& stream, const BWT& bwt);
@@ -26,7 +29,7 @@ private:
     friend class BWTReader;
     friend class BWTWriter;
 
-    RLString _runs;       // The run-length encoded string
+    RLString _runs;     // The run-length encoded string
     size_t _strings;    // The number of strings in the collection
     size_t _suffixes;   // The total length of the bw string
 };

@@ -11,6 +11,10 @@
 #define SIZEOF_ARRAY(x)  (sizeof(x) / sizeof(x[0]))
 #endif
 
+#ifndef IS_POWER_OF_2
+#define IS_POWER_OF_2(x) ((x) & ((x) - 1)) == 0
+#endif
+
 namespace PairEnd {
     std::string basename(const std::string& name);
     std::string id(const std::string& name);

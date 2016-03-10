@@ -5,6 +5,7 @@
 
 namespace DNAAlphabet {
     const size_t ALL_SIZE = 5;
+    const char DNA_ALL[ALL_SIZE] = {'$', 'A', 'C', 'G', 'T'};
 
     inline int torank(char c) {
         static int RANK_ALL[256] = {
@@ -29,7 +30,6 @@ namespace DNAAlphabet {
     }
 
     inline char tochar(int rank) {
-        static char DNA_ALL[ALL_SIZE] = {'$', 'A', 'C', 'G', 'T'};
         return DNA_ALL[rank];
     }
 };
