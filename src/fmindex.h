@@ -17,24 +17,17 @@ template< class Storage >
 class Marker {
 public:
     Marker() : unitIndex(0) {
-        memset(counts, 0, sizeof(counts));
     }
 
     size_t total() const {
-        return std::accumulate(counts, counts + DNAAlphabet::ALL_SIZE, 0);
+        return std::accumulate(&counts[0], &counts[0] + counts.size(), 0);
     }
 
     bool operator==(const Marker& m) {
-        for (size_t i = 0; i < DNAAlphabet::ALL_SIZE; ++i) {
-            if (counts[i] != m.counts[i]) {
-                return false;
-            }
-        }
-        return true;
+        return counts == m.counts && unitIndex == m.unitIndex;
     }
 
-    Storage counts[DNAAlphabet::ALL_SIZE];
-
+    DNAAlphabet::AlphaCount< Storage > counts;
     Storage unitIndex;
 };
 
@@ -50,7 +43,7 @@ public:
 // the run containing the B[C] is at unitIndex. This is not necessary
 // a valid index if there is a marker after the last symbol in the BWT
 //
-typedef Marker< size_t   > LargeMarker;
+typedef Marker< uint64_t > LargeMarker;
 typedef Marker< uint16_t > SmallMarker;
 
 typedef std::vector< LargeMarker > LargeMarkerList;
@@ -75,6 +68,7 @@ public:
         return _pred[DNAAlphabet::torank(c)];
     }
     size_t getOcc(char c, size_t i) const;
+    DNAAlphabet::AlphaCount64 getOcc(size_t i) const;
 
     void info() const;
 private:
@@ -85,7 +79,6 @@ private:
 
     BWT _bwt;
     DNAAlphabet::AlphaCount64 _pred;
-    //size_t _pred[DNAAlphabet::ALL_SIZE];
     LargeMarkerList _lmarkers;
     SmallMarkerList _smarkers;
     size_t _sampleRate;

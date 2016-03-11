@@ -4,6 +4,9 @@
 #include <cstdint>
 #include <cstring>
 
+#include <algorithm>
+#include <iterator>
+
 namespace DNAAlphabet {
     const size_t ALL_SIZE = 5;
     const char DNA_ALL[ALL_SIZE] = {'$', 'A', 'C', 'G', 'T'};
@@ -41,25 +44,33 @@ namespace DNAAlphabet {
             memset(_data, 0, sizeof(_data));
         }
 
-        Storage& operator[](char c) {
-            return _data[torank(c)];
+        Storage& operator[](size_t i) {
+            return _data[i];
         }
-        const Storage& operator[](char c) const {
-            return _data[torank(c)];
+        const Storage& operator[](size_t i) const {
+            return _data[i];
         }
         size_t size() const {
             return ALL_SIZE;
         }
-        const Storage* array() const {
-            return _data;
-        }
     private:
+        template< class T >
+        friend std::ostream& operator<<(std::ostream& stream, const AlphaCount< T >& c);
+        template< class T >
+        friend std::istream& operator>>(std::istream& stream, AlphaCount< T >& c);
+
         Storage _data[ALL_SIZE];
     };
 
     typedef AlphaCount< uint64_t > AlphaCount64;
     typedef AlphaCount< uint32_t > AlphaCount32;
     typedef AlphaCount< uint16_t > AlphaCount16;
+
+    template< class T >
+    std::ostream& operator<<(std::ostream& stream, const AlphaCount< T >& c) {
+        std::copy(c._data, c._data + c.size(), std::ostream_iterator< T >(stream, " "));
+        return stream;
+    }
 };
 
 #endif // alphabet_h_

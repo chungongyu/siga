@@ -23,7 +23,7 @@ public:
         assert(_currIdx == _markers.size());
     }
 
-    virtual void fill(size_t* counts, size_t total, size_t unitIndex, bool lastOne) = 0;
+    virtual void fill(const DNAAlphabet::AlphaCount64& counts, uint64_t total, size_t unitIndex, bool lastOne) = 0;
 protected:
     void initialize(size_t n) {
         // we place a marker at the beginning (with no accumulated counts), every sampleRate
@@ -33,7 +33,6 @@ protected:
 
         // Place a blank markers at the start of the data
         if (!_markers.empty()) {
-            memset(_markers[0].counts, 0, sizeof(_markers[0].counts));
             _markers[0].unitIndex = 0;
         }
         _currIdx = 1;
@@ -54,7 +53,7 @@ public:
         _nextPos = _sampleRate;
     }
 
-    void fill(size_t* counts, size_t total, size_t unitIndex, bool lastOne) {
+    void fill(const DNAAlphabet::AlphaCount64& counts, uint64_t total, size_t unitIndex, bool lastOne) {
         // Check whether to place a new marker
         while (total >= _nextPos || lastOne) {
             // Sanity checks
@@ -66,7 +65,7 @@ public:
 
             LargeMarker& marker = _markers[_currIdx++];
             marker.unitIndex = unitIndex;
-            memcpy(marker.counts, counts, sizeof(marker.counts));
+            marker.counts = counts;
 
             _nextPos += _sampleRate;
             lastOne = lastOne && total >= _nextPos;
@@ -79,7 +78,7 @@ public:
     SmallMarkerFill(const LargeMarkerList& lmarkers, SmallMarkerList& smarkers, size_t symbols, size_t sampleRate) : MarkerFill< SmallMarkerList >(smarkers, symbols, sampleRate), _lmarkers(lmarkers) {
     }
 
-    void fill(size_t* counts, size_t total, size_t unitIndex, bool lastOne) {
+    void fill(const DNAAlphabet::AlphaCount64& counts, uint64_t total, size_t unitIndex, bool lastOne) {
         while (total >= _nextPos || lastOne) {
             // Sanity checks
             // The marker position should always be less than the running total unless 
@@ -95,7 +94,7 @@ public:
             const LargeMarker& lmarker = _lmarkers[largeIndex];
             SmallMarker& smarker = _markers[_currIdx++];
 
-            for (size_t i = 0; i < SIZEOF_ARRAY(lmarker.counts); ++i) {
+            for (size_t i = 0; i < lmarker.counts.size(); ++i) {
                 //assert(counts[i] - lmarker.counts);
                 smarker.counts[i] = counts[i] - lmarker.counts[i];
             }
@@ -112,9 +111,8 @@ public:
 void FMIndex::initialize() {
     assert(IS_POWER_OF_2(_sampleRate));
 
-    size_t counts[DNAAlphabet::ALL_SIZE];
-    memset(counts, 0, sizeof(counts));
-    size_t total = 0;
+    DNAAlphabet::AlphaCount64 counts;
+    uint64_t total = 0;
 
     // Fill in the marker values
     // We wish to place markers every sampleRate symbols however since a run may
@@ -142,18 +140,10 @@ void FMIndex::initialize() {
     }
 
     // Initialize C(a)
-    /*
-    memset(_pred, 0, sizeof(_pred));
     _pred[DNAAlphabet::torank(DNAAlphabet::DNA_ALL[0])] = 0;
     for (size_t i = 1; i < DNAAlphabet::ALL_SIZE; ++i) {
         size_t curr = DNAAlphabet::torank(DNAAlphabet::DNA_ALL[i]), prev = DNAAlphabet::torank(DNAAlphabet::DNA_ALL[i - 1]);
         _pred[curr] = _pred[prev] + counts[prev];
-    }
-    */
-    _pred[DNAAlphabet::DNA_ALL[0]] = 0;
-    for (size_t i = 1; i < DNAAlphabet::ALL_SIZE; ++i) {
-        char curr = DNAAlphabet::DNA_ALL[i], prev = DNAAlphabet::DNA_ALL[i - 1];
-        _pred[curr] = _pred[prev] + counts[DNAAlphabet::torank(prev)];
     }
 }
 
@@ -174,6 +164,11 @@ public:
     MarkerFind(const RLString& runs, const LargeMarkerList& lmarkers, const SmallMarkerList& smarkers, size_t sampleRate) : _runs(runs), _lmarkers(lmarkers), _smarkers(smarkers), _sampleRate(sampleRate) {
     }
     size_t find(char c, size_t i) const {
+        DNAAlphabet::AlphaCount64 counts = find(i);
+        return counts[DNAAlphabet::torank(c)];
+    }
+
+    DNAAlphabet::AlphaCount64 find(size_t i) const {
         // The counts in the marker are not inclusive (unlike the Occurrence class)
         // so we increment the index by 1.
         ++i;
@@ -181,7 +176,7 @@ public:
         LargeMarker lmarker = nearest(i);
         size_t position = lmarker.total();
 
-        size_t r = lmarker.counts[DNAAlphabet::torank(c)];
+        DNAAlphabet::AlphaCount64 counts = lmarker.counts;
         size_t currIdx = lmarker.unitIndex;
 
         // Search forwards (towards 0) until idx is found
@@ -195,9 +190,7 @@ public:
             if (n > delta) {
                 n = delta;
             }
-            if (run == c) {
-                r += n;
-            }
+            counts[DNAAlphabet::torank((char)run)] += n;
             position += n;
         }
         // Search backwards (towards 0) until idx is found
@@ -211,15 +204,13 @@ public:
             if (n > delta) {
                 n = delta;
             }
-            if (run == c) {
-                r -= n;
-            }
+            counts[DNAAlphabet::torank((char)run)] -= n;
             position -= n;
         }
         
         assert(position == i);
 
-        return r;
+        return counts;
     }
 private:
     LargeMarker nearest(size_t i) const {
@@ -259,6 +250,11 @@ size_t FMIndex::getOcc(char c, size_t i) const {
     return finder.find(c, i);
 }
 
+DNAAlphabet::AlphaCount64 FMIndex::getOcc(size_t i) const {
+    MarkerFind finder(_bwt.str(), _lmarkers, _smarkers, _sampleRate);
+    return finder.find(i);
+}
+
 std::ostream& operator<<(std::ostream& stream, const FMIndex& index) {
     //stream << index._bwt;
     stream << "lmarkers" << std::endl;
@@ -266,20 +262,16 @@ std::ostream& operator<<(std::ostream& stream, const FMIndex& index) {
         const LargeMarker& marker = index._lmarkers[i];
         stream << "--------------" << std::endl;
         stream << marker.unitIndex << std::endl;
-        std::copy(marker.counts, marker.counts + SIZEOF_ARRAY(marker.counts), std::ostream_iterator< size_t >(stream, " "));
-        stream << std::endl;
+        stream << marker.counts << std::endl;
     }
     stream << "smarkers" << std::endl;
     for (size_t i = 0; i < index._smarkers.size(); ++i) {
         const SmallMarker& marker = index._smarkers[i];
         stream << "--------------" << std::endl;
         stream << marker.unitIndex << std::endl;
-        std::copy(marker.counts, marker.counts + SIZEOF_ARRAY(marker.counts), std::ostream_iterator< uint16_t >(stream, " "));
-        stream << std::endl;
+        stream << marker.counts << std::endl;
     }
-    //std::copy(index._pred, index._pred + DNAAlphabet::ALL_SIZE, std::ostream_iterator< size_t >(stream, " "));
-    stream << std::endl;
-
+    stream << index._pred << std::endl;
     return stream;
 }
 
