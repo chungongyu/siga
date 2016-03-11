@@ -60,7 +60,7 @@ public:
 
         // find the ends of the buckets
         countBuckets(reads, bucket_counts, ALPHABET_SIZE);
-        getBuckets(bucket_counts, buckets, ALPHABET_SIZE, true); 
+        //getBuckets(bucket_counts, buckets, ALPHABET_SIZE, true); 
 
         // Initialize the suffix array
         size_t num_suffixes = std::accumulate(bucket_counts, bucket_counts + ALPHABET_SIZE, 0);

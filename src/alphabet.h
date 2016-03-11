@@ -1,7 +1,8 @@
 #ifndef alphabet_h_
 #define alphabet_h_
 
-#include <string>
+#include <cstdint>
+#include <cstring>
 
 namespace DNAAlphabet {
     const size_t ALL_SIZE = 5;
@@ -32,6 +33,33 @@ namespace DNAAlphabet {
     inline char tochar(int rank) {
         return DNA_ALL[rank];
     }
+
+    template< class Storage >
+    class AlphaCount {
+    public:
+        AlphaCount() {
+            memset(_data, 0, sizeof(_data));
+        }
+
+        Storage& operator[](char c) {
+            return _data[torank(c)];
+        }
+        const Storage& operator[](char c) const {
+            return _data[torank(c)];
+        }
+        size_t size() const {
+            return ALL_SIZE;
+        }
+        const Storage* array() const {
+            return _data;
+        }
+    private:
+        Storage _data[ALL_SIZE];
+    };
+
+    typedef AlphaCount< uint64_t > AlphaCount64;
+    typedef AlphaCount< uint32_t > AlphaCount32;
+    typedef AlphaCount< uint16_t > AlphaCount16;
 };
 
 #endif // alphabet_h_

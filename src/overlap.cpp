@@ -2,6 +2,7 @@
 #include "config.h"
 #include "constant.h"
 #include "fmindex.h"
+#include "overlap_builder.h"
 #include "runner.h"
 
 #include <iostream>
@@ -38,12 +39,26 @@ public:
         }
         LOG4CXX_INFO(logger, boost::format("output: %s") % output);
 
-        FMIndex index;
         {
-            boost::filesystem::ifstream stream(input + BWT_EXT);
-            stream >> index;
-            if (stream) {
-                index.info();
+            FMIndex index;
+            {
+                boost::filesystem::ifstream stream(input + BWT_EXT);
+                stream >> index;
+                if (stream) {
+                    index.info();
+                    std::cerr << index;
+                }
+            }
+        }
+        {
+            FMIndex index;
+            {
+                boost::filesystem::ifstream stream(input + RBWT_EXT);
+                stream >> index;
+                if (stream) {
+                    index.info();
+                    std::cerr << index;
+                }
             }
         }
 

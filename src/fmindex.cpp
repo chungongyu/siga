@@ -2,6 +2,8 @@
 #include "bwt.h"
 #include "utils.h"
 
+#include <iterator>
+
 #include <boost/format.hpp>
 
 #include <log4cxx/logger.h>
@@ -31,6 +33,7 @@ protected:
 
         // Place a blank markers at the start of the data
         if (!_markers.empty()) {
+            memset(_markers[0].counts, 0, sizeof(_markers[0].counts));
             _markers[0].unitIndex = 0;
         }
         _currIdx = 1;
@@ -63,7 +66,7 @@ public:
 
             LargeMarker& marker = _markers[_currIdx++];
             marker.unitIndex = unitIndex;
-            memcpy(marker.counts, counts, SIZEOF_ARRAY(marker.counts));
+            memcpy(marker.counts, counts, sizeof(marker.counts));
 
             _nextPos += _sampleRate;
             lastOne = lastOne && total >= _nextPos;
@@ -96,7 +99,7 @@ public:
                 //assert(counts[i] - lmarker.counts);
                 smarker.counts[i] = counts[i] - lmarker.counts[i];
             }
-            smarker.unitIndex = unitIndex = lmarker.unitIndex;
+            smarker.unitIndex = unitIndex - lmarker.unitIndex;
 
             _nextPos += _sampleRate;
             lastOne = lastOne && total >= _nextPos;
@@ -139,11 +142,18 @@ void FMIndex::initialize() {
     }
 
     // Initialize C(a)
+    /*
     memset(_pred, 0, sizeof(_pred));
     _pred[DNAAlphabet::torank(DNAAlphabet::DNA_ALL[0])] = 0;
     for (size_t i = 1; i < DNAAlphabet::ALL_SIZE; ++i) {
         size_t curr = DNAAlphabet::torank(DNAAlphabet::DNA_ALL[i]), prev = DNAAlphabet::torank(DNAAlphabet::DNA_ALL[i - 1]);
         _pred[curr] = _pred[prev] + counts[prev];
+    }
+    */
+    _pred[DNAAlphabet::DNA_ALL[0]] = 0;
+    for (size_t i = 1; i < DNAAlphabet::ALL_SIZE; ++i) {
+        char curr = DNAAlphabet::DNA_ALL[i], prev = DNAAlphabet::DNA_ALL[i - 1];
+        _pred[curr] = _pred[prev] + counts[DNAAlphabet::torank(prev)];
     }
 }
 
@@ -206,6 +216,8 @@ public:
             }
             position -= n;
         }
+        
+        assert(position == i);
 
         return r;
     }
@@ -248,7 +260,26 @@ size_t FMIndex::getOcc(char c, size_t i) const {
 }
 
 std::ostream& operator<<(std::ostream& stream, const FMIndex& index) {
-    stream << index._bwt;
+    //stream << index._bwt;
+    stream << "lmarkers" << std::endl;
+    for (size_t i = 0; i < index._lmarkers.size(); ++i) {
+        const LargeMarker& marker = index._lmarkers[i];
+        stream << "--------------" << std::endl;
+        stream << marker.unitIndex << std::endl;
+        std::copy(marker.counts, marker.counts + SIZEOF_ARRAY(marker.counts), std::ostream_iterator< size_t >(stream, " "));
+        stream << std::endl;
+    }
+    stream << "smarkers" << std::endl;
+    for (size_t i = 0; i < index._smarkers.size(); ++i) {
+        const SmallMarker& marker = index._smarkers[i];
+        stream << "--------------" << std::endl;
+        stream << marker.unitIndex << std::endl;
+        std::copy(marker.counts, marker.counts + SIZEOF_ARRAY(marker.counts), std::ostream_iterator< uint16_t >(stream, " "));
+        stream << std::endl;
+    }
+    //std::copy(index._pred, index._pred + DNAAlphabet::ALL_SIZE, std::ostream_iterator< size_t >(stream, " "));
+    stream << std::endl;
+
     return stream;
 }
 

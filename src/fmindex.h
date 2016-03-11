@@ -84,7 +84,8 @@ private:
     friend std::istream& operator>>(std::istream& stream, FMIndex& index);
 
     BWT _bwt;
-    size_t _pred[DNAAlphabet::ALL_SIZE];
+    DNAAlphabet::AlphaCount64 _pred;
+    //size_t _pred[DNAAlphabet::ALL_SIZE];
     LargeMarkerList _lmarkers;
     SmallMarkerList _smarkers;
     size_t _sampleRate;
