@@ -1,10 +1,15 @@
 #include "overlap_builder.h"
+#include "utils.h"
 
+//
+// Interval holds a pair of integers which delineate an alignment of some string
+//       to a BWT/FM-index
+//
 class Interval {
 public:
     Interval() : lower(0), upper(0) {
     }
-    bool valid() {
+    bool valid() const {
         return upper > lower;
     }
     void init(char c, const FMIndex* index) {
@@ -16,11 +21,21 @@ public:
     size_t upper;
 };
 
+//
+// A pair of intervals used for bidirectional searching a FM-index/reverse FM-index
+//
 class IntervalPair {
 public:
     IntervalPair() {
     }
-
+    bool valid() const {
+        for (size_t i = 0; i < SIZEOF_ARRAY(_intervals); ++i) {
+            if (!_intervals[i].valid()) {
+                return false;
+            }
+        }
+        return true;
+    }
     Interval& operator[](size_t i) {
         return _intervals[i];
     }
@@ -38,6 +53,8 @@ public:
         DNAAlphabet::AlphaCount64 u = index->getOcc(_intervals[1].upper);
         updateL(c, index, l, u);
     } 
+    void updateR(char c, const FMIndex* index) {
+    }
 private:
     void updateL(char c, const FMIndex* index, const DNAAlphabet::AlphaCount64& l, const DNAAlphabet::AlphaCount64& u) {
         DNAAlphabet::AlphaCount64 diff = u - l;
@@ -55,6 +72,12 @@ private:
 };
 
 struct OverlapBlock {
+    OverlapBlock(const IntervalPair& probe, const IntervalPair& ranges, size_t length) : probe(probe), ranges(ranges), length(length) {
+    }
+
+    IntervalPair ranges;
+    IntervalPair probe;
+    size_t length;
 };
 
 void OverlapBuilder::overlap(const DNASeq& read, size_t minOverlap, OverlapBlockList* blocks) const {
@@ -79,7 +102,7 @@ void OverlapBuilder::overlap(const std::string& seq, const FMIndex* fmi, const F
     ranges.init(seq[l - 1], fmi, rfmi);
 
     // Collect the OverlapBlocks
-    for (size_t i = l - 1; i > 0; --i) {
+    for (size_t i = l - 1; i > 1; --i) {
         // Compare the range of the suffix seq[i, l]
         ranges.updateL(seq[i - 1], fmi);
 
@@ -91,8 +114,34 @@ void OverlapBuilder::overlap(const std::string& seq, const FMIndex* fmi, const F
 
             // The probe interval contains the range of proper prefixes
             if (probe[1].valid()) {
-                //overlaps->push_back(OverlapBlock(prope, ranges, l - i, 0));
+                overlaps->push_back(OverlapBlock(probe, ranges, l - i));
             }
+        }
+    }
+
+    // Determine if this sequence is contained and should not be processed further
+    ranges.updateL(seq[0], fmi);
+
+    // Ranges now holds the interval for the full-length read
+    // To handle containments, we output the overlapBlock to the final overlap block list
+    // and it will be processed later
+    // Two possible containment cases:
+    // 1) This read is a substring of some other read
+    // 2) This read is identical to some other read
+
+    // Case 1 is indicated by the existance of a non-$ left or right hand extension
+    // In this case we return no alignments for the string
+    DNAAlphabet::AlphaCount64 lext = fmi->getOcc(ranges[0].upper) - fmi->getOcc(ranges[0].lower - 1);
+    DNAAlphabet::AlphaCount64 rext = fmi->getOcc(ranges[1].upper) - fmi->getOcc(ranges[1].lower - 1);
+    if (lext.hasDNA() || rext.hasDNA()) {
+    } else {
+        IntervalPair probe = ranges;
+        probe.updateL('$', fmi);
+        if (probe.valid()) {
+            // terminate the contained block and add it to the contained list
+            probe.updateR('$', rfmi);
+            assert(probe.valid());
+            contains->push_back(OverlapBlock(probe, ranges, l));
         }
     }
 }

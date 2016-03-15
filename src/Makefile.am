@@ -2,6 +2,8 @@ bin_PROGRAMS=arcs
 arcs_SOURCES=assembler.cpp \
 			 asqg.cpp \
 			 asqg.h \
+			 bigraph.cpp \
+			 bigraph.h \
 			 bwt.cpp \
 			 bwt.h \
 			 constant.cpp \

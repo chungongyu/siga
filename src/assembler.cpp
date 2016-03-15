@@ -28,18 +28,34 @@ public:
     }
 
 private:
-    Assembler() : Runner("c:s:o:h") {
+    Assembler() : Runner("c:s:o:t:m:b:h", boost::assign::map_list_of('o', "prefix")('t', "threads")('m', "min-overlap")) {
         RUNNER_INSTALL("assemble", this, "generate contigs from an assembly graph");
     }
 
     int checkOptions(const Properties& options, const Arguments& arguments) const {
-        if (options.find("h") != options.not_found()) {
+        if (options.find("h") != options.not_found() || arguments.size() != 1) {
             return printHelps();
         }
         return 0;
     }
     int printHelps() const {
-        std::cout << "arcs assemble -o [input] -d [workdir]" << std::endl;
+        std::cout << boost::format(
+                "%s assemble [OPTION] ... ASQGFILE\n"
+                "Create contigs from the assembly graph ASQGFILE.\n"
+                "\n"
+                "      -h, --help                       display this help and exit\n"
+                "\n"
+                "      -o, --prefix=NAME            use NAME as the prefix of the output files (output files will be NAME-contigs.fa, etc)\n"
+                "      -t, --threads=NUM                use NUM threads to construct the index (default: 1)\n"
+                "      -m, --min-overlap=LEN            only use overlaps of at least LEN. This can be used to filter\n"
+                "          --max-edges=N                limit each vertex to a maximum of N edges. For highly repetitive regions\n"
+                "                                       this helps save memory by culling excessive edges around unresolvable repeats (default: 128)\n"
+                "\n"
+                "Bubble/Variation removal parameters:\n"
+                "      -b, --bubble=N                   perform N bubble removal steps (default: 3)\n"
+                "\n"
+                ) % PACKAGE_NAME << std::endl;
+        return 256;
         return 256;
     }
 

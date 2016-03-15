@@ -53,6 +53,14 @@ namespace DNAAlphabet {
         size_t size() const {
             return ALL_SIZE;
         }
+        bool hasDNA() const  {
+            for (size_t i = 1; i < size(); ++i) {
+                if (_data[i] > 0) {
+                    return true;
+                }
+            }
+            return false;
+        }
         AlphaCount< Storage > operator-(const AlphaCount< Storage >& c) const {
             AlphaCount< Storage > r;
             for (size_t i = 0; i < size(); ++i) {
