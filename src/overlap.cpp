@@ -39,33 +39,40 @@ public:
         }
         LOG4CXX_INFO(logger, boost::format("output: %s") % output);
 
-        {
-            FMIndex index;
-            {
-                boost::filesystem::ifstream stream(input + BWT_EXT);
-                stream >> index;
-                if (stream) {
-                    index.info();
-                    std::cerr << index;
-                }
-            }
-        }
-        {
-            FMIndex index;
-            {
-                boost::filesystem::ifstream stream(input + RBWT_EXT);
-                stream >> index;
-                if (stream) {
-                    index.info();
-                    std::cerr << index;
-                }
-            }
+        FMIndex fmi, rfmi;
+        if (loadIdx(input, fmi, rfmi)) {
+            OverlapBuilder builder(&fmi, &rfmi);
+        } else {
+            LOG4CXX_ERROR(logger, boost::format("Failed load FMIndex from %s") % input);
+            r = -1;
         }
 
         return r;
     }
 
 private:
+    bool loadIdx(const std::string& prefix, FMIndex& fmi, FMIndex& rfmi) {
+        // forward
+        {
+            boost::filesystem::ifstream stream(prefix + BWT_EXT);
+            stream >> fmi;
+            if (!stream) {
+                return false;
+            }
+            fmi.info();
+        }
+        // reverse
+        {
+            boost::filesystem::ifstream stream(prefix + RBWT_EXT);
+            stream >> rfmi;
+            if (!stream) {
+                return false;
+            }
+            rfmi.info();
+        }
+        return true;
+    }
+
     Overlapping() : Runner("c:s:a:t:p:m:h", boost::assign::map_list_of('a', "algorithm")('t', "threads")('p', "prefix")('m', "min-overlap")) {
         RUNNER_INSTALL("overlap", this, "compute overlaps between reads");
     }

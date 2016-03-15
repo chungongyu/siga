@@ -70,6 +70,10 @@ public:
     size_t getOcc(char c, size_t i) const;
     DNAAlphabet::AlphaCount64 getOcc(size_t i) const;
 
+    size_t length() const {
+        return _bwt.length();
+    }
+
     void info() const;
 private:
     void initialize();

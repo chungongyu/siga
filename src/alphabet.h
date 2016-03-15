@@ -53,6 +53,20 @@ namespace DNAAlphabet {
         size_t size() const {
             return ALL_SIZE;
         }
+        AlphaCount< Storage > operator-(const AlphaCount< Storage >& c) const {
+            AlphaCount< Storage > r;
+            for (size_t i = 0; i < size(); ++i) {
+                r._data[i] = _data[i] - c._data[i];
+            }
+            return r;
+        }
+        AlphaCount< Storage > operator+(const AlphaCount< Storage >& c) const {
+            AlphaCount< Storage > r;
+            for (size_t i = 0; i < size(); ++i) {
+                r._data[i] = _data[i] + c._data[i];
+            }
+            return r;
+        }
     private:
         template< class T >
         friend std::ostream& operator<<(std::ostream& stream, const AlphaCount< T >& c);
