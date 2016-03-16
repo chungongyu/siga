@@ -1,7 +1,9 @@
+#include "bigraph.h"
 #include "constant.h"
 #include "runner.h"
 
 #include <iostream>
+#include <memory>
 
 #include <boost/assign.hpp>
 #include <boost/filesystem.hpp>
@@ -21,9 +23,14 @@ public:
             return r;
         }
 
-        LOG4CXX_DEBUG(logger, "assemble begin");
+        std::string input = arguments[0];
+        LOG4CXX_INFO(logger, boost::format("input: %s") % input);
 
-        LOG4CXX_DEBUG(logger, "assemble end");
+        Bigraph g;
+        if (loadASQG(input, options.get< size_t >("min-overlap", 0), false, options.get< size_t >("max-edges", 128), &g)) {
+            LOG4CXX_INFO(logger, "ok");
+        }
+
         return r;
     }
 
@@ -55,7 +62,6 @@ private:
                 "      -b, --bubble=N                   perform N bubble removal steps (default: 3)\n"
                 "\n"
                 ) % PACKAGE_NAME << std::endl;
-        return 256;
         return 256;
     }
 

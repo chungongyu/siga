@@ -33,7 +33,7 @@ namespace ASQG {
     static const std::string PERCENT_IDENTITY_TAG("PI");
 
     void tokenize(std::vector< std::string >& container, const std::string& text, char sep) {
-        boost::algorithm::split(container, text, boost::is_from_range(FIELD_SEP, FIELD_SEP));
+        boost::algorithm::split(container, text, boost::is_from_range(sep, sep));
     }
 
     //
@@ -47,9 +47,13 @@ namespace ASQG {
         tokenize(fields, text, FIELD_SEP);
 
         if (fields.empty()) {
+            LOG4CXX_ERROR(logger, "Error: Header record is incomplete.");
+            LOG4CXX_ERROR(logger, boost::format("Record: %s") % text);
             return false;
         }
         if (!boost::algorithm::equals(fields[0], HEAD_TAG)) {
+            LOG4CXX_ERROR(logger, "Error: Header does not have a header tag");
+            LOG4CXX_ERROR(logger, boost::format("Record: %s") % text);
             return false;
         }
         for (size_t i = 1; i < fields.size(); ++i) {
@@ -133,12 +137,12 @@ namespace ASQG {
             LOG4CXX_ERROR(logger, boost::format("Record: %s") % text);
             return false;
         }
-        record._id = fields[1];
-        record._seq = fields[2];
+        record.id = fields[1];
+        record.seq = fields[2];
 
         for (size_t i = 3; i < fields.size(); ++i) {
             if (boost::algorithm::starts_with(fields[i], SUBSTRING_TAG)) {
-                if (!record._substring.fromstring(fields[i])) {
+                if (!record.substring.fromstring(fields[i])) {
                     return false;
                 }
             }
@@ -147,9 +151,9 @@ namespace ASQG {
     }
 
     std::ostream& operator<<(std::ostream& stream, const VertexRecord& record) {
-        stream << VERTEX_TAG << FIELD_SEP << record._id << FIELD_SEP << record._seq;
-        if (record._substring) {
-            stream << FIELD_SEP << record._substring.tostring(SUBSTRING_TAG);
+        stream << VERTEX_TAG << FIELD_SEP << record.id << FIELD_SEP << record.seq;
+        if (record.substring) {
+            stream << FIELD_SEP << record.substring.tostring(SUBSTRING_TAG);
         }
     }
 

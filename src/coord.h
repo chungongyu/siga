@@ -1,6 +1,7 @@
 #ifndef coord_h_
 #define coord_h_
 
+#include <cassert>
 #include <iostream>
 
 //
@@ -53,6 +54,9 @@ public:
     bool isFull() const {
         interval.length() == seqlen;
     }
+    size_t length() const {
+        return interval.length();
+    }
 
     friend std::ostream& operator<<(std::ostream& stream, const SeqCoord& c);
     friend std::istream& operator>>(std::istream& stream, SeqCoord& c);
@@ -75,6 +79,15 @@ public:
     Match(size_t s1, size_t e1, size_t l1, size_t s2, size_t e2, size_t l2, bool isRC, size_t nd) : isReverse(isRC), numDiff(nd) {
         coords[0] = SeqCoord(s1, e1, l1);
         coords[1] = SeqCoord(s2, e2, l2);
+    }
+
+    size_t length() const {
+        assert(coords[0].length() == coords[1].length());
+        return coords[0].length();
+    }
+
+    bool isContainment() const {
+        return coords[0].isContained() || coords[1].isContained();
     }
 
     friend std::ostream& operator<<(std::ostream& stream, const Match& m);

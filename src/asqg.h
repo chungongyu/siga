@@ -114,17 +114,17 @@ namespace ASQG {
     public:
         VertexRecord() {
         }
-        VertexRecord(const std::string& id, const std::string& seq) : _id(id), _seq(seq) {
+        VertexRecord(const std::string& id, const std::string& seq) : id(id), seq(seq) {
         }
 
         static bool parse(const std::string& text, VertexRecord& record);
+
+        std::string id;
+        std::string seq;
+        IntTagValue substring;
     private:
         friend std::ostream& operator<<(std::ostream& stream, const VertexRecord& record);
         friend std::istream& operator>>(std::istream& stream, VertexRecord& record);
-
-        std::string _id;
-        std::string _seq;
-        IntTagValue _substring;
     };
 
     // An edge record is just an overlap object and tag:values
@@ -142,6 +142,9 @@ namespace ASQG {
         }
         void identity(float pi) {
             _identity = pi;
+        }
+        const Overlap& overlap() const {
+            return _overlap;
         }
     private:
         friend std::ostream& operator<<(std::ostream& stream, const EdgeRecord& record);
