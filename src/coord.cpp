@@ -24,12 +24,12 @@ std::istream& operator>>(std::istream& stream, SeqCoord& c) {
 
 // Match
 std::ostream& operator<<(std::ostream& stream, const Match& m) {
-    stream << m.coords[0] << " " << m.coords[1] << " " << m.isReverse << " " << m.numDiff;
+    stream << m.coords[0] << " " << m.coords[1] << " " << m.isRC << " " << m.numDiff;
     return stream;
 }
 
 std::istream& operator>>(std::istream& stream, Match& m) {
-    stream >> m.coords[0] >> m.coords[1] >> m.isReverse >> m.numDiff;
+    stream >> m.coords[0] >> m.coords[1] >> m.isRC >> m.numDiff;
     return stream;
 }
 

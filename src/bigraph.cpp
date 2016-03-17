@@ -12,7 +12,15 @@ static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.Bigraph"));
 //
 // Vertex
 //
+Vertex::~Vertex() {
+    for (EdgePtrList::iterator i = _edges.begin(); i != _edges.end(); ++i) {
+        delete *i;
+    }
+}
+
 void Vertex::addEdge(Edge* edge) {
+    assert(edge->start() == this);
+    _edges.push_back(edge);
 }
 
 //
@@ -53,6 +61,7 @@ public:
     bool create(const Overlap& overlap) {
         // Initialize data and perform checks
         bool isContainment = overlap.match.isContainment();
+        Edge::Comp comp = (overlap.match.isRC) ? Edge::EC_REVERSE : Edge::EC_SAME;
 
         Vertex* verts[2];
         for (size_t i = 0; i < 2; ++i) {
@@ -81,16 +90,49 @@ public:
         // After loading the graph, all edges to super repeats are cut to prevent
         // misassembly.
         {
+            size_t degrees0 = verts[0]->degrees(), degrees1 = verts[1]->degrees();
+            if (degrees0 > _maxEdges || degrees1 > _maxEdges) {
+                return NULL;
+            }
         }
 
         if (!isContainment) {
             Edge* edges[2];
             for (size_t i = 0; i < 2; ++i) {
+                const SeqCoord& coord = overlap.match.coords[i];
+                Edge::Dir dir = coord.isLeftExtreme() ? Edge::ED_ANTISENSE : Edge::ED_SENSE;
+                edges[i] = new Edge(verts[1 - i], dir, comp, coord);
             }
+
+            edges[0]->twin(edges[1]);
+            edges[1]->twin(edges[0]);
 
             _graph->addEdge(verts[0], edges[0]);
             _graph->addEdge(verts[1], edges[1]);
         } else {
+            // Contained edges don't have a direction, they can be travelled from
+            // one vertex to the other in either direction. Hence, we 
+            // add two edges per vertex. Later during the contain removal
+            // algorithm this is important to determine transitivity
+            Edge* edges[4];
+            for (size_t i = 0; i < 2; ++i) {
+                const SeqCoord& coord = overlap.match.coords[i];
+                edges[i    ] = new Edge(verts[1 - i], Edge::ED_SENSE,     comp, coord);
+                edges[i + 2] = new Edge(verts[1 - i], Edge::ED_ANTISENSE, comp, coord);
+            }
+
+            // Twin the edges and add them to the graph
+            edges[0]->twin(edges[1]);
+            edges[1]->twin(edges[0]);
+
+            edges[2]->twin(edges[3]);
+            edges[3]->twin(edges[2]);
+
+            _graph->addEdge(verts[0], edges[0]);
+            _graph->addEdge(verts[1], edges[1]);
+
+            _graph->addEdge(verts[0], edges[2]);
+            _graph->addEdge(verts[1], edges[3]);
         }
 
         return true;

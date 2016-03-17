@@ -72,11 +72,11 @@ class Match {
 public:
     Match() {
     }
-    Match(const SeqCoord& c1, const SeqCoord& c2, bool isRC, size_t nd) : isReverse(isRC), numDiff(nd) {
+    Match(const SeqCoord& c1, const SeqCoord& c2, bool isRC, size_t nd) : isRC(isRC), numDiff(nd) {
         coords[0] = c1;
         coords[1] = c2;
     }
-    Match(size_t s1, size_t e1, size_t l1, size_t s2, size_t e2, size_t l2, bool isRC, size_t nd) : isReverse(isRC), numDiff(nd) {
+    Match(size_t s1, size_t e1, size_t l1, size_t s2, size_t e2, size_t l2, bool isRC, size_t nd) : isRC(isRC), numDiff(nd) {
         coords[0] = SeqCoord(s1, e1, l1);
         coords[1] = SeqCoord(s2, e2, l2);
     }
@@ -94,7 +94,7 @@ public:
     friend std::istream& operator>>(std::istream& stream, Match& m);
 
     SeqCoord coords[2];
-    bool isReverse;
+    bool isRC;
     size_t numDiff;
 };
 
