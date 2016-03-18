@@ -57,7 +57,7 @@ public:
         return isLeftExtreme() && isRightExtreme();
     }
     bool isFull() const {
-        interval.length() == seqlen;
+        return interval.length() == seqlen;
     }
     bool isEmpty() const {
         return interval.start == 0 && interval.end == -1;

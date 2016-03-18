@@ -2,6 +2,7 @@
 #define mkqs_h_
 
 #include <algorithm>
+#include <cstdlib>
 
 //
 // mkqs - multikey quicksort
@@ -61,7 +62,7 @@ void mkqs2(T* a, int n, int depth, const PrimarySorter& primarySorter, const Fin
     pm = a + (n/2);
     pn = a + (n-1);
 
-    int mid_idx = rand() % n;
+    int mid_idx = std::rand() % n;
 
     pm = &a[mid_idx];
     mkqs_swap2(a, pm);

@@ -29,7 +29,7 @@ private:
             _stream << FILE_MAGIC << "\n";
             _stream << strings << "\n" << elems << "\n";
         }
-        return _stream;
+        return (bool)_stream;
     }
     bool writeElem(const SuffixArray::Elem& elem) {
         if (_stream) {
@@ -37,7 +37,7 @@ private:
                 _stream << elem.i << ' ' << elem.j << "\n";
             }
         }
-        return _stream;
+        return (bool)_stream;
     }
     std::ostream& _stream;
 };
@@ -79,14 +79,14 @@ private:
             }
             _stream >> strings >> elems;
         }
-        return _stream;
+        return (bool)_stream;
     }
     bool readElem(SuffixArray::Elem& elem) {
         if (_stream) {
             _stream >> elem.i;
             _stream >> elem.j;
         }
-        return _stream;
+        return (bool)_stream;
     }
 
     std::istream& _stream;

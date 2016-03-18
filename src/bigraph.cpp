@@ -238,7 +238,7 @@ public:
         {
             size_t degrees0 = verts[0]->degrees(), degrees1 = verts[1]->degrees();
             if (degrees0 > _maxEdges || degrees1 > _maxEdges) {
-                return NULL;
+                return false;
             }
         }
 

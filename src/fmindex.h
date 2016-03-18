@@ -4,9 +4,9 @@
 #include "alphabet.h"
 #include "bwt.h"
 
-#include <algorithm>
 #include <cstring>
 #include <iostream>
+#include <numeric>
 #include <vector>
 
 //

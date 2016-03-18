@@ -161,7 +161,7 @@ bool BWTWriter::finalize() {
     _stream.seekp(_posRun);
     _stream.write((const char *)&_numRuns, sizeof(_numRuns));
     _stream.seekp(std::ios_base::end);
-    return _stream;
+    return (bool)_stream;
 }
 
 bool BWTWriter::writeRun(const RLUnit& run) {

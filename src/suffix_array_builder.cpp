@@ -3,8 +3,8 @@
 #include "suffix_array.h"
 #include "suffix_array_builder.h"
 
-#include <algorithm>
 #include <cstring>
+#include <numeric>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
