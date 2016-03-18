@@ -27,7 +27,7 @@ public:
 
 private:
     Correct() : Runner("c:s:a:t:p:g:h", boost::assign::map_list_of('a', "algorithm")('t', "threads")('p', "prefix")('g', "gap-array")) {
-        RUNNER_INSTALL("correct", this, "build the BWT and FM-index for a set of reads");
+        RUNNER_INSTALL("correct", this, "correct sequencing errors in a set of reads");
     }
     int checkOptions(const Properties& options, const Arguments& arguments) const {
         if (options.find("h") != options.not_found() || arguments.size() != 1) {

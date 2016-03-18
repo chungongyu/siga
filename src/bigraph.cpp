@@ -29,6 +29,12 @@ std::string Edge::label() const {
     return label;
 }
 
+void Edge::join(Edge* edge) {
+}
+
+void Edge::update() {
+}
+
 //
 // Vertex
 //
@@ -92,6 +98,9 @@ void Vertex::addEdge(Edge* edge) {
     _edges.push_back(edge);
 }
 
+void Vertex::removeEdge(Edge* edge) {
+}
+
 //
 // Bigraph
 //
@@ -127,11 +136,43 @@ void Bigraph::simplify() {
     simplify(Edge::ED_ANTISENSE);
 }
 
-void Bigraph::merge(Vertex* start, Edge* edge) {
-    Vertex* end = edge->end();
+void Bigraph::merge(Vertex* v1, Edge* edge) {
+    Vertex* v2 = edge->end();
 
     // Merge the data
-    start->merge(edge);
+    v1->merge(edge);
+
+    // Get the twin edge (the edge in V2 that points to V1)
+    Edge* twin = edge->twin();
+
+    // Ensure V2 has the twin edge
+    //assert(v2->hasEdge(twin));
+
+    // Get the edge set opposite of the twin edge (which will be the new edges in this direction for V1)
+    EdgePtrList transEdges = v2->edges(edge->dir());
+
+    // Move the edges from V2 to V1
+    for (EdgePtrList::iterator i = transEdges.begin(); i != transEdges.end(); ++i) {
+        Edge* transEdge = *i;
+
+        // Remove the edge from V2, this does not destroy the edge
+        v2->removeEdge(transEdge);
+
+        // Join edge to the start of transEdge
+        // This updates the starting point of transEdge to be V1
+        // This calls Edge::extend on the twin edge
+        transEdge->join(edge);
+        //assert(transEdge->dir() == edge->dir());
+        v1->addEdge(transEdge);
+
+        // Notify the edges they have been updated
+        transEdge->update();
+        transEdge->twin()->update();
+    }
+
+    // Remove the edge from V1 to V2
+    v1->removeEdge(edge);
+    delete edge;
 }
 
 void Bigraph::simplify(Edge::Dir dir) {

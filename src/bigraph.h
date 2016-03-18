@@ -79,9 +79,9 @@ public:
     }
 
     std::string label() const;
-    void seqlen(size_t l) {
-        _coord.seqlen = l;
-    }
+    void join(Edge* edge);
+    void update();
+
 private:
     Edge* _twin;
     Vertex* _end;
