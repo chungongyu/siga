@@ -1,13 +1,34 @@
 #include "bigraph.h"
 #include "asqg.h"
+#include "kseq.h"
 
 #include <fstream>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
 
 #include <log4cxx/logger.h>
 
+#define GZIP_EXT ".gz"
+
 static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.Bigraph"));
+
+//
+// Edge
+//
+std::string Edge::label() const {
+    // get the unmatched coordinates in end vertex
+    const SeqCoord& coord = _twin->coord();
+    SeqCoord unmatched = coord.complement();
+    const std::string& seq = _end->seq();
+    std::string label = seq.substr(unmatched.interval.start, unmatched.length());
+    if (comp() == EC_REVERSE) {
+        make_reverse_complement_dna(label);
+    }
+    return label;
+}
 
 //
 // Vertex
@@ -16,6 +37,18 @@ Vertex::~Vertex() {
     for (EdgePtrList::iterator i = _edges.begin(); i != _edges.end(); ++i) {
         delete *i;
     }
+}
+
+void Vertex::merge(Edge* edge) {
+    // Merging two string vertices has two parts
+    // First, the sequence of the vertex is extended
+    // by the the content of the edge label
+    // Then, all the edges that are pointing to this node
+    // must be updated to contain the extension of the vertex
+    Edge* twin = edge->twin();
+
+    // Merge the sequence
+    std::string label = edge->label();
 }
 
 void Vertex::addEdge(Edge* edge) {
@@ -33,11 +66,11 @@ Bigraph::~Bigraph() {
 }
 
 bool Bigraph::addVertex(Vertex* vertex) {
-    VertexTable::iterator i = _vertices.find(vertex->id);
+    VertexTable::iterator i = _vertices.find(vertex->id());
     if (i != _vertices.end()) {
         return false;
     }
-    _vertices[vertex->id] = vertex;
+    _vertices[vertex->id()] = vertex;
     return true;
 }
 
@@ -51,6 +84,42 @@ Vertex* Bigraph::getVertex(const Vertex::Id& id) const {
 
 void Bigraph::addEdge(Vertex* vertex, Edge* edge) {
     vertex->addEdge(edge);
+}
+
+void Bigraph::simplify() {
+    simplify(Edge::ED_SENSE);
+    simplify(Edge::ED_ANTISENSE);
+}
+
+void Bigraph::merge(Vertex* start, Edge* edge) {
+    Vertex* end = edge->end();
+
+    // Merge the data
+    start->merge(edge);
+}
+
+void Bigraph::simplify(Edge::Dir dir) {
+    bool changed = true;
+    while (changed) {
+        changed = false;
+        for (VertexTable::iterator i = _vertices.begin(); i != _vertices.end(); ++i) {
+            // Get the edges for this direction
+            EdgePtrList edges = i->second->edges(dir);
+
+            // If there is a single edge in this direction, merge the vertices
+            // Don't merge singular self edges though
+            if (edges.size() == 1 && !edges[0]->isSelf()) {
+                // Check that the edge back is singular as well
+                Edge* single = edges[0];
+                Edge* twin = single->twin();
+                Vertex* end = single->end();
+                if (end->degrees(twin->dir()) == 1) {
+                    merge(i->second, single);
+                    changed = true;
+                }
+            }
+        }
+    }
 }
 
 class EdgeCreator {
@@ -182,7 +251,7 @@ bool loadASQG(std::istream& stream, size_t minOverlap, bool allowContainments, s
                 }
                 Vertex* vertex = new Vertex(record.id, record.seq);
                 if (!g->addVertex(vertex)) {
-                    LOG4CXX_ERROR(logger, boost::format("Error: Attempted to insert vertex into graph with a duplicate id: %s") % vertex->id);
+                    LOG4CXX_ERROR(logger, boost::format("Error: Attempted to insert vertex into graph with a duplicate id: %s") % vertex->id());
                     LOG4CXX_ERROR(logger, "All reads must have a unique identifier");
                     delete vertex;
                     return false;
@@ -223,7 +292,15 @@ bool loadASQG(std::istream& stream, size_t minOverlap, bool allowContainments, s
 }
 
 bool loadASQG(const std::string& filename, size_t minOverlap, bool allowContainments, size_t maxEdges, Bigraph* g) {
-    std::ifstream stream(filename.c_str());
+    std::ifstream file(filename.c_str());
+
+    boost::iostreams::filtering_istreambuf buf;
+    if (boost::algorithm::ends_with(filename, GZIP_EXT)) {
+        buf.push(boost::iostreams::gzip_decompressor());
+    }
+    buf.push(file);
+
+    std::istream stream(&buf);
     return loadASQG(stream, minOverlap, allowContainments, maxEdges, g);
 }
 

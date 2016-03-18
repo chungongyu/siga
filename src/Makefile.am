@@ -36,6 +36,7 @@ arcs_SOURCES=assembler.cpp \
 arcs_CXXFLAGS=${LOG4CXX_CFLAGS}
 arcs_LDFLAGS=${LOG4CXX_LIBS} \
 			 -lboost_filesystem \
+			 -lboost_iostreams \
 			 -lboost_system
 
 EXTRA_DIST=log4cxx.properties

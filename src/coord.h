@@ -9,7 +9,7 @@
 //
 class Interval {
 public:
-    Interval() : start(0), end(0) {
+    Interval() : start(0), end(-1) {
     }
 
     Interval(size_t s, size_t e) : start(s), end(e) {
@@ -54,9 +54,14 @@ public:
     bool isFull() const {
         interval.length() == seqlen;
     }
+    bool isEmpty() const {
+        return interval.start == 0 && interval.end == -1;
+    }
     size_t length() const {
         return interval.length();
     }
+
+    SeqCoord complement() const;
 
     friend std::ostream& operator<<(std::ostream& stream, const SeqCoord& c);
     friend std::istream& operator>>(std::istream& stream, SeqCoord& c);

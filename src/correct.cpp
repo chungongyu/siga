@@ -9,8 +9,6 @@
 #include <boost/assign.hpp>
 #include <boost/format.hpp>
 
-#include <divsufsort.h>
-
 #include <log4cxx/logger.h>
 
 static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.Correct"));

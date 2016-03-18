@@ -62,12 +62,19 @@ public:
     Edge* twin() const {
         return _twin;
     }
+    const SeqCoord& coord() const {
+        return _coord;
+    }
     void color(GraphColor color) {
         _color = color;
     }
     GraphColor color() const {
         return _color;
     }
+    bool isSelf() const {
+        return start() == end();
+    }
+    std::string label() const;
 private:
     Edge* _twin;
     Vertex* _end;
@@ -86,9 +93,16 @@ class Vertex {
 public:
     typedef std::string Id;
 
-    Vertex(const Id& id, const std::string& seq) : id(id), seq(seq), color(GC_WHITE), coverage(1) {
+    Vertex(const Id& id, const std::string& seq) : _id(id), _seq(seq), _color(GC_WHITE), _coverage(1) {
     }
     ~Vertex();
+
+    const Vertex::Id& id() const {
+        return _id;
+    }
+    const std::string& seq() const {
+        return _seq;
+    }
 
     // Merge another vertex into this vertex, as specified by pEdge
     void merge(Edge* edge);
@@ -118,12 +132,12 @@ public:
         return ev.size();
     }
 
-    Id id;
-    GraphColor color;
-    std::string seq;
-    size_t coverage; // Number of vertices that have been merged into this one
-
 private:
+    Id _id;
+    GraphColor _color;
+    std::string _seq;
+    size_t _coverage; // Number of vertices that have been merged into this one
+
     EdgePtrList _edges;
 };
 
@@ -142,7 +156,16 @@ public:
     Vertex* getVertex(const Vertex::Id& id) const;
 
     void addEdge(Vertex* vertex, Edge* edge);
+
+    // Merge vertices that are joined by the specified edge
+    void merge(Vertex* vertex, Edge* edge);
+
+    // Simplify the graph by removing transitive edges
+    void simplify();
 private:
+    // Simplify the graph by compacting edges in the given direction
+    void simplify(Edge::Dir dir);
+
     VertexTable _vertices;
 };
 

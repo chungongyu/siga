@@ -12,6 +12,21 @@ std::istream& operator>>(std::istream& stream, Interval& r) {
 }
 
 // SeqCoord
+SeqCoord SeqCoord::complement() const {
+    size_t s = 0, e = -1;
+    if (isFull()) {
+    } else if (isEmpty()) {
+        e = seqlen - 1;
+    } else if (isLeftExtreme()) {
+        s = interval.start;
+        e = seqlen - 1;
+    } else {
+        assert(isRightExtreme());
+        e = interval.end - 1;
+    }
+    return SeqCoord(s, e, seqlen);
+}
+
 std::ostream& operator<<(std::ostream& stream, const SeqCoord& c) {
     stream << c.interval << " " << c.seqlen;
     return stream;
