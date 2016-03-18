@@ -2,10 +2,9 @@
 #include "asqg.h"
 #include "kseq.h"
 
-#include <fstream>
-
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
+#include <boost/iostreams/device/file_descriptor.hpp>
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 
@@ -49,6 +48,43 @@ void Vertex::merge(Edge* edge) {
 
     // Merge the sequence
     std::string label = edge->label();
+    bool prepend = false;
+
+    if (edge->dir() == Edge::ED_SENSE) {
+        _seq += label;
+    } else {
+        _seq = label + _seq;
+        prepend = true;
+    }
+
+    // Update the coverage value of the vertex
+    _coverage += edge->end()->coverage();
+
+    // Extend match
+    {
+        SeqCoord& coord = edge->coord();
+        coord.seqlen = _seq.length();
+        coord.interval.end += label.length();
+    }
+    {
+        SeqCoord& coord = twin->coord();
+        if (coord.isLeftExtreme()) {
+            coord.interval.end = coord.seqlen - 1;
+        } else {
+            coord.interval.start = 0;
+        }
+    }
+
+    // All the SeqCoords for the edges must have their seqlen field updated
+    // Also, if we prepended sequence to this edge, all the matches in the 
+    // SENSE direction must have their coordinates offset
+    for (EdgePtrList::iterator i = _edges.begin(); i != _edges.end(); ++i) {
+        (*i)->coord().seqlen = _seq.length();
+        if (prepend && (*i)->dir() == Edge::ED_SENSE && edge != *i) {
+            SeqCoord& coord = (*i)->coord();
+            coord.interval.offset(label.length());
+        }
+    }
 }
 
 void Vertex::addEdge(Edge* edge) {
@@ -292,15 +328,67 @@ bool loadASQG(std::istream& stream, size_t minOverlap, bool allowContainments, s
 }
 
 bool loadASQG(const std::string& filename, size_t minOverlap, bool allowContainments, size_t maxEdges, Bigraph* g) {
-    std::ifstream file(filename.c_str());
-
     boost::iostreams::filtering_istreambuf buf;
     if (boost::algorithm::ends_with(filename, GZIP_EXT)) {
         buf.push(boost::iostreams::gzip_decompressor());
     }
-    buf.push(file);
+    buf.push(boost::iostreams::file_descriptor_source(filename));
 
     std::istream stream(&buf);
     return loadASQG(stream, minOverlap, allowContainments, maxEdges, g);
 }
 
+bool saveASQG(std::ostream& stream, const Bigraph* g) {
+    // Header
+    {
+        ASQG::HeaderRecord record;
+        stream << record << '\n';
+        if (!stream) {
+            return false;
+        }
+    }
+    // Vertices
+    for (VertexTable::const_iterator i = g->_vertices.begin(); i != g->_vertices.end(); ++i) {
+        ASQG::VertexRecord record(i->second->id(), i->second->seq());
+        stream << record << '\n';
+        if (!stream) {
+            return false;
+        }
+    }
+    // Edges
+    for (VertexTable::const_iterator i = g->_vertices.begin(); i != g->_vertices.end(); ++i) {
+        EdgePtrList edges = i->second->edges();
+        for (EdgePtrList::const_iterator j = edges.begin(); j != edges.end(); ++j) {
+            // We write one record for every bidirectional edge so only write edges
+            // that are in canonical form (where id1 < id2)
+            Edge* edge = (*j);
+            Edge* twin = edge->twin();
+
+            Overlap overlap(edge->start()->id(), edge->coord(), edge->end()->id(), twin->coord(), edge->comp() == Edge::EC_REVERSE, 0);
+            if (overlap.id[0] <= overlap.id[1]) {
+                // Containment edges are in both directions so only output one
+                // record if it is a containment
+                if (!overlap.match.isContainment() || edge->dir() == Edge::ED_SENSE) {
+                    ASQG::EdgeRecord record(overlap);
+                    stream << record << '\n';
+                    if (!stream) {
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+bool saveASQG(const std::string& filename, const Bigraph* g) {
+    boost::iostreams::filtering_ostreambuf buf;
+    if (boost::algorithm::ends_with(filename, GZIP_EXT)) {
+        buf.push(boost::iostreams::gzip_compressor());
+    }
+    buf.push(boost::iostreams::file_descriptor_sink(filename));
+
+    std::ostream stream(&buf);
+    return saveASQG(stream, g);
+}

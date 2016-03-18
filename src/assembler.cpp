@@ -26,16 +26,22 @@ public:
         std::string input = arguments[0];
         LOG4CXX_INFO(logger, boost::format("input: %s") % input);
 
+        std::string output = options.get< std::string >("prefix", "default");
+        LOG4CXX_INFO(logger, boost::format("output: %s") % output);
+
         Bigraph g;
         if (loadASQG(input, options.get< size_t >("min-overlap", 0), false, options.get< size_t >("max-edges", 128), &g)) {
-            LOG4CXX_INFO(logger, "ok");
+            LOG4CXX_INFO(logger, "load ok");
+            if (saveASQG(output + ".asqg.gz", &g)) {
+                LOG4CXX_INFO(logger, "save ok");
+            }
         }
 
         return r;
     }
 
 private:
-    Assembler() : Runner("c:s:o:t:m:b:h", boost::assign::map_list_of('o', "prefix")('t', "threads")('m', "min-overlap")) {
+    Assembler() : Runner("c:s:o:t:m:N:b:h", boost::assign::map_list_of('o', "prefix")('t', "threads")('m', "min-overlap")('N', "max-edges")) {
         RUNNER_INSTALL("assemble", this, "generate contigs from an assembly graph");
     }
 
@@ -55,7 +61,7 @@ private:
                 "      -o, --prefix=NAME            use NAME as the prefix of the output files (output files will be NAME-contigs.fa, etc)\n"
                 "      -t, --threads=NUM                use NUM threads to construct the index (default: 1)\n"
                 "      -m, --min-overlap=LEN            only use overlaps of at least LEN. This can be used to filter\n"
-                "          --max-edges=N                limit each vertex to a maximum of N edges. For highly repetitive regions\n"
+                "      -N, --max-edges=N                limit each vertex to a maximum of N edges. For highly repetitive regions\n"
                 "                                       this helps save memory by culling excessive edges around unresolvable repeats (default: 128)\n"
                 "\n"
                 "Bubble/Variation removal parameters:\n"

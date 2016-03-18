@@ -39,7 +39,7 @@ namespace ASQG {
     //
     // HeaderRecord
     //
-    HeaderRecord::HeaderRecord() {
+    HeaderRecord::HeaderRecord() : _version(HEADER_VERSION) {
     }
 
     bool HeaderRecord::parse(const std::string& text, HeaderRecord& record) {
@@ -155,6 +155,7 @@ namespace ASQG {
         if (record.substring) {
             stream << FIELD_SEP << record.substring.tostring(SUBSTRING_TAG);
         }
+        return stream;
     }
 
     std::istream& operator>>(std::istream& stream, VertexRecord& record) {
@@ -205,6 +206,7 @@ namespace ASQG {
         if (record._identity) {
             stream << FIELD_SEP << record._identity.tostring(PERCENT_IDENTITY_TAG);
         }
+        return stream;
     }
 
     std::istream& operator>>(std::istream& stream, EdgeRecord& record) {

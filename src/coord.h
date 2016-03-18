@@ -19,6 +19,11 @@ public:
         return end + 1 - start;
     }
 
+    void offset(size_t delta) {
+        start += delta;
+        end += delta;
+    }
+
     friend std::ostream& operator<<(std::ostream& stream, const Interval& i);
     friend std::istream& operator>>(std::istream& stream, Interval& i);    
 
@@ -75,7 +80,7 @@ public:
 //
 class Match {
 public:
-    Match() {
+    Match() : isRC(false), numDiff(0) {
     }
     Match(const SeqCoord& c1, const SeqCoord& c2, bool isRC, size_t nd) : isRC(isRC), numDiff(nd) {
         coords[0] = c1;

@@ -65,6 +65,9 @@ public:
     const SeqCoord& coord() const {
         return _coord;
     }
+    SeqCoord& coord() {
+        return _coord;
+    }
     void color(GraphColor color) {
         _color = color;
     }
@@ -74,7 +77,11 @@ public:
     bool isSelf() const {
         return start() == end();
     }
+
     std::string label() const;
+    void seqlen(size_t l) {
+        _coord.seqlen = l;
+    }
 private:
     Edge* _twin;
     Vertex* _end;
@@ -102,6 +109,9 @@ public:
     }
     const std::string& seq() const {
         return _seq;
+    }
+    size_t coverage() const {
+        return _coverage;
     }
 
     // Merge another vertex into this vertex, as specified by pEdge
@@ -163,13 +173,18 @@ public:
     // Simplify the graph by removing transitive edges
     void simplify();
 private:
+    friend bool loadASQG(std::istream& stream, size_t minOverlap, bool allowContainments, size_t maxEdges, Bigraph* g);
+    friend bool saveASQG(std::ostream& stream, const Bigraph* g);
+
     // Simplify the graph by compacting edges in the given direction
     void simplify(Edge::Dir dir);
 
     VertexTable _vertices;
 };
 
-bool loadASQG(const std::istream& stream, size_t minOverlap, bool allowContainments, size_t maxEdges, Bigraph* g);
+bool loadASQG(std::istream& stream, size_t minOverlap, bool allowContainments, size_t maxEdges, Bigraph* g);
 bool loadASQG(const std::string& filename, size_t minOverlap, bool allowContainments, size_t maxEdges, Bigraph* g);
+bool saveASQG(std::ostream& stream, const Bigraph* g);
+bool saveASQG(const std::string& filename, const Bigraph* g);
 
 #endif // bigraph_h_
