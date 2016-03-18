@@ -54,6 +54,28 @@ const size_t DEFAULT_SAMPLE_RATE_LARGE = 8192;
 
 class FMIndex {
 public:
+    //
+    // Interval holds a pair of integers which delineate an alignment of some string
+    //       to a BWT/FM-index
+    //
+    class Interval {
+    public:
+        Interval() : lower(0), upper(0) {
+        }
+        bool valid() const {
+            return upper > lower;
+        }
+        void init(char c, const FMIndex* index) {
+            lower = index->getPC(c);
+            upper = lower + index->getOcc(c, index->length() - 1) - 1;
+        }
+        void update(char c, const FMIndex* index) {
+        }
+
+        size_t lower;
+        size_t upper;
+    };
+
     FMIndex(size_t sampleRate = DEFAULT_SAMPLE_RATE_SMALL) : _sampleRate(sampleRate) {
         initialize();
     }

@@ -2,26 +2,6 @@
 #include "utils.h"
 
 //
-// Interval holds a pair of integers which delineate an alignment of some string
-//       to a BWT/FM-index
-//
-class Interval {
-public:
-    Interval() : lower(0), upper(0) {
-    }
-    bool valid() const {
-        return upper > lower;
-    }
-    void init(char c, const FMIndex* index) {
-        lower = index->getPC(c);
-        upper = lower + index->getOcc(c, index->length() - 1) - 1;
-    }
-
-    size_t lower;
-    size_t upper;
-};
-
-//
 // A pair of intervals used for bidirectional searching a FM-index/reverse FM-index
 //
 class IntervalPair {
@@ -36,10 +16,10 @@ public:
         }
         return true;
     }
-    Interval& operator[](size_t i) {
+    FMIndex::Interval& operator[](size_t i) {
         return _intervals[i];
     }
-    const Interval& operator[](size_t i) const {
+    const FMIndex::Interval& operator[](size_t i) const {
         return _intervals[i];
     }
 
@@ -68,7 +48,7 @@ private:
         _intervals[0].upper = pb + u[DNAAlphabet::torank(c)] - 1;
     }
 
-    Interval _intervals[2];
+    FMIndex::Interval _intervals[2];
 };
 
 struct OverlapBlock {
