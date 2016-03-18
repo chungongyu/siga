@@ -70,6 +70,9 @@ public:
             upper = lower + index->getOcc(c, index->length() - 1) - 1;
         }
         void update(char c, const FMIndex* index) {
+            size_t pb = index->getPC(c);
+            lower = pb + index->getOcc(c, lower - 1);
+            upper = pb + index->getOcc(c, upper) - 1;
         }
 
         size_t lower;
