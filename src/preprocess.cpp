@@ -81,7 +81,7 @@ public:
         }
 
         if (out != &std::cout) {
-            delete out;
+            SAFE_DELETE(out);
         }
 
         return r;

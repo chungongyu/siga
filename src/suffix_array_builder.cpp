@@ -1,7 +1,8 @@
+#include "suffix_array_builder.h"
 #include "alphabet.h"
 #include "mkqs.h"
 #include "suffix_array.h"
-#include "suffix_array_builder.h"
+#include "utils.h"
 
 #include <cstring>
 #include <numeric>
@@ -115,9 +116,9 @@ public:
 
         // deallocate t array
         for (size_t i = 0; i < num_strings; ++i) {
-            delete[] type_array[i];
+            SAFE_DELETE_ARRAY(type_array[i]);
         }
-        delete[] type_array;
+        SAFE_DELETE_ARRAY(type_array);
         return sa;
     }
 

@@ -24,6 +24,17 @@ public:
         end += delta;
     }
 
+    // Flip a single position p to the reverse strand for a sequence of length l 
+    static size_t flip(size_t p, size_t l) {
+        assert(l > p);
+        return l - p - 1;
+    }
+    void flip(size_t l) {
+        size_t t = start;
+        start = flip(end, l);
+        end = flip(start, l);
+    }
+
     friend std::ostream& operator<<(std::ostream& stream, const Interval& i);
     friend std::istream& operator>>(std::istream& stream, Interval& i);    
 
@@ -64,6 +75,18 @@ public:
     }
     size_t length() const {
         return interval.length();
+    }
+    void extend(size_t len) {
+        if (isLeftExtreme()) {
+            interval.end += len;
+        } else {
+            assert(isRightExtreme() && interval.start >= len);
+            interval.start -= len;
+        }
+    }
+    // Flip mirrors the coordinates so they are on the other strand
+    void flip() {
+        interval.flip(seqlen);
     }
 
     SeqCoord complement() const;

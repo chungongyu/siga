@@ -1,6 +1,7 @@
 #include "bigraph.h"
 #include "asqg.h"
 #include "kseq.h"
+#include "utils.h"
 
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
@@ -10,9 +11,9 @@
 
 #include <log4cxx/logger.h>
 
-#define GZIP_EXT ".gz"
-
 static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.Bigraph"));
+
+#define GZIP_EXT ".gz"
 
 //
 // Edge
@@ -30,9 +31,41 @@ std::string Edge::label() const {
 }
 
 void Edge::join(Edge* edge) {
+    // Update the match coordinate
+
+    if (edge->_comp == Edge::EC_REVERSE) {
+        _comp = (Edge::Comp)(Edge::EC_COUNT - _comp - 1);
+        _dir = (Edge::Dir)(Edge::ED_COUNT - _dir - 1);
+    }
+
+    _twin->extend(edge->_twin);
 }
 
-void Edge::update() {
+void Edge::extend(Edge* edge) {
+    if (edge->_comp == Edge::EC_REVERSE) {
+        _comp = (Edge::Comp)(Edge::EC_COUNT - _comp - 1);
+    }
+    _end = edge->end();
+}
+
+bool Edge::operator==(const Edge& edge) const {
+    return _end->id() == edge._end->id() && _dir == edge._dir && _comp == edge._comp;
+}
+
+void Edge::validate() const {
+    std::string v1 = start()->seq(), v2 = end()->seq();
+    std::string m1 = v1.substr(_coord.interval.start, _coord.length());
+    std::string m2 = v2.substr(_twin->_coord.interval.start, _twin->_coord.length());
+    if (_comp == EC_REVERSE) {
+        make_reverse_complement_dna(m2);
+    }
+    if (m1 != m2) {
+        LOG4CXX_ERROR(logger, "Error, matching strings are not the same length");
+        LOG4CXX_ERROR(logger, boost::format("V1M: %s") % m1);
+        LOG4CXX_ERROR(logger, boost::format("V2M: %s") % m2);
+        LOG4CXX_ERROR(logger, boost::format("V1: %s") % v1)
+        assert(false);
+    }
 }
 
 //
@@ -67,27 +100,16 @@ void Vertex::merge(Edge* edge) {
     _coverage += edge->end()->coverage();
 
     // Extend match
-    {
-        SeqCoord& coord = edge->coord();
-        coord.seqlen = _seq.length();
-        coord.interval.end += label.length();
-    }
-    {
-        SeqCoord& coord = twin->coord();
-        if (coord.isLeftExtreme()) {
-            coord.interval.end = coord.seqlen - 1;
-        } else {
-            coord.interval.start = 0;
-        }
-    }
+    edge->coord().extend(label.length());
+    twin->coord().extend(label.length());
 
     // All the SeqCoords for the edges must have their seqlen field updated
     // Also, if we prepended sequence to this edge, all the matches in the 
     // SENSE direction must have their coordinates offset
     for (EdgePtrList::iterator i = _edges.begin(); i != _edges.end(); ++i) {
-        (*i)->coord().seqlen = _seq.length();
+        SeqCoord& coord = (*i)->coord();
+        coord.seqlen = _seq.length();
         if (prepend && (*i)->dir() == Edge::ED_SENSE && edge != *i) {
-            SeqCoord& coord = (*i)->coord();
             coord.interval.offset(label.length());
         }
     }
@@ -99,6 +121,28 @@ void Vertex::addEdge(Edge* edge) {
 }
 
 void Vertex::removeEdge(Edge* edge) {
+    for (EdgePtrList::iterator i = _edges.begin(); i != _edges.end(); ++i) {
+        if (*i == edge) {
+            _edges.erase(i);
+            return;
+        }
+    }
+    assert(false);
+}
+
+bool Vertex::hasEdge(Edge* edge) const {
+    for (EdgePtrList::const_iterator i = _edges.begin(); i != _edges.end(); ++i) {
+        if (**i == *edge) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void Vertex::validate() const {
+    for (EdgePtrList::const_iterator i = _edges.begin(); i != _edges.end(); ++i) {
+        (*i)->validate();
+    }
 }
 
 //
@@ -127,6 +171,11 @@ Vertex* Bigraph::getVertex(const Vertex::Id& id) const {
     return NULL;
 }
 
+void Bigraph::removeVertex(Vertex* vertex) {
+    const Vertex::Id& vid = vertex->id();
+    _vertices.erase(vid);
+}
+
 void Bigraph::addEdge(Vertex* vertex, Edge* edge) {
     vertex->addEdge(edge);
 }
@@ -146,10 +195,10 @@ void Bigraph::merge(Vertex* v1, Edge* edge) {
     Edge* twin = edge->twin();
 
     // Ensure V2 has the twin edge
-    //assert(v2->hasEdge(twin));
+    assert(v2->hasEdge(twin));
 
     // Get the edge set opposite of the twin edge (which will be the new edges in this direction for V1)
-    EdgePtrList transEdges = v2->edges(edge->dir());
+    EdgePtrList transEdges = v2->edges((Edge::Dir)(Edge::ED_COUNT - twin->dir() - 1));
 
     // Move the edges from V2 to V1
     for (EdgePtrList::iterator i = transEdges.begin(); i != transEdges.end(); ++i) {
@@ -162,17 +211,22 @@ void Bigraph::merge(Vertex* v1, Edge* edge) {
         // This updates the starting point of transEdge to be V1
         // This calls Edge::extend on the twin edge
         transEdge->join(edge);
-        //assert(transEdge->dir() == edge->dir());
+        assert(transEdge->dir() == edge->dir());
         v1->addEdge(transEdge);
-
-        // Notify the edges they have been updated
-        transEdge->update();
-        transEdge->twin()->update();
     }
 
     // Remove the edge from V1 to V2
     v1->removeEdge(edge);
-    delete edge;
+    SAFE_DELETE(edge);
+
+    // Remove the edge from V2 to V1
+    v2->removeEdge(twin);
+    SAFE_DELETE(twin);
+
+    // Remove V2
+    // It is guarenteed to not be connected
+    removeVertex(v2);
+    SAFE_DELETE(v2);
 }
 
 void Bigraph::simplify(Edge::Dir dir) {
@@ -197,6 +251,24 @@ void Bigraph::simplify(Edge::Dir dir) {
             }
         }
     }
+}
+
+void Bigraph::validate() const {
+    for (VertexTable::const_iterator i = _vertices.begin(); i != _vertices.end(); ++i) {
+        i->second->validate();
+    }
+}
+
+bool Bigraph::visit(BigraphVisitor* visitor) {
+    bool modified = false;
+
+    visitor->previsit(this);
+    for (VertexTable::const_iterator i = _vertices.begin(); i != _vertices.end(); ++i) {
+        modified |= visitor->visit(this, i->second);
+    }
+    visitor->postvisit(this);
+
+    return modified;
 }
 
 class EdgeCreator {
@@ -330,7 +402,7 @@ bool loadASQG(std::istream& stream, size_t minOverlap, bool allowContainments, s
                 if (!g->addVertex(vertex)) {
                     LOG4CXX_ERROR(logger, boost::format("Error: Attempted to insert vertex into graph with a duplicate id: %s") % vertex->id());
                     LOG4CXX_ERROR(logger, "All reads must have a unique identifier");
-                    delete vertex;
+                    SAFE_DELETE(vertex);
                     return false;
                 }
                 break;

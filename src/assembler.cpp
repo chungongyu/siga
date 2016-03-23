@@ -31,6 +31,7 @@ public:
 
         Bigraph g;
         if (loadASQG(input, options.get< size_t >("min-overlap", 0), false, options.get< size_t >("max-edges", 128), &g)) {
+            g.validate();
             LOG4CXX_INFO(logger, "load ok");
             if (saveASQG(output + ".asqg.gz", &g)) {
                 LOG4CXX_INFO(logger, "save ok");

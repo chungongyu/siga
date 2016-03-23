@@ -20,6 +20,14 @@
 #define MOD_POWER_2(x, y) (x) & ((y) - 1)
 #endif
 
+#ifndef SAFE_DELETE
+#define SAFE_DELETE(x) if (x != NULL) {delete x; x = NULL;}
+#endif
+
+#ifndef SAFE_DELETE_ARRAY
+#define SAFE_DELETE_ARRAY(x) if (x != NULL) {delete[] x; x = NULL;}
+#endif
+
 namespace PairEnd {
     std::string basename(const std::string& name);
     std::string id(const std::string& name);

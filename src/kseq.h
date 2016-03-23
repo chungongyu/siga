@@ -16,6 +16,7 @@ std::string make_reverse_complement_dna(const std::string& dna);
 class DNASeq {
 public:
     DNASeq() {}
+    DNASeq(const std::string& name, const std::string& seq) : name(name), seq(seq) {}
     DNASeq(const std::string& name, const std::string& seq, const std::string& quality) : name(name), seq(seq), quality(quality) {}
     virtual ~DNASeq() {}
 

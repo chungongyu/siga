@@ -2,6 +2,7 @@
 #define bigraph_h_
 
 #include "coord.h"
+#include "bigraph_visitors.h"
 
 #include <cassert>
 #include <iostream>
@@ -37,7 +38,8 @@ public:
     // Do not change the values
     enum Comp {
         EC_SAME = 0,
-        EC_REVERSE = 1
+        EC_REVERSE = 1, 
+        EC_COUNT
     };
 
     Edge(Vertex* end, Dir dir, Comp comp, const SeqCoord& coord) : _end(end), _dir(dir), _comp(comp), _coord(coord) {
@@ -77,10 +79,12 @@ public:
     bool isSelf() const {
         return start() == end();
     }
+    bool operator==(const Edge& edge) const;
 
     std::string label() const;
     void join(Edge* edge);
-    void update();
+    void extend(Edge* edge);
+    void validate() const;
 
 private:
     Edge* _twin;
@@ -120,6 +124,7 @@ public:
     // Edge list operations
     void addEdge(Edge* edge);
     void removeEdge(Edge* edge);
+    bool hasEdge(Edge* edge) const;
 
     EdgePtrList edges() const {
         return _edges;
@@ -142,6 +147,7 @@ public:
         return ev.size();
     }
 
+    void validate() const;
 private:
     Id _id;
     GraphColor _color;
@@ -164,6 +170,7 @@ public:
 
     bool addVertex(Vertex* vertex);
     Vertex* getVertex(const Vertex::Id& id) const;
+    void removeVertex(Vertex* vertex);
 
     void addEdge(Vertex* vertex, Edge* edge);
 
@@ -172,6 +179,12 @@ public:
 
     // Simplify the graph by removing transitive edges
     void simplify();
+
+    // Validate the graph is sane
+    void validate() const;
+
+    // Visit each vertex in the graph and call the visit functor object 
+    bool visit(BigraphVisitor* vistor);
 private:
     friend bool loadASQG(std::istream& stream, size_t minOverlap, bool allowContainments, size_t maxEdges, Bigraph* g);
     friend bool saveASQG(std::ostream& stream, const Bigraph* g);
