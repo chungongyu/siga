@@ -32,6 +32,8 @@ std::string Edge::label() const {
 
 void Edge::join(Edge* edge) {
     // Update the match coordinate
+    Match match = edge->match();
+    _coord = match.translate10(_coord);
 
     if (edge->_comp == Edge::EC_REVERSE) {
         _comp = (Edge::Comp)(Edge::EC_COUNT - _comp - 1);

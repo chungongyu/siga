@@ -70,6 +70,9 @@ public:
     SeqCoord& coord() {
         return _coord;
     }
+    Match match() const {
+        return Match(_coord, _twin->_coord, _comp == EC_REVERSE, 0);
+    }
     void color(GraphColor color) {
         _color = color;
     }

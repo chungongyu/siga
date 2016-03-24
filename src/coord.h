@@ -52,6 +52,8 @@ class SeqCoord {
 public:
     SeqCoord() : seqlen(0) {
     }
+    SeqCoord(const Interval& i, size_t l) : interval(i), seqlen(l) {
+    }
     SeqCoord(size_t s, size_t e, size_t l) : interval(s, e), seqlen(l) {
     }
 
@@ -88,6 +90,11 @@ public:
     void flip() {
         interval.flip(seqlen);
     }
+    SeqCoord flip() const {
+        SeqCoord c(interval, seqlen);
+        c.flip();
+        return c;
+    }
 
     SeqCoord complement() const;
 
@@ -122,6 +129,10 @@ public:
     bool isContainment() const {
         return coords[0].isContained() || coords[1].isContained();
     }
+
+    size_t translate01() const;
+    size_t translate10() const;
+    SeqCoord translate10(const SeqCoord& coord) const;
 
     friend std::ostream& operator<<(std::ostream& stream, const Match& m);
     friend std::istream& operator>>(std::istream& stream, Match& m);
