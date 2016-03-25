@@ -187,6 +187,30 @@ void Bigraph::simplify() {
     simplify(Edge::ED_ANTISENSE);
 }
 
+void Bigraph::simplify(Edge::Dir dir) {
+    bool changed = true;
+    while (changed) {
+        changed = false;
+        for (VertexTable::iterator i = _vertices.begin(); i != _vertices.end(); ++i) {
+            // Get the edges for this direction
+            EdgePtrList edges = i->second->edges(dir);
+
+            // If there is a single edge in this direction, merge the vertices
+            // Don't merge singular self edges though
+            if (edges.size() == 1 && !edges[0]->isSelf()) {
+                // Check that the edge back is singular as well
+                Edge* single = edges[0];
+                Edge* twin = single->twin();
+                Vertex* end = single->end();
+                if (end->degrees(twin->dir()) == 1) {
+                    merge(i->second, single);
+                    changed = true;
+                }
+            }
+        }
+    }
+}
+
 void Bigraph::merge(Vertex* v1, Edge* edge) {
     Vertex* v2 = edge->end();
 
@@ -229,30 +253,6 @@ void Bigraph::merge(Vertex* v1, Edge* edge) {
     // It is guarenteed to not be connected
     removeVertex(v2);
     SAFE_DELETE(v2);
-}
-
-void Bigraph::simplify(Edge::Dir dir) {
-    bool changed = true;
-    while (changed) {
-        changed = false;
-        for (VertexTable::iterator i = _vertices.begin(); i != _vertices.end(); ++i) {
-            // Get the edges for this direction
-            EdgePtrList edges = i->second->edges(dir);
-
-            // If there is a single edge in this direction, merge the vertices
-            // Don't merge singular self edges though
-            if (edges.size() == 1 && !edges[0]->isSelf()) {
-                // Check that the edge back is singular as well
-                Edge* single = edges[0];
-                Edge* twin = single->twin();
-                Vertex* end = single->end();
-                if (end->degrees(twin->dir()) == 1) {
-                    merge(i->second, single);
-                    changed = true;
-                }
-            }
-        }
-    }
 }
 
 void Bigraph::validate() const {
@@ -443,14 +443,18 @@ bool loadASQG(std::istream& stream, size_t minOverlap, bool allowContainments, s
 }
 
 bool loadASQG(const std::string& filename, size_t minOverlap, bool allowContainments, size_t maxEdges, Bigraph* g) {
-    boost::iostreams::filtering_istreambuf buf;
-    if (boost::algorithm::ends_with(filename, GZIP_EXT)) {
-        buf.push(boost::iostreams::gzip_decompressor());
-    }
-    buf.push(boost::iostreams::file_descriptor_source(filename));
+    try {
+        boost::iostreams::filtering_istreambuf buf;
+        if (boost::algorithm::ends_with(filename, GZIP_EXT)) {
+            buf.push(boost::iostreams::gzip_decompressor());
+        }
+        buf.push(boost::iostreams::file_descriptor_source(filename));
 
-    std::istream stream(&buf);
-    return loadASQG(stream, minOverlap, allowContainments, maxEdges, g);
+        std::istream stream(&buf);
+        return loadASQG(stream, minOverlap, allowContainments, maxEdges, g);
+    } catch (...) {
+        return false;
+    }
 }
 
 bool saveASQG(std::ostream& stream, const Bigraph* g) {
@@ -498,12 +502,16 @@ bool saveASQG(std::ostream& stream, const Bigraph* g) {
 }
 
 bool saveASQG(const std::string& filename, const Bigraph* g) {
-    boost::iostreams::filtering_ostreambuf buf;
-    if (boost::algorithm::ends_with(filename, GZIP_EXT)) {
-        buf.push(boost::iostreams::gzip_compressor());
-    }
-    buf.push(boost::iostreams::file_descriptor_sink(filename));
+    try {
+        boost::iostreams::filtering_ostreambuf buf;
+        if (boost::algorithm::ends_with(filename, GZIP_EXT)) {
+            buf.push(boost::iostreams::gzip_compressor());
+        }
+        buf.push(boost::iostreams::file_descriptor_sink(filename));
 
-    std::ostream stream(&buf);
-    return saveASQG(stream, g);
+        std::ostream stream(&buf);
+        return saveASQG(stream, g);
+    } catch (...) {
+        return false;
+    }
 }
