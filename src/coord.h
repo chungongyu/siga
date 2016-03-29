@@ -86,6 +86,10 @@ public:
             interval.start -= len;
         }
     }
+    void stretch(size_t len) {
+        seqlen += len;
+        interval.end += len;
+    }
     // Flip mirrors the coordinates so they are on the other strand
     void flip() {
         interval.flip(seqlen);

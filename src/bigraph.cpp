@@ -101,8 +101,19 @@ void Vertex::merge(Edge* edge) {
     // Update the coverage value of the vertex
     _coverage += edge->end()->coverage();
 
+    //
+    // 
+    // |_______________|//////|
+    //                 |//////|_______________|
+    //
+    // |_______________|//////////////////////|
+    //                 |//////////////////////|
+    //
+    // |//////////////////////|
+    // |//////////////////////|_______________|
+    //
     // Extend match
-    edge->coord().extend(label.length());
+    edge->coord().stretch(label.length());
     twin->coord().extend(label.length());
 
     // All the SeqCoords for the edges must have their seqlen field updated
@@ -426,9 +437,7 @@ bool loadASQG(std::istream& stream, size_t minOverlap, bool allowContainments, s
                 // Add the edge to the graph
                 if (ovr.match.length() >= minOverlap) {
                     EdgeCreator creator(g, allowContainments, maxEdges);
-                    if (!creator.create(ovr)) {
-                        return false;
-                    }
+                    creator.create(ovr);
                 }
 
                 break;

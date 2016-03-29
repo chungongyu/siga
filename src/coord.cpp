@@ -15,14 +15,14 @@ std::istream& operator>>(std::istream& stream, Interval& r) {
 SeqCoord SeqCoord::complement() const {
     size_t s = 0, e = -1;
     if (isFull()) {
-    } else if (isEmpty()) {
         e = seqlen - 1;
+    } else if (isEmpty()) {
     } else if (isLeftExtreme()) {
-        s = interval.start;
+        s = interval.end + 1;
         e = seqlen - 1;
     } else {
         assert(isRightExtreme());
-        e = interval.end - 1;
+        e = interval.start - 1;
     }
     return SeqCoord(s, e, seqlen);
 }

@@ -37,6 +37,8 @@ public:
             if (saveASQG(output + ".asqg.gz", &g)) {
                 LOG4CXX_INFO(logger, "save ok");
             }
+        } else {
+            LOG4CXX_ERROR(logger, boost::format("failed to open stream %s") % input);
         }
 
         return r;
