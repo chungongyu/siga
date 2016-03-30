@@ -73,6 +73,10 @@ namespace ASQG {
                 if (!record._errorRate.fromstring(fields[i])) {
                     return false;
                 }
+            } else if (boost::algorithm::starts_with(fields[i], CONTAINMENT_TAG)) {
+                if (!record._containment.fromstring(fields[i])) {
+                    return false;
+                }
             } else if (boost::algorithm::starts_with(fields[i], TRANSITIVE_TAG)) {
                 if (!record._transitive.fromstring(fields[i])) {
                     return false;
@@ -83,8 +87,7 @@ namespace ASQG {
         return true;
     }
 
-    std::ostream& operator<<(std::ostream& stream, const HeaderRecord& record) {
-        // Version
+    std::ostream& operator<<(std::ostream& stream, const HeaderRecord& record) { // Version
         std::vector< std::string > fields;
         assert(record._version);
         fields.push_back(record._version.tostring(VERSION_TAG));
@@ -102,7 +105,7 @@ namespace ASQG {
             fields.push_back(record._containment.tostring(CONTAINMENT_TAG));
         }
         if (record._transitive) {
-            fields.push_back(record._transitive.tostring(CONTAINMENT_TAG));
+            fields.push_back(record._transitive.tostring(TRANSITIVE_TAG));
         }
 
         stream << HEAD_TAG;

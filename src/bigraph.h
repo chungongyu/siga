@@ -33,6 +33,8 @@ public:
         ED_COUNT = 2
     };
 
+    static Dir EDGE_DIRECTIONS[2];
+
     // Flag indicating whether the sequences linked by an edge
     // are from the same strand or not.
     // Do not change the values
@@ -107,7 +109,7 @@ class Vertex {
 public:
     typedef std::string Id;
 
-    Vertex(const Id& id, const std::string& seq) : _id(id), _seq(seq), _color(GC_WHITE), _coverage(1) {
+    Vertex(const Id& id, const std::string& seq, bool contained = false) : _id(id), _seq(seq), _contained(contained), _color(GC_WHITE), _coverage(1) {
     }
     ~Vertex();
 
@@ -128,6 +130,7 @@ public:
     void addEdge(Edge* edge);
     void removeEdge(Edge* edge);
     bool hasEdge(Edge* edge) const;
+    void deleteEdges();
 
     EdgePtrList edges() const {
         return _edges;
@@ -149,6 +152,18 @@ public:
         EdgePtrList ev = edges(dir);
         return ev.size();
     }
+    void color(GraphColor c) {
+        _color = c;
+    }
+    GraphColor color() const {
+        return _color;
+    }
+    void contained(bool c) {
+        _contained = c;
+    }
+    bool contained() const {
+        return _contained;
+    }
 
     void validate() const;
 private:
@@ -156,6 +171,7 @@ private:
     GraphColor _color;
     std::string _seq;
     size_t _coverage; // Number of vertices that have been merged into this one
+    bool _contained;
 
     EdgePtrList _edges;
 };
@@ -167,13 +183,14 @@ typedef std::unordered_map< Vertex::Id, Vertex* > VertexTable;
 //
 class Bigraph {
 public:
-    Bigraph() {
+    Bigraph() : _containment(false) {
     }
     ~Bigraph();
 
     bool addVertex(Vertex* vertex);
     Vertex* getVertex(const Vertex::Id& id) const;
     void removeVertex(Vertex* vertex);
+    size_t sweepVertices(GraphColor c);
 
     void addEdge(Vertex* vertex, Edge* edge);
 
@@ -188,6 +205,14 @@ public:
 
     // Visit each vertex in the graph and call the visit functor object 
     bool visit(BigraphVisitor* vistor);
+
+    void color(GraphColor c);
+    void containment(bool c) {
+        _containment = c;
+    }
+    bool containment() const {
+        return _containment;
+    }
 private:
     friend bool loadASQG(std::istream& stream, size_t minOverlap, bool allowContainments, size_t maxEdges, Bigraph* g);
     friend bool saveASQG(std::ostream& stream, const Bigraph* g);
@@ -196,6 +221,7 @@ private:
     void simplify(Edge::Dir dir);
 
     VertexTable _vertices;
+    bool _containment;
 };
 
 bool loadASQG(std::istream& stream, size_t minOverlap, bool allowContainments, size_t maxEdges, Bigraph* g);

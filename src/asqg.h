@@ -52,6 +52,10 @@ namespace ASQG {
          operator bool() const {
              return _initialized;
          }
+         operator T() const {
+             assert(_initialized);
+             return _value;
+         }
     private:
          char typecode(int) const {
              return 'i';
@@ -84,17 +88,29 @@ namespace ASQG {
         void overlap(int overlap) {
             _overlap = overlap;
         }
+        int overlap() const {
+            return _overlap;
+        }
         void infile(const std::string& filename) {
             _infile = filename;
         }
         void errorRate(float errorRate) {
             _errorRate = errorRate;
         }
+        const FloatTagValue& errorRate() const {
+            return _errorRate;
+        }
         void containment(int v) {
             _containment = v;
         }
+        const IntTagValue& containment() const {
+            return _containment;
+        }
         void transitive(int v) {
             _transitive = v;
+        }
+        const IntTagValue& transitive() const {
+            return _transitive;
         }
     private:
         friend std::ostream& operator<<(std::ostream& stream, const HeaderRecord& record);

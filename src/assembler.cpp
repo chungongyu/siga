@@ -1,4 +1,5 @@
 #include "bigraph.h"
+#include "bigraph_visitors.h"
 #include "constant.h"
 #include "runner.h"
 
@@ -32,8 +33,39 @@ public:
         Bigraph g;
         if (loadASQG(input, options.get< size_t >("min-overlap", 0), false, options.get< size_t >("max-edges", 128), &g)) {
             g.validate();
-            g.simplify();
             LOG4CXX_INFO(logger, "load ok");
+
+            ContainRemoveVisitor containVisit;
+            StatisticsVisitor statsVisit;
+            TrimVisitor trVisit(options.get< size_t >("min-branch-length", 150));
+
+            // Pre-assembly graph stats
+            LOG4CXX_INFO(logger, "[Stats] Input graph:");
+            g.visit(&statsVisit);
+
+            LOG4CXX_INFO(logger, "Removing contained vertices from graph");
+            while (g.containment()) {
+                g.visit(&containVisit);
+            }
+
+            // Pre-assembly graph stats
+            LOG4CXX_INFO(logger, "[Stats] After removing contained vertices:");
+            g.visit(&statsVisit);
+
+            // Compact together unbranched chains of vertices
+            g.simplify();
+
+            size_t numTrimRounds = options.get< size_t >("cut-terminal", 10);
+            for (size_t numTrim = 0; numTrim < numTrimRounds; ++numTrim) {
+                // Trimming tips
+                LOG4CXX_INFO(logger, "Trimming tips");
+                g.visit(&trVisit);
+
+                // Compact together unbranched chains of vertices
+                g.simplify();
+            }
+
+
             if (saveASQG(output + ".asqg.gz", &g)) {
                 LOG4CXX_INFO(logger, "save ok");
             }
@@ -45,7 +77,7 @@ public:
     }
 
 private:
-    Assembler() : Runner("c:s:o:t:m:N:b:h", boost::assign::map_list_of('o', "prefix")('t', "threads")('m', "min-overlap")('N', "max-edges")) {
+    Assembler() : Runner("c:s:o:t:m:x:l:N:b:h", boost::assign::map_list_of('o', "prefix")('t', "threads")('m', "min-overlap")('x', "cut-terminal")('l', "min-branch-length")('N', "max-edges")) {
         RUNNER_INSTALL("assemble", this, "generate contigs from an assembly graph");
     }
 

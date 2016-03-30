@@ -18,6 +18,9 @@ static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.Bigraph"));
 //
 // Edge
 //
+
+Edge::Dir Edge::EDGE_DIRECTIONS[2] = { Edge::ED_SENSE, Edge::ED_ANTISENSE };
+
 std::string Edge::label() const {
     // get the unmatched coordinates in end vertex
     const SeqCoord& coord = _twin->coord();
@@ -101,18 +104,24 @@ void Vertex::merge(Edge* edge) {
     // Update the coverage value of the vertex
     _coverage += edge->end()->coverage();
 
-    //
-    // 
-    // |_______________|//////|
-    //                 |//////|_______________|
-    //
-    // |_______________|//////////////////////|
-    //                 |//////////////////////|
-    //
-    // |//////////////////////|
-    // |//////////////////////|_______________|
-    //
+    ////////////////////////////////////////////////////
     // Extend match
+    // 
+    // V1: |________________++++++|
+    // V2:                  |++++++________________|
+    //
+    // V1->merge(edge)
+    //
+    // V1: |________________++++++++++++++++++++++|
+    // V2:                 |++++++++++++++++++++++|
+    //
+    // V2->merge(edge)
+    // prepend
+    //
+    // V1: |++++++++++++++++++++++|
+    // V2: |++++++++++++++++++++++________________|
+    //
+    ////////////////////////////////////////////////////
     edge->coord().stretch(label.length());
     twin->coord().extend(label.length());
 
@@ -152,6 +161,20 @@ bool Vertex::hasEdge(Edge* edge) const {
     return false;
 }
 
+void Vertex::deleteEdges() {
+    for (EdgePtrList::iterator i = _edges.begin(); i != _edges.end(); ++i) {
+        Edge* edge = *i;
+        Edge* twin = edge->twin();
+
+        Vertex* partner = edge->end();
+        partner->removeEdge(twin);
+
+        SAFE_DELETE(twin);
+        SAFE_DELETE(edge);
+    }
+    _edges.clear();
+}
+
 void Vertex::validate() const {
     for (EdgePtrList::const_iterator i = _edges.begin(); i != _edges.end(); ++i) {
         (*i)->validate();
@@ -187,6 +210,27 @@ Vertex* Bigraph::getVertex(const Vertex::Id& id) const {
 void Bigraph::removeVertex(Vertex* vertex) {
     const Vertex::Id& vid = vertex->id();
     _vertices.erase(vid);
+}
+
+size_t Bigraph::sweepVertices(GraphColor c) {
+    size_t num = 0;
+
+    VertexTable::iterator i = _vertices.begin();
+    while (i != _vertices.end()) {
+        VertexTable::iterator next = i;
+        ++next;
+        if (i->second->color() == c) {
+            // Remove the edges pointing to this Vertex
+            i->second->deleteEdges();
+
+            // Remove the vertex from the collection
+            removeVertex(i->second);
+            SAFE_DELETE(i->second);
+            ++num;
+        }
+        i = next;
+    }
+    return num;
 }
 
 void Bigraph::addEdge(Vertex* vertex, Edge* edge) {
@@ -282,6 +326,12 @@ bool Bigraph::visit(BigraphVisitor* visitor) {
     visitor->postvisit(this);
 
     return modified;
+}
+
+void Bigraph::color(GraphColor c) {
+    for (VertexTable::const_iterator i = _vertices.begin(); i != _vertices.end(); ++i) {
+        i->second->color(c);
+    }
 }
 
 class EdgeCreator {
@@ -396,6 +446,10 @@ bool loadASQG(std::istream& stream, size_t minOverlap, bool allowContainments, s
                     LOG4CXX_ERROR(logger, boost::format("Error: Unexpected header record found at line %s") % line);
                     return false;
                 }
+                const ASQG::IntTagValue& containment = record.containment();
+                if (containment) {
+                    g->containment((int)containment);
+                }
                 break;
             }
             case ASQG::RT_VERTEX: {
@@ -411,12 +465,15 @@ bool loadASQG(std::istream& stream, size_t minOverlap, bool allowContainments, s
                     LOG4CXX_ERROR(logger, boost::format("Error: Unexpected vertex record found at line %s") % line);
                     return false;
                 }
-                Vertex* vertex = new Vertex(record.id, record.seq);
+                Vertex* vertex = new Vertex(record.id, record.seq, record.substring ? (int)record.substring : false);
                 if (!g->addVertex(vertex)) {
                     LOG4CXX_ERROR(logger, boost::format("Error: Attempted to insert vertex into graph with a duplicate id: %s") % vertex->id());
                     LOG4CXX_ERROR(logger, "All reads must have a unique identifier");
                     SAFE_DELETE(vertex);
                     return false;
+                }
+                if (vertex->contained()) {
+                    g->containment(true);
                 }
                 break;
             }
