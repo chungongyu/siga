@@ -21,6 +21,44 @@ bool ChimericVisitor::visit(Bigraph* graph, Vertex* vertex) {
     // Check if this node is chimeric
     const std::string& seq = vertex->seq();
     if (vertex->degrees(Edge::ED_SENSE) == 1 && vertex->degrees(Edge::ED_ANTISENSE) == 1 && seq.length() < _minLength) {
+        Edge* prevEdge = vertex->edges(Edge::ED_ANTISENSE)[0];
+        Edge* nextEdge = vertex->edges(Edge::ED_SENSE)[0];
+        Vertex* prevVert = prevEdge->end();
+        Vertex* nextVert = nextEdge->end();
+
+        bool chimeric = true;
+        if (chimeric) {
+            chimeric &= (prevVert->degrees(Edge::ED_SENSE) >= 2);
+        }
+        if (chimeric) {
+            chimeric &= (nextVert->degrees(Edge::ED_ANTISENSE) >= 2);
+        }
+        if (chimeric) {
+            // smallest?
+            bool smallest = false;
+            {
+                EdgePtrList edges = prevVert->edges(Edge::ED_SENSE);
+                for (size_t k = 0; k < edges.size(); ++k) {
+                    if (edges[k]->coord().length() > prevEdge->coord().length() && edges[k]->coord().length() - prevEdge->coord().length() >= _delta) {
+                        smallest = true;
+                    }
+                }
+            }
+            {
+                EdgePtrList edges = nextVert->edges(Edge::ED_ANTISENSE);
+                for (size_t k = 0; k < edges.size(); ++k) {
+                    if (edges[k]->coord().length() > nextEdge->coord().length() && edges[k]->coord().length() - nextEdge->coord().length() >= _delta) {
+                        smallest = true;
+                    }
+                }
+            }
+            chimeric &= smallest;
+        }
+        if (chimeric) {
+            vertex->color(GC_BLACK);
+            ++_chimeric;
+            return true;
+        }
     }
     return false;
 }
@@ -76,6 +114,72 @@ bool FastaVisitor::visit(Bigraph* graph, Vertex* vertex) {
     DNASeq seq(vertex->id(), vertex->seq());
     _stream << seq;
     return false;
+}
+
+//
+// MaximalOverlapVisitor
+//
+void MaximalOverlapVisitor::previsit(Bigraph* graph) {
+    // The graph must not have containments
+    assert(!graph->containment());
+
+    // Set all the vertices in the graph to "vacant"
+    graph->color(GC_WHITE);
+}
+
+bool MaximalOverlapVisitor::visit(Bigraph* graph, Vertex* vertex) {
+    bool modified = false;
+
+    typedef bool(*PredicateEdge)(const Edge*);
+    static PredicateEdge PredicateEdgeArray[Edge::ED_COUNT] = {
+        MaximalOverlapVisitor::isSenseEdge, 
+        MaximalOverlapVisitor::isAntiSenseEdge
+    };
+
+    for (size_t i = 0; i < Edge::ED_COUNT; ++i) {
+        Edge::Dir dir = Edge::EDGE_DIRECTIONS[i];
+        EdgePtrList edges = vertex->edges(dir);
+
+        for (size_t j = 1; j < edges.size(); ++j) {
+            if (edges[j]->coord().length() == edges[0]->coord().length()) {
+                continue;
+            }
+
+            bool valid = false;
+
+            {
+                EdgePtrList redges = edges[j]->end()->edges();
+                EdgePtrList::iterator last = std::remove_if(redges.begin(), redges.end(), PredicateEdgeArray[i]);
+                redges.resize(std::distance(redges.begin(), last));
+                assert(!redges.empty());
+                for (size_t k = 0; k < redges.size(); ++k) {
+                    if (redges[k]->end()->id() == vertex->id() && edges[0]->coord().length() - edges[i]->coord().length() <= _delta) {
+                        valid = true;
+                    }
+                }
+            }
+
+            if (!valid) {
+                edges[j]->color(GC_BLACK);
+                edges[j]->twin()->color(GC_BLACK);
+                modified = true;
+            }
+        }
+    }
+
+    return modified;
+}
+
+void MaximalOverlapVisitor::postvisit(Bigraph* graph) {
+    graph->sweepEdges(GC_BLACK);
+}
+
+bool MaximalOverlapVisitor::isSenseEdge(const Edge* edge) {
+    return (!edge->match().isRC && edge->dir() == Edge::ED_SENSE) || (edge->match().isRC && edge->dir() == Edge::ED_ANTISENSE);
+}
+
+bool MaximalOverlapVisitor::isAntiSenseEdge(const Edge* edge) {
+    return !isSenseEdge(edge);
 }
 
 // 

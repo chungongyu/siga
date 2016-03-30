@@ -131,6 +131,7 @@ public:
     void removeEdge(Edge* edge);
     bool hasEdge(Edge* edge) const;
     void deleteEdges();
+    size_t sweepEdges(GraphColor c);
 
     EdgePtrList edges() const {
         return _edges;
@@ -193,6 +194,7 @@ public:
     size_t sweepVertices(GraphColor c);
 
     void addEdge(Vertex* vertex, Edge* edge);
+    size_t sweepEdges(GraphColor c);
 
     // Merge vertices that are joined by the specified edge
     void merge(Vertex* vertex, Edge* edge);

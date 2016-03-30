@@ -3,8 +3,9 @@
 
 #include <iostream>
 
-class Vertex;
 class Bigraph;
+class Edge;
+class Vertex;
 
 class BigraphVisitor {
 public:
@@ -47,6 +48,21 @@ public:
     bool visit(Bigraph* graph, Vertex* vertex);
 private:
     std::ostream& _stream;
+};
+
+// Run the YU LIN's maximal overlap algorithm on each node
+class MaximalOverlapVisitor : public BigraphVisitor {
+public:
+    MaximalOverlapVisitor(size_t delta) : _delta(delta) {
+    }
+    void previsit(Bigraph* graph);
+    bool visit(Bigraph* graph, Vertex* vertex);
+    void postvisit(Bigraph* graph);
+private:
+    static bool isSenseEdge(const Edge* edge);
+    static bool isAntiSenseEdge(const Edge* edge);
+
+    size_t _delta;
 };
 
 // Compile summary statistics for the graph 

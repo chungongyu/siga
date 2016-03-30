@@ -161,6 +161,25 @@ bool Vertex::hasEdge(Edge* edge) const {
     return false;
 }
 
+size_t Vertex::sweepEdges(GraphColor c) {
+    size_t num = 0;
+
+    EdgePtrList::iterator i = _edges.begin();
+    while (i != _edges.end()) {
+        Edge* edge = *i;
+        if (edge->color() == c) {
+            // Remove the edges pointing to this Vertex
+            i = _edges.erase(i);
+            SAFE_DELETE(edge);
+            ++num;
+        } else {
+            ++i;
+        }
+    }
+
+    return num;
+}
+
 void Vertex::deleteEdges() {
     for (EdgePtrList::iterator i = _edges.begin(); i != _edges.end(); ++i) {
         Edge* edge = *i;
@@ -230,11 +249,22 @@ size_t Bigraph::sweepVertices(GraphColor c) {
         }
         i = next;
     }
+
     return num;
 }
 
 void Bigraph::addEdge(Vertex* vertex, Edge* edge) {
     vertex->addEdge(edge);
+}
+
+size_t Bigraph::sweepEdges(GraphColor c) {
+    size_t num = 0;
+
+    for (VertexTable::iterator i = _vertices.begin(); i != _vertices.end(); ++i) {
+        num += i->second->sweepEdges(c);
+    }
+
+    return num;
 }
 
 void Bigraph::simplify() {

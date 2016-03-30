@@ -35,9 +35,12 @@ public:
             g.validate();
             LOG4CXX_INFO(logger, "load ok");
 
+            // Visitors
+            ChimericVisitor chVisit(options.get< size_t >("min-chimeric-length", 0), options.get< size_t >("max-chimeric-delta", -1));
             ContainRemoveVisitor containVisit;
+            MaximalOverlapVisitor moVisit(options.get< size_t >("max-overlap-delta", 0));
             StatisticsVisitor statsVisit;
-            TrimVisitor trVisit(options.get< size_t >("min-branch-length", 150));
+            TrimVisitor trimVisit(options.get< size_t >("min-branch-length", 150));
 
             // Pre-assembly graph stats
             LOG4CXX_INFO(logger, "[Stats] Input graph:");
@@ -59,12 +62,30 @@ public:
             for (size_t numTrim = 0; numTrim < numTrimRounds; ++numTrim) {
                 // Trimming tips
                 LOG4CXX_INFO(logger, "Trimming tips");
-                g.visit(&trVisit);
+                if (g.visit(&trimVisit)) {
+                    // Compact together unbranched chains of vertices
+                    g.simplify();
+                }
 
-                // Compact together unbranched chains of vertices
-                g.simplify();
+                if (options.get< size_t >("min-chimeric-length", 0) > 0) {
+                    LOG4CXX_INFO(logger, "removing chimerics:");
+                    if (g.visit(&chVisit)) {
+                        // Compact together unbranched chains of vertices
+                        g.simplify();
+                    }
+                }
+
+                // Remove non-maximal overlap edges
+                LOG4CXX_INFO(logger, "Removing non-maximal overlap edges from graph");
+                if (g.visit(&moVisit)) {
+                    g.simplify();
+                }
             }
 
+            if (numTrimRounds > 0) {
+                LOG4CXX_INFO(logger, "[Stats] Graph after trimming:");
+                g.visit(&statsVisit);
+            }
 
             if (saveASQG(output + ".asqg.gz", &g)) {
                 LOG4CXX_INFO(logger, "save ok");
@@ -77,7 +98,7 @@ public:
     }
 
 private:
-    Assembler() : Runner("c:s:o:t:m:x:l:N:b:h", boost::assign::map_list_of('o', "prefix")('t', "threads")('m', "min-overlap")('x', "cut-terminal")('l', "min-branch-length")('N', "max-edges")) {
+    Assembler() : Runner("c:s:o:t:m:x:n:l:a:N:b:h", boost::assign::map_list_of('o', "prefix")('t', "threads")('m', "min-overlap")('x', "cut-terminal")('n', "min-branch-length")('l', "min-chimeric-length")('a', "max-chimeric-delta")('N', "max-edges")) {
         RUNNER_INSTALL("assemble", this, "generate contigs from an assembly graph");
     }
 
@@ -102,6 +123,14 @@ private:
                 "\n"
                 "Bubble/Variation removal parameters:\n"
                 "      -b, --bubble=N                   perform N bubble removal steps (default: 3)\n"
+                "\n"
+                "Trimming parameters:\n"
+                "      -x, --cut-terminal=N             cut off terminal branches in N rounds (default: 10)\n"
+                "      -n, --min-branch-length=LEN      remove terminal branches only if they are less than LEN bases in length (default: 150)\n"
+                "\n"
+                "Chimeric parameters:\n"
+                "      -l, --min-chimeric-length=LEN    remove chimerics only if they are less than LEN bases in length (default: 0)\n"
+                "      -a, --max-chimeric-delta=LEN     remove chimerics only if they are less than LEN bases in length (default: 0)\n"
                 "\n"
                 ) % PACKAGE_NAME << std::endl;
         return 256;
