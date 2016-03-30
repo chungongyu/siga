@@ -182,6 +182,24 @@ bool MaximalOverlapVisitor::isAntiSenseEdge(const Edge* edge) {
     return !isSenseEdge(edge);
 }
 
+//
+// SmoothingVisitor
+//
+void SmoothingVisitor::previsit(Bigraph* graph) {
+    graph->color(GC_WHITE);
+    _simple = 0;
+    _complex = 0;
+}
+
+bool SmoothingVisitor::visit(Bigraph* graph, Vertex* vertex) {
+    return false;
+}
+
+void SmoothingVisitor::postvisit(Bigraph* graph) {
+    graph->sweepVertices(GC_RED);
+    LOG4CXX_INFO(logger, boost::format("[SmoothingVisitor] Removed %s simple and %d complex bubbles") % _simple % _complex);
+}
+
 // 
 // StatisticsVisitor
 //

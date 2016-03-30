@@ -65,6 +65,19 @@ private:
     size_t _delta;
 };
 
+// Smooth out variation in the graph
+class SmoothingVisitor : public BigraphVisitor {
+public:
+    SmoothingVisitor() {
+    }
+    void previsit(Bigraph* graph);
+    bool visit(Bigraph* graph, Vertex* vertex);
+    void postvisit(Bigraph* graph);
+private:
+    size_t _simple;
+    size_t _complex;
+};
+
 // Compile summary statistics for the graph 
 class StatisticsVisitor : public BigraphVisitor {
 public:

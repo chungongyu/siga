@@ -39,6 +39,7 @@ public:
             ChimericVisitor chVisit(options.get< size_t >("min-chimeric-length", 0), options.get< size_t >("max-chimeric-delta", -1));
             ContainRemoveVisitor containVisit;
             MaximalOverlapVisitor moVisit(options.get< size_t >("max-overlap-delta", 0));
+            SmoothingVisitor smoothVisit;
             StatisticsVisitor statsVisit;
             TrimVisitor trimVisit(options.get< size_t >("min-branch-length", 150));
 
@@ -58,24 +59,26 @@ public:
             // Compact together unbranched chains of vertices
             g.simplify();
 
+            // Trimming
             size_t numTrimRounds = options.get< size_t >("cut-terminal", 10);
             for (size_t numTrim = 0; numTrim < numTrimRounds; ++numTrim) {
-                // Trimming tips
                 LOG4CXX_INFO(logger, "Trimming tips");
                 if (g.visit(&trimVisit)) {
-                    // Compact together unbranched chains of vertices
+                    g.simplify();
+                }
+
+                LOG4CXX_INFO(logger, "Performing variation smoothing");
+                if (g.visit(&smoothVisit)) {
                     g.simplify();
                 }
 
                 if (options.get< size_t >("min-chimeric-length", 0) > 0) {
                     LOG4CXX_INFO(logger, "removing chimerics:");
                     if (g.visit(&chVisit)) {
-                        // Compact together unbranched chains of vertices
                         g.simplify();
                     }
                 }
 
-                // Remove non-maximal overlap edges
                 LOG4CXX_INFO(logger, "Removing non-maximal overlap edges from graph");
                 if (g.visit(&moVisit)) {
                     g.simplify();
@@ -87,11 +90,27 @@ public:
                 g.visit(&statsVisit);
             }
 
-            if (saveASQG(output + ".asqg.gz", &g)) {
-                LOG4CXX_INFO(logger, "save ok");
+            LOG4CXX_INFO(logger, "[Stats] Final graph:");
+            g.visit(&statsVisit);
+
+            // Write the results
+            {
+                boost::filesystem::ofstream stream(output + "-contigs.fa");
+                if (stream) {
+                    FastaVisitor faVist(stream);
+                    g.visit(&faVist);
+                } else {
+                    LOG4CXX_ERROR(logger, boost::format("failed to open stream %s-contigs.fa") % output);
+                    r = 1;
+                }
+            }
+            if (!saveASQG(output + "-graph.asqg.gz", &g)) {
+                LOG4CXX_ERROR(logger, boost::format("failed to open stream %s-graph.asqg.gz") % output);
+                r = 1;
             }
         } else {
             LOG4CXX_ERROR(logger, boost::format("failed to open stream %s") % input);
+            r = 1;
         }
 
         return r;
