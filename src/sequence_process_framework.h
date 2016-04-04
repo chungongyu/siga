@@ -54,9 +54,12 @@ namespace SequenceProcessFramework {
     public:
         size_t run(Generator& generator, Processor* proc, PostProcessor* postproc, size_t n = -1) {
             Input workItem;
+
             while (generator.consumed() < n && generator.generate(workItem)) {
                 Output output = proc->process(workItem);
-                postproc->process(workItem, output);
+                if (postproc != NULL) {
+                    postproc->process(workItem, output);
+                }
             }
             
             LOG4CXX_INFO(logger, boost::format("processed %d sequences") % generator.consumed());

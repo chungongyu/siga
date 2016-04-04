@@ -27,6 +27,8 @@ arcs_SOURCES=assembler.cpp \
 			 overlap.cpp \
 			 overlap_builder.cpp \
 			 overlap_builder.h \
+			 overlap_process.cpp \
+			 overlap_process.h \
 			 preprocess.cpp \
 			 primer_screen.cpp \
 			 primer_screen.h \
