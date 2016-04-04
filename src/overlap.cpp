@@ -4,6 +4,7 @@
 #include "fmindex.h"
 #include "overlap_builder.h"
 #include "runner.h"
+#include "sequence_process_framework.h"
 
 #include <iostream>
 #include <memory>
@@ -69,6 +70,11 @@ private:
             rfmi.info();
         }
         return true;
+    }
+
+    size_t computeHits(const std::string& prefix, const std::string& reads) {
+        size_t processed = 0;
+        return processed;
     }
 
     Overlapping() : Runner("c:s:a:t:p:m:h", boost::assign::map_list_of('a', "algorithm")('t', "threads")('p', "prefix")('m', "min-overlap")) {

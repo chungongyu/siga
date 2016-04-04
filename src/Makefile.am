@@ -4,8 +4,12 @@ arcs_SOURCES=assembler.cpp \
 			 asqg.h \
 			 bigraph.cpp \
 			 bigraph.h \
+			 bigraph_search.cpp \
+			 bigraph_search.h \
 			 bigraph_visitors.cpp \
 			 bigraph_visitors.h \
+			 bigraph_walk.cpp \
+			 bigraph_walk.h \
 			 bwt.cpp \
 			 bwt.h \
 			 constant.cpp \
@@ -27,6 +31,7 @@ arcs_SOURCES=assembler.cpp \
 			 primer_screen.cpp \
 			 primer_screen.h \
 			 runner.h \
+			 sequence_process_framework.h \
 			 scaffold.cpp \
 			 suffix_array.cpp \
 			 suffix_array.h \
