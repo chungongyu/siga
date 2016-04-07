@@ -101,6 +101,8 @@ public:
     OverlapBuilder(const FMIndex* fmi, const FMIndex* rfmi) : _fmi(fmi), _rfmi(rfmi) {
     }
 
+    size_t build(DNASeqReader& reader, size_t minOverlap, std::ostream& output) const;
+    
     OverlapResult overlap(const DNASeq& read, size_t minOverlap, OverlapBlockList* blocks) const;
 private:
     OverlapResult overlap(const std::string& seq, const FMIndex* fmi, const FMIndex* rfmi, size_t minOverlap, OverlapBlockList* overlaps, OverlapBlockList* contains) const;

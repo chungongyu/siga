@@ -1,4 +1,5 @@
 #include "overlap_builder.h"
+#include "sequence_process_framework.h"
 
 OverlapResult OverlapBuilder::overlap(const DNASeq& read, size_t minOverlap, OverlapBlockList* blocks) const {
     // The complete set of overlap blocks are collected in obWorkingList
@@ -8,6 +9,31 @@ OverlapResult OverlapBuilder::overlap(const DNASeq& read, size_t minOverlap, Ove
 
     return overlap(seq, _fmi, _rfmi, minOverlap, NULL, NULL);
     //overlap(make_complement_dna(seq), _fmi, _rfmi, minOverlap, NULL, NULL);
+}
+
+//
+// OverlapProcess
+//
+class OverlapProcess {
+public:
+    OverlapProcess(OverlapBuilder* builder, size_t minOverlap, std::ostream& stream) : _builder(builder), _minOverlap(minOverlap), _stream(stream) {
+    }
+
+    OverlapResult process(const SequenceProcessFramework::SequenceWorkItem& workItem) {
+        OverlapBlockList blocks;
+        OverlapResult result = _builder->overlap(workItem.read, _minOverlap, &blocks);
+        return result;
+    }
+
+private:
+    OverlapBuilder* _builder;
+    size_t _minOverlap;
+    std::ostream& _stream;
+};
+
+size_t OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream& output) const {
+    size_t processed = 0;
+    return processed;
 }
 
 // Calculate the ranges in pBWT that contain a prefix of at least minOverlap basepairs that
