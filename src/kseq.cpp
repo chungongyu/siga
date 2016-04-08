@@ -33,14 +33,25 @@ std::string make_complement_dna(const std::string& sequence) {
     return complement;
 }
 
+void make_reverse_dna(std::string& sequence) {
+    std::reverse(sequence.begin(), sequence.end());
+}
+
+std::string make_reverse_dna(const std::string& sequence) {
+    std::string reverse = sequence;
+    make_reverse_dna(reverse);
+    return reverse;
+}
+
 void make_reverse_complement_dna(std::string& sequence) {
     make_complement_dna(sequence);
-    std::reverse(sequence.begin(), sequence.end());
+    make_reverse_dna(sequence);
 }
 
 std::string make_reverse_complement_dna(const std::string& sequence) {
     std::string complement = make_complement_dna(sequence);
-    std::reverse(complement.begin(), complement.end());
+    make_reverse_dna(complement);
+    return complement;
 }
 
 void DNASeq::make_complement() {

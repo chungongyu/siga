@@ -14,6 +14,43 @@
 static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.OverlapBuilder"));
 
 //
+// Flags indicating how a given read was aligned to the FM-index
+//
+struct AlignFlags {
+public:
+    AlignFlags() {
+    }
+    AlignFlags(bool qr, bool tr, bool qc) {
+        _data.set(QUERYREV_BIT, qr);
+        _data.set(TARGETREV_BIT, tr);
+        _data.set(QUERYCOMP_BIT, qc);
+    }
+private:
+    friend std::ostream& operator<<(std::ostream& stream, const AlignFlags& af);
+    friend std::istream& operator>>(std::istream& stream, AlignFlags& af);
+
+    static const size_t QUERYREV_BIT  = 0;
+    static const size_t TARGETREV_BIT = 1;
+    static const size_t QUERYCOMP_BIT = 2;
+    std::bitset< 3 > _data;
+};
+
+static const AlignFlags kSuffixPrefixAF(false, false, false);
+static const AlignFlags kPrefixPrefixAF(false, true, true);
+static const AlignFlags kSuffixSuffixAF(true, false, true);
+static const AlignFlags kPrefixSuffixAF(true, true, false);
+
+std::ostream& operator<<(std::ostream& stream, const AlignFlags& af) {
+    stream << af._data;
+    return stream;
+}
+
+std::istream& operator>>(std::istream& stream, AlignFlags& af) {
+    stream >> af._data;
+    return stream;
+}
+
+//
 // A pair of intervals used for bidirectional searching a FM-index/reverse FM-index
 //
 class IntervalPair {
@@ -80,7 +117,7 @@ std::istream& operator>>(std::istream& stream, IntervalPair& pair) {
 // OverlapBlock
 //
 struct OverlapBlock {
-    OverlapBlock(const IntervalPair& probe, const IntervalPair& ranges, size_t length) : probe(probe), ranges(ranges), length(length) {
+    OverlapBlock(const IntervalPair& probe, const IntervalPair& ranges, size_t length, const AlignFlags& af) : probe(probe), ranges(ranges), length(length), af(af) {
     }
     friend std::ostream& operator<<(std::ostream& stream, const OverlapBlock& block);
     friend std::istream& operator>>(std::istream& stream, OverlapBlock& block);
@@ -88,15 +125,16 @@ struct OverlapBlock {
     IntervalPair ranges;
     IntervalPair probe;
     size_t length;
+    AlignFlags af;
 };
 
 std::ostream& operator<<(std::ostream& stream, const OverlapBlock& block) {
-    stream << block.ranges << ' ' << block.probe << ' ' << block.length;
+    stream << block.ranges << ' ' << block.probe << ' ' << block.length << ' ' << block.af;
     return stream;
 }
 
 std::istream& operator>>(std::istream& stream, OverlapBlock& block) {
-    stream >> block.ranges >> block.probe >> block.length;
+    stream >> block.ranges >> block.probe >> block.length >> block.af;
     return stream;
 }
 
@@ -228,71 +266,90 @@ bool OverlapBuilder::build(const std::string& input, size_t minOverlap, const st
     return build(*reader, minOverlap, asqg, threads, processed);
 }
 
-OverlapResult OverlapBuilder::overlap(const DNASeq& read, size_t minOverlap, OverlapBlockList* blocks) const {
-    // The complete set of overlap blocks are collected in obWorkingList
-    // The filtered set (containing only irreducible overlaps) are placed into pOBOut
-    // by calculateIrreducibleHits
-    const std::string& seq = read.seq;
+class OverlapBlockFinder {
+public:
+    OverlapBlockFinder(const FMIndex* fmi, const FMIndex* rfmi, size_t minOverlap) : _fmi(fmi), _rfmi(rfmi), _minOverlap(minOverlap) {
+    }
 
-    return overlap(seq, _fmi, _rfmi, minOverlap, NULL, NULL);
-    //overlap(make_complement_dna(seq), _fmi, _rfmi, minOverlap, NULL, NULL);
-}
+    // Calculate the ranges in FMI that contain a prefix of at least minOverlap basepairs that
+    // overlaps with a suffix of w. The ranges are added to the pOBList
+    void find(const std::string& seq, const AlignFlags& af, OverlapBlockList* overlaps, OverlapBlockList* contains, OverlapResult* result) const {
+        // The algorithm is as follows:
+        // We perform a backwards search using the FM-index for the string w.
+        // As we perform the search we collect the intervals 
+        // of the significant prefixes (len >= minOverlap) that overlap w.
+        IntervalPair ranges;
+        size_t l = seq.length();
+        ranges.init(seq[l - 1], _fmi, _rfmi);
 
-// Calculate the ranges in pBWT that contain a prefix of at least minOverlap basepairs that
-// overlaps with a suffix of w. The ranges are added to the pOBList
-OverlapResult OverlapBuilder::overlap(const std::string& seq, const FMIndex* fmi, const FMIndex* rfmi, size_t minOverlap, OverlapBlockList* overlaps, OverlapBlockList* contains) const {
-    OverlapResult result;
-    // The algorithm is as follows:
-    // We perform a backwards search using the FM-index for the string w.
-    // As we perform the search we collect the intervals 
-    // of the significant prefixes (len >= minOverlap) that overlap w.
-    IntervalPair ranges;
-    size_t l = seq.length();
-    ranges.init(seq[l - 1], fmi, rfmi);
+        // Collect the OverlapBlocks
+        for (size_t i = l - 1; i > 1; --i) {
+            // Compare the range of the suffix seq[i, l]
+            ranges.updateL(seq[i - 1], _fmi);
 
-    // Collect the OverlapBlocks
-    for (size_t i = l - 1; i > 1; --i) {
-        // Compare the range of the suffix seq[i, l]
-        ranges.updateL(seq[i - 1], fmi);
+            if (l - i >= _minOverlap) {
+                // Calculate which of the prefixes that match w[i, l] are terminal
+                // These are the proper prefixes (they are the start of a read)
+                IntervalPair probe = ranges;
+                probe.updateL('$', _fmi);
 
-        if (l - i >= minOverlap) {
-            // Calculate which of the prefixes that match w[i, l] are terminal
-            // These are the proper prefixes (they are the start of a read)
+                // The probe interval contains the range of proper prefixes
+                if (probe[1].valid()) {
+                    overlaps->push_back(OverlapBlock(probe, ranges, l - i, af));
+                }
+            }
+        }
+
+        // Determine if this sequence is contained and should not be processed further
+        ranges.updateL(seq[0], _fmi);
+
+        // Ranges now holds the interval for the full-length read
+        // To handle containments, we output the overlapBlock to the final overlap block list
+        // and it will be processed later
+        // Two possible containment cases:
+        // 1) This read is a substring of some other read
+        // 2) This read is identical to some other read
+
+        // Case 1 is indicated by the existance of a non-$ left or right hand extension
+        // In this case we return no alignments for the string
+        DNAAlphabet::AlphaCount64 lext =  _fmi->getOcc(ranges[0].upper) -  _fmi->getOcc(ranges[0].lower - 1);
+        DNAAlphabet::AlphaCount64 rext = _rfmi->getOcc(ranges[1].upper) - _rfmi->getOcc(ranges[1].lower - 1);
+        if (lext.hasDNA() || rext.hasDNA()) {
+            result->substring = true;
+        } else {
             IntervalPair probe = ranges;
-            probe.updateL('$', fmi);
-
-            // The probe interval contains the range of proper prefixes
-            if (probe[1].valid()) {
-                overlaps->push_back(OverlapBlock(probe, ranges, l - i));
+            probe.updateL('$', _fmi);
+            if (probe.valid()) {
+                // terminate the contained block and add it to the contained list
+                probe.updateR('$', _rfmi);
+                assert(probe.valid());
+                contains->push_back(OverlapBlock(probe, ranges, l, af));
             }
         }
     }
 
-    // Determine if this sequence is contained and should not be processed further
-    ranges.updateL(seq[0], fmi);
+private:
+    const FMIndex* _fmi;
+    const FMIndex* _rfmi;
+    size_t _minOverlap;
+};
 
-    // Ranges now holds the interval for the full-length read
-    // To handle containments, we output the overlapBlock to the final overlap block list
-    // and it will be processed later
-    // Two possible containment cases:
-    // 1) This read is a substring of some other read
-    // 2) This read is identical to some other read
+OverlapResult OverlapBuilder::overlap(const DNASeq& read, size_t minOverlap, OverlapBlockList* blocks) const {
+    // The complete set of overlap blocks are collected in workinglist
+    // The filtered set (containing only irreducible overlaps) are placed into blocks
+    // by calculateIrreducibleHits
+    const std::string& seq = read.seq;
+    OverlapResult result;
 
-    // Case 1 is indicated by the existance of a non-$ left or right hand extension
-    // In this case we return no alignments for the string
-    DNAAlphabet::AlphaCount64 lext = fmi->getOcc(ranges[0].upper) - fmi->getOcc(ranges[0].lower - 1);
-    DNAAlphabet::AlphaCount64 rext = fmi->getOcc(ranges[1].upper) - fmi->getOcc(ranges[1].lower - 1);
-    if (lext.hasDNA() || rext.hasDNA()) {
-    } else {
-        IntervalPair probe = ranges;
-        probe.updateL('$', fmi);
-        if (probe.valid()) {
-            // terminate the contained block and add it to the contained list
-            probe.updateR('$', rfmi);
-            assert(probe.valid());
-            contains->push_back(OverlapBlock(probe, ranges, l));
-        }
-    }
+    OverlapBlockFinder finder(_fmi, _rfmi, minOverlap), rfinder(_rfmi, _fmi, minOverlap);
+
+    // Match the suffix of seq to prefixes
+    finder.find(seq, kSuffixPrefixAF, NULL, NULL, &result);
+    rfinder.find(make_complement_dna(seq), kPrefixPrefixAF, NULL, NULL, &result);
+
+    // Match the prefix of seq to suffixes
+    finder.find(make_reverse_complement_dna(seq), kSuffixSuffixAF, NULL, NULL, &result);
+    rfinder.find(make_reverse_dna(seq), kPrefixPrefixAF, NULL, NULL, &result);
 
     return result;
 }

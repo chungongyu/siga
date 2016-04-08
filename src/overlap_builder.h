@@ -9,25 +9,6 @@
 #include <iostream>
 #include <vector>
 
-//
-// Flags indicating how a given read was aligned to the FM-index
-//
-struct AlignFlags {
-public:
-    AlignFlags() {
-    }
-    AlignFlags(bool qr, bool tr, bool qc) {
-        _data.set(QUERYREV_BIT, qr);
-        _data.set(TARGETREV_BIT, tr);
-        _data.set(QUERYCOMP_BIT, qc);
-    }
-private:
-    static const size_t QUERYREV_BIT  = 0;
-    static const size_t TARGETREV_BIT = 1;
-    static const size_t QUERYCOMP_BIT = 2;
-    std::bitset< 3 > _data;
-};
-
 struct OverlapResult;
 struct OverlapBlock;
 typedef std::vector< OverlapBlock > OverlapBlockList;
@@ -46,7 +27,6 @@ public:
     
     OverlapResult overlap(const DNASeq& read, size_t minOverlap, OverlapBlockList* blocks) const;
 private:
-    OverlapResult overlap(const std::string& seq, const FMIndex* fmi, const FMIndex* rfmi, size_t minOverlap, OverlapBlockList* overlaps, OverlapBlockList* contains) const;
     bool hits2asqg(std::istream& input, std::ostream& output) const;
 
     const FMIndex* _fmi;
