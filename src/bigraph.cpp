@@ -1,19 +1,16 @@
 #include "bigraph.h"
 #include "asqg.h"
+#include "constant.h"
 #include "kseq.h"
 #include "utils.h"
 
-#include <boost/algorithm/string.hpp>
+#include <memory>
+
 #include <boost/format.hpp>
-#include <boost/iostreams/device/file_descriptor.hpp>
-#include <boost/iostreams/filtering_streambuf.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
 
 #include <log4cxx/logger.h>
 
 static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.Bigraph"));
-
-#define GZIP_EXT ".gz"
 
 //
 // Edge
@@ -539,18 +536,12 @@ bool loadASQG(std::istream& stream, size_t minOverlap, bool allowContainments, s
 }
 
 bool loadASQG(const std::string& filename, size_t minOverlap, bool allowContainments, size_t maxEdges, Bigraph* g) {
-    try {
-        boost::iostreams::filtering_istreambuf buf;
-        if (boost::algorithm::ends_with(filename, GZIP_EXT)) {
-            buf.push(boost::iostreams::gzip_decompressor());
-        }
-        buf.push(boost::iostreams::file_descriptor_source(filename));
-
-        std::istream stream(&buf);
+    std::shared_ptr< std::streambuf > buf(ASQG::ifstreambuf(filename));
+    if (buf) {
+        std::istream stream(buf.get());
         return loadASQG(stream, minOverlap, allowContainments, maxEdges, g);
-    } catch (...) {
-        return false;
     }
+    return false;
 }
 
 bool saveASQG(std::ostream& stream, const Bigraph* g) {
@@ -598,16 +589,10 @@ bool saveASQG(std::ostream& stream, const Bigraph* g) {
 }
 
 bool saveASQG(const std::string& filename, const Bigraph* g) {
-    try {
-        boost::iostreams::filtering_ostreambuf buf;
-        if (boost::algorithm::ends_with(filename, GZIP_EXT)) {
-            buf.push(boost::iostreams::gzip_compressor());
-        }
-        buf.push(boost::iostreams::file_descriptor_sink(filename));
-
-        std::ostream stream(&buf);
+    std::shared_ptr< std::streambuf > buf(ASQG::ofstreambuf(filename));
+    if (buf) {
+        std::ostream stream(buf.get());
         return saveASQG(stream, g);
-    } catch (...) {
-        return false;
     }
+    return false;
 }

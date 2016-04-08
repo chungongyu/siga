@@ -7,6 +7,9 @@
 #define RSAI_EXT ".rsai"
 #define BWT_EXT  ".bwt"
 #define RBWT_EXT ".rbwt"
+#define ASQG_EXT ".asqg"
+#define HITS_EXT ".hits"
+#define GZIP_EXT ".gz"
 
 // common
 extern const char* kLogConfig;

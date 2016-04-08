@@ -104,7 +104,7 @@ public:
                     r = 1;
                 }
             }
-            if (!saveASQG(output + "-graph.asqg.gz", &g)) {
+            if (!saveASQG(output + "-graph" + ASQG_EXT + GZIP_EXT, &g)) {
                 LOG4CXX_ERROR(logger, boost::format("failed to open stream %s-graph.asqg.gz") % output);
                 r = 1;
             }

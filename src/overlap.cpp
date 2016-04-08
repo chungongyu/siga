@@ -4,7 +4,6 @@
 #include "fmindex.h"
 #include "overlap_builder.h"
 #include "runner.h"
-#include "sequence_process_framework.h"
 
 #include <iostream>
 #include <memory>
@@ -30,7 +29,7 @@ public:
 
         std::string input = arguments[0];
         LOG4CXX_INFO(logger, boost::format("input: %s") % input);
-        input = boost::filesystem::path(input).stem().string();
+        //input = boost::filesystem::path(input).stem().string();
 
         std::string output = boost::filesystem::path(input).stem().string();
         if (options.find("prefix") != options.not_found()) {
@@ -40,9 +39,13 @@ public:
 
         FMIndex fmi, rfmi;
         if (loadIdx(input, fmi, rfmi)) {
-            OverlapBuilder builder(&fmi, &rfmi);
+            OverlapBuilder builder(&fmi, &rfmi, output);
+            if (!builder.build(input, options.get< size_t >("min-overlap", 10), output + ASQG_EXT + GZIP_EXT)) {
+                LOG4CXX_ERROR(logger, boost::format("Failed to build overlaps from reads %s") % input);
+                r = -1;
+            }
         } else {
-            LOG4CXX_ERROR(logger, boost::format("Failed load FMIndex from %s") % input);
+            LOG4CXX_ERROR(logger, boost::format("Failed to load FMIndex from %s") % input);
             r = -1;
         }
 
@@ -70,11 +73,6 @@ private:
             rfmi.info();
         }
         return true;
-    }
-
-    size_t computeHits(const std::string& prefix, const std::string& reads) {
-        size_t processed = 0;
-        return processed;
     }
 
     Overlapping() : Runner("c:s:a:t:p:m:h", boost::assign::map_list_of('a', "algorithm")('t', "threads")('p', "prefix")('m', "min-overlap")) {

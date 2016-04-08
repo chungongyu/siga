@@ -75,6 +75,9 @@ public:
             upper = pb + index->getOcc(c, upper) - 1;
         }
 
+        friend std::ostream& operator<<(std::ostream& stream, const Interval& interval);
+        friend std::istream& operator>>(std::istream& stream, Interval& interval);
+
         size_t lower;
         size_t upper;
     };

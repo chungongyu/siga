@@ -5,6 +5,8 @@
 #include "kseq.h"
 #include "utils.h"
 
+#include <bitset>
+#include <iostream>
 #include <vector>
 
 //
@@ -15,81 +17,19 @@ public:
     AlignFlags() {
     }
     AlignFlags(bool qr, bool tr, bool qc) {
+        _data.set(QUERYREV_BIT, qr);
+        _data.set(TARGETREV_BIT, tr);
+        _data.set(QUERYCOMP_BIT, qc);
     }
 private:
     static const size_t QUERYREV_BIT  = 0;
     static const size_t TARGETREV_BIT = 1;
     static const size_t QUERYCOMP_BIT = 2;
-    uint8_t _data;
+    std::bitset< 3 > _data;
 };
 
-struct OverlapResult {
-    OverlapResult() : substring(false), aborted(false) {
-    }
-    bool substring;
-    bool aborted;
-};
-
-//
-// A pair of intervals used for bidirectional searching a FM-index/reverse FM-index
-//
-class IntervalPair {
-public:
-    IntervalPair() {
-    }
-    bool valid() const {
-        for (size_t i = 0; i < SIZEOF_ARRAY(_intervals); ++i) {
-            if (!_intervals[i].valid()) {
-                return false;
-            }
-        }
-        return true;
-    }
-    FMIndex::Interval& operator[](size_t i) {
-        return _intervals[i];
-    }
-    const FMIndex::Interval& operator[](size_t i) const {
-        return _intervals[i];
-    }
-
-    void init(char c, const FMIndex* index, const FMIndex* rindex) {
-        _intervals[0].init(c,  index);
-        _intervals[1].init(c, rindex);
-    }
-    void updateL(char c, const FMIndex* index) {
-        // Update the left index using the difference between the AlphaCounts in the reverse table
-        DNAAlphabet::AlphaCount64 l = index->getOcc(_intervals[1].lower - 1);
-        DNAAlphabet::AlphaCount64 u = index->getOcc(_intervals[1].upper);
-        updateL(c, index, l, u);
-    } 
-    void updateR(char c, const FMIndex* index) {
-    }
-private:
-    void updateL(char c, const FMIndex* index, const DNAAlphabet::AlphaCount64& l, const DNAAlphabet::AlphaCount64& u) {
-        DNAAlphabet::AlphaCount64 diff = u - l;
-        // Update the left index using the difference between the AlphaCounts in the reverse table
-        _intervals[1].lower = _intervals[1].lower + std::accumulate(&diff[0], &diff[0] + DNAAlphabet::torank(c), 0);
-        _intervals[1].upper = _intervals[1].lower + diff[DNAAlphabet::torank(c)] - 1;
-
-        // Update the left index directly
-        size_t pb = index->getPC(c);
-        _intervals[0].lower = pb + l[DNAAlphabet::torank(c)];
-        _intervals[0].upper = pb + u[DNAAlphabet::torank(c)] - 1;
-    }
-
-    FMIndex::Interval _intervals[2];
-};
-
-struct OverlapBlock {
-    OverlapBlock(const IntervalPair& probe, const IntervalPair& ranges, size_t length) : probe(probe), ranges(ranges), length(length) {
-    }
-
-    IntervalPair ranges;
-    IntervalPair probe;
-    size_t length;
-};
-
-
+struct OverlapResult;
+struct OverlapBlock;
 typedef std::vector< OverlapBlock > OverlapBlockList;
 
 //
@@ -98,17 +38,20 @@ typedef std::vector< OverlapBlock > OverlapBlockList;
 //
 class OverlapBuilder {
 public:
-    OverlapBuilder(const FMIndex* fmi, const FMIndex* rfmi) : _fmi(fmi), _rfmi(rfmi) {
+    OverlapBuilder(const FMIndex* fmi, const FMIndex* rfmi, const std::string& prefix="default") : _fmi(fmi), _rfmi(rfmi), _prefix(prefix) {
     }
 
-    size_t build(DNASeqReader& reader, size_t minOverlap, std::ostream& output) const;
+    bool build(DNASeqReader& reader, size_t minOverlap, std::ostream& output, size_t threads=1, size_t* processed=NULL) const;
+    bool build(const std::string& input, size_t minOverlap, const std::string& output, size_t threads=1, size_t* processed=NULL) const;
     
     OverlapResult overlap(const DNASeq& read, size_t minOverlap, OverlapBlockList* blocks) const;
 private:
     OverlapResult overlap(const std::string& seq, const FMIndex* fmi, const FMIndex* rfmi, size_t minOverlap, OverlapBlockList* overlaps, OverlapBlockList* contains) const;
+    bool hits2asqg(std::istream& input, std::ostream& output) const;
 
     const FMIndex* _fmi;
     const FMIndex* _rfmi;
+    std::string _prefix;
 };
 
 #endif // overlap_builder_h_

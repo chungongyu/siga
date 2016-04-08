@@ -108,6 +108,16 @@ public:
     const LargeMarkerList& _lmarkers;
 };
 
+std::ostream& operator<<(std::ostream& stream, const FMIndex::Interval& interval) {
+    stream << interval.lower << ' ' << interval.upper;
+    return stream;
+}
+
+std::istream& operator>>(std::istream& stream, FMIndex::Interval& interval) {
+    stream >> interval.lower >> interval.upper;
+    return stream;
+}
+
 void FMIndex::initialize() {
     assert(IS_POWER_OF_2(_sampleRate));
 

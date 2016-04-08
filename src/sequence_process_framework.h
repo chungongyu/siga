@@ -41,6 +41,9 @@ namespace SequenceProcessFramework {
             return false;
         }
     
+        size_t consumed() const {
+            return _consumed;
+        }
     private:
         DNASeqReader& _reader;
         size_t _consumed;
