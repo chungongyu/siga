@@ -207,9 +207,9 @@ public:
         while (position > i) {
             size_t delta = position - i;
 
-            assert(currIdx < _runs.size());
+            assert(currIdx <= _runs.size());
 
-            const RLUnit& run = _runs[currIdx--];
+            const RLUnit& run = _runs[--currIdx];
             size_t n = run.count();
             if (n > delta) {
                 n = delta;
@@ -241,7 +241,7 @@ private:
 
         LargeMarker absolute = _lmarkers[largeIdx];
         const SmallMarker& relative = _smarkers[smallIdx];
-        for (size_t i = 0; i < SIZEOF_ARRAY(absolute.counts); ++i) {
+        for (size_t i = 0; i < absolute.counts.size(); ++i) {
             absolute.counts[i] += relative.counts[i];
         }
         absolute.unitIndex += relative.unitIndex;
