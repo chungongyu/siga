@@ -7,11 +7,11 @@
 
 #include <bitset>
 #include <iostream>
-#include <vector>
+#include <list>
 
 struct OverlapResult;
 struct OverlapBlock;
-typedef std::vector< OverlapBlock > OverlapBlockList;
+typedef std::list< OverlapBlock > OverlapBlockList;
 
 //
 // OverlapBuilder - Implements all the logic for finding

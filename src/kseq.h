@@ -28,6 +28,7 @@ public:
 
     void make_complement();
     void make_reverse();
+    void make_reverse_complement();
 private:
     friend class FASTQReader;
     friend std::ostream& operator << (std::ostream& os, const DNASeq& seq);

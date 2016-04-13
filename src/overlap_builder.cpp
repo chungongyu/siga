@@ -2,6 +2,7 @@
 #include "asqg.h"
 #include "constant.h"
 #include "sequence_process_framework.h"
+#include "utils.h"
 
 #include <iostream>
 #include <memory>
@@ -66,9 +67,11 @@ public:
         return true;
     }
     FMIndex::Interval& operator[](size_t i) {
+        assert(i < SIZEOF_ARRAY(_intervals));
         return _intervals[i];
     }
     const FMIndex::Interval& operator[](size_t i) const {
+        assert(i < SIZEOF_ARRAY(_intervals));
         return _intervals[i];
     }
 
@@ -274,6 +277,8 @@ public:
     // Calculate the ranges in FMI that contain a prefix of at least minOverlap basepairs that
     // overlaps with a suffix of w. The ranges are added to the pOBList
     void find(const std::string& seq, const AlignFlags& af, OverlapBlockList* overlaps, OverlapBlockList* contains, OverlapResult* result) const {
+        assert(!seq.empty());
+
         // The algorithm is as follows:
         // We perform a backwards search using the FM-index for the string w.
         // As we perform the search we collect the intervals 
@@ -283,7 +288,7 @@ public:
         ranges.init(seq[l - 1], _fmi, _rfmi);
 
         // Collect the OverlapBlocks
-        for (size_t i = l - 1; i > 1; --i) {
+        for (size_t i = l - 1; i > 0; --i) {
             // Compare the range of the suffix seq[i, l]
             ranges.updateL(seq[i - 1], _fmi);
 

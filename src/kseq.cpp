@@ -55,10 +55,7 @@ std::string make_reverse_complement_dna(const std::string& sequence) {
 }
 
 void DNASeq::make_complement() {
-    make_reverse_complement_dna(seq);
-    if (!quality.empty()) {
-        std::reverse(quality.begin(), quality.end());
-    }
+    make_complement_dna(seq);
 }
 
 void DNASeq::make_reverse() {
@@ -66,6 +63,11 @@ void DNASeq::make_reverse() {
     if (!quality.empty()) {
         std::reverse(quality.begin(), quality.end());
     }
+}
+
+void DNASeq::make_reverse_complement() {
+    make_complement();
+    make_reverse();
 }
 
 std::ostream& operator << (std::ostream& os, const DNASeq& seq) {
