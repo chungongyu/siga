@@ -249,9 +249,9 @@ private:
         return absolute;
     }
 
-    const RLString _runs;
-    const LargeMarkerList _lmarkers;
-    const SmallMarkerList _smarkers;
+    const RLString& _runs;
+    const LargeMarkerList& _lmarkers;
+    const SmallMarkerList& _smarkers;
     size_t _sampleRate;
 };
 

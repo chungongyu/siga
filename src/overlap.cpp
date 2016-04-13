@@ -38,7 +38,7 @@ public:
         LOG4CXX_INFO(logger, boost::format("output: %s") % output);
 
         FMIndex fmi, rfmi;
-        if (loadIdx(input, fmi, rfmi)) {
+        if (loadIdx(output, fmi, rfmi)) {
             OverlapBuilder builder(&fmi, &rfmi, output);
             if (!builder.build(input, options.get< size_t >("min-overlap", 10), output + ASQG_EXT + GZIP_EXT)) {
                 LOG4CXX_ERROR(logger, boost::format("Failed to build overlaps from reads %s") % input);
