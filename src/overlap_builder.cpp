@@ -278,7 +278,6 @@ public:
     // overlaps with a suffix of w. The ranges are added to the pOBList
     void find(const std::string& seq, const AlignFlags& af, OverlapBlockList* overlaps, OverlapBlockList* contains, OverlapResult* result) const {
         assert(!seq.empty());
-
         // The algorithm is as follows:
         // We perform a backwards search using the FM-index for the string w.
         // As we perform the search we collect the intervals 
@@ -300,7 +299,8 @@ public:
 
                 // The probe interval contains the range of proper prefixes
                 if (probe[1].valid()) {
-                    overlaps->push_back(OverlapBlock(probe, ranges, l - i, af));
+                    std::cout << "overlaps\t" << OverlapBlock(probe, ranges, l - i, af) << std::endl;
+                    //overlaps->push_back(OverlapBlock(probe, ranges, l - i, af));
                 }
             }
         }
@@ -328,7 +328,8 @@ public:
                 // terminate the contained block and add it to the contained list
                 probe.updateR('$', _rfmi);
                 assert(probe.valid());
-                contains->push_back(OverlapBlock(probe, ranges, l, af));
+                std::cout << "contains\t" << OverlapBlock(probe, ranges, l, af) << std::endl;
+                //contains->push_back(OverlapBlock(probe, ranges, l, af));
             }
         }
     }

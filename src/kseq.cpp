@@ -27,6 +27,7 @@ void make_complement_dna(std::string& sequence) {
         sequence[i] = mapping[sequence[i]];
     }
 }
+
 std::string make_complement_dna(const std::string& sequence) {
     std::string complement = sequence;
     make_complement_dna(complement);
