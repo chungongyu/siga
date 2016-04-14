@@ -28,10 +28,4 @@
 #define SAFE_DELETE_ARRAY(x) if (x != NULL) {delete[] x; x = NULL;}
 #endif
 
-namespace PairEnd {
-    std::string basename(const std::string& name);
-    std::string id(const std::string& name);
-    std::string index(const std::string& name);
-};
-
 #endif // utils_h_

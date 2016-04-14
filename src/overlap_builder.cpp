@@ -2,6 +2,7 @@
 #include "asqg.h"
 #include "constant.h"
 #include "sequence_process_framework.h"
+#include "suffix_array.h"
 #include "utils.h"
 
 #include <iostream>
@@ -200,6 +201,10 @@ private:
     std::ostream& _stream;
 };
 
+class Hits2ASQGConverter {
+public:
+};
+
 bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream& output, size_t threads, size_t* processed) const {
     std::vector< std::string > hits;
 
@@ -232,16 +237,25 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
     }
 
     // Convert hits to ASQG
-    BOOST_FOREACH(const std::string& filename, hits) {
-        std::shared_ptr< std::streambuf > buf(ASQG::ifstreambuf(filename));
-        if (!buf) {
-            LOG4CXX_ERROR(logger, boost::format("failed to read hits %s") % filename);
+    {
+        std::shared_ptr< SuffixArray > sa(SuffixArray::load(_prefix + SAI_EXT)), rsa(SuffixArray::load(_prefix + RSAI_EXT));
+        if (!sa || !rsa) {
+            LOG4CXX_ERROR(logger, boost::format("failed to load suffix array index %s") % _prefix);
             return false;
         }
-        std::istream stream(buf.get());
-        if (!hits2asqg(stream, output)) {
-            LOG4CXX_ERROR(logger, boost::format("failed to convert hits to asqg %s") % filename);
-            return false;
+
+        BOOST_FOREACH(const std::string& filename, hits) {
+            std::shared_ptr< std::streambuf > buf(ASQG::ifstreambuf(filename));
+            if (!buf) {
+                LOG4CXX_ERROR(logger, boost::format("failed to read hits %s") % filename);
+                return false;
+            }
+            LOG4CXX_INFO(logger, boost::format("parsing file %s") % filename);
+            std::istream stream(buf.get());
+            if (!hits2asqg(stream, output)) {
+                LOG4CXX_ERROR(logger, boost::format("failed to convert hits to asqg %s") % filename);
+                return false;
+            }
         }
     }
 

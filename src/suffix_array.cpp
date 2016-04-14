@@ -1,4 +1,7 @@
 #include "suffix_array.h"
+#include "utils.h"
+
+#include <fstream>
 
 #include <boost/foreach.hpp>
 
@@ -98,3 +101,19 @@ std::istream& operator>>(std::istream& stream, SuffixArray& sa) {
     return stream;
 }
 
+SuffixArray* SuffixArray::load(const std::string& filename) {
+    std::ifstream stream(filename.c_str());
+    return load(stream);
+}
+
+SuffixArray* SuffixArray::load(std::istream& stream) {
+    SuffixArray* sa = new SuffixArray();
+
+    SAReader reader(stream);
+    if (reader.read(*sa)) {
+        return sa;
+    }
+
+    SAFE_DELETE(sa);
+    return NULL;
+}

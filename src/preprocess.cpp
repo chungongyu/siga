@@ -3,6 +3,7 @@
 #include "kseq.h"
 #include "primer_screen.h"
 #include "quality.h"
+#include "reads.h"
 #include "runner.h"
 #include "utils.h"
 

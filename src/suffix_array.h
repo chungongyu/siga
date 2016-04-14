@@ -45,6 +45,8 @@ public:
         return _elems[i];
     }
 
+    static SuffixArray* load(const std::string& filename);
+    static SuffixArray* load(std::istream& stream);
 private:
     friend std::ostream& operator<<(std::ostream& stream, const SuffixArray& sa);
     friend std::istream& operator>>(std::istream& stream, SuffixArray& sa);

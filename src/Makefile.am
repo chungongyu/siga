@@ -30,6 +30,8 @@ arcs_SOURCES=assembler.cpp \
 			 preprocess.cpp \
 			 primer_screen.cpp \
 			 primer_screen.h \
+			 reads.cpp \
+			 reads.h \
 			 runner.h \
 			 sequence_process_framework.h \
 			 scaffold.cpp \
