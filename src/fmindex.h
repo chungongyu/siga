@@ -60,10 +60,10 @@ public:
     //
     class Interval {
     public:
-        Interval() : lower(0), upper(0) {
+        Interval() : lower(0), upper(-1) {
         }
         bool valid() const {
-            return upper > lower;
+            return upper != -1 && upper >= lower;
         }
         void init(char c, const FMIndex* index) {
             lower = index->getPC(c);

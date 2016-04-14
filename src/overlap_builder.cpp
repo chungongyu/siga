@@ -301,11 +301,11 @@ public:
         ranges.init(seq[l - 1], _fmi, _rfmi);
 
         // Collect the OverlapBlocks
-        for (size_t i = l - 1; i > 0; --i) {
+        for (size_t i = l - 1; i > 1; --i) {
             // Compare the range of the suffix seq[i, l]
             ranges.updateL(seq[i - 1], _fmi);
 
-            if (l - i >= _minOverlap) {
+            if (l - i + 1 >= _minOverlap) {
                 // Calculate which of the prefixes that match w[i, l] are terminal
                 // These are the proper prefixes (they are the start of a read)
                 IntervalPair probe = ranges;
@@ -313,8 +313,8 @@ public:
 
                 // The probe interval contains the range of proper prefixes
                 if (probe[1].valid()) {
-                    std::cout << "overlaps\t" << OverlapBlock(probe, ranges, l - i, af) << std::endl;
-                    //overlaps->push_back(OverlapBlock(probe, ranges, l - i, af));
+                    std::cout << "overlaps\t" << OverlapBlock(probe, ranges, l - i + 1, af) << std::endl;
+                    //overlaps->push_back(OverlapBlock(probe, ranges, l - i + 1, af));
                 }
             }
         }
