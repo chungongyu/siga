@@ -1,6 +1,7 @@
 #include "overlap_builder.h"
 #include "asqg.h"
 #include "constant.h"
+#include "reads.h"
 #include "sequence_process_framework.h"
 #include "suffix_array.h"
 #include "utils.h"
@@ -121,8 +122,26 @@ std::istream& operator>>(std::istream& stream, IntervalPair& pair) {
 // OverlapBlock
 //
 struct OverlapBlock {
+    OverlapBlock() : length(0) {
+    }
     OverlapBlock(const IntervalPair& probe, const IntervalPair& ranges, size_t length, const AlignFlags& af) : probe(probe), ranges(ranges), length(length), af(af) {
     }
+
+    Overlap overlap(const ReadInfo& query, const ReadInfo& target) const {
+        return Overlap(
+                query.name, 
+                query.length - length,
+                query.length - 1, 
+                query.length, 
+                target.name, 
+                0, 
+                length - 1, 
+                target.length, 
+                false, 
+                0
+                );
+    }
+
     friend std::ostream& operator<<(std::ostream& stream, const OverlapBlock& block);
     friend std::istream& operator>>(std::istream& stream, OverlapBlock& block);
 
@@ -203,6 +222,65 @@ private:
 
 class Hits2ASQGConverter {
 public:
+    Hits2ASQGConverter(const SuffixArray& sa, const SuffixArray& rsa, DNASeqReader& reader) : _sa(sa), _rsa(rsa) {
+        DNASeq read;
+        while (reader.read(read)) {
+            _readinfo.push_back(ReadInfo(read.name, read.seq.length()));
+        }
+    }
+
+    bool convert(const std::string& hits, std::ostream& asqg) const {
+        std::shared_ptr< std::streambuf > buf(ASQG::ifstreambuf(hits));
+        if (!buf) {
+            LOG4CXX_ERROR(logger, boost::format("failed to read hits %s") % hits);
+            return false;
+        }
+        std::istream stream(buf.get());
+        return convert(stream, asqg);
+    }
+
+    bool convert(std::istream& hits, std::ostream& asqg) const {
+        while (hits) {
+            // Read the overlap block for a read
+            try {
+                size_t count = 0, idx = 0;
+                bool substring = false;
+                hits >> idx >> substring >> count;
+
+                for (size_t i = 0; i < count; ++i) {
+                    OverlapBlock block;
+                    hits >> block;
+                    
+                    // Iterate thru the range and write the overlaps
+                    for (size_t j = block.ranges[0].lower; j <= block.ranges[0].upper; ++j) {
+                        const ReadInfo& query = _readinfo[idx];
+
+                        const ReadInfo& target = _readinfo[_sa[j].i];
+                        if (query.name != target.name) {
+                            Overlap o = block.overlap(query, target);
+
+                            // The alignment logic above has potential to produce duplicate alignments
+                            // To avoid this, we skip overlaps where the id of the first coord is lexo. lower than
+                            // the second or the match is containment and the query is reversed (containments can be
+                            // output up to 4 times total).
+                            if (o.id[0] < o.id[1]) {
+                                ASQG::EdgeRecord recod(o);
+                                asqg << recod << '\n';
+                            }
+                        }
+                    }
+                }
+            } catch (...) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+private:
+    const SuffixArray& _sa;
+    const SuffixArray& _rsa;
+    ReadInfoList _readinfo;
 };
 
 bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream& output, size_t threads, size_t* processed) const {
@@ -244,15 +322,10 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
             return false;
         }
 
+        Hits2ASQGConverter converter(*sa, *rsa, reader);
         BOOST_FOREACH(const std::string& filename, hits) {
-            std::shared_ptr< std::streambuf > buf(ASQG::ifstreambuf(filename));
-            if (!buf) {
-                LOG4CXX_ERROR(logger, boost::format("failed to read hits %s") % filename);
-                return false;
-            }
             LOG4CXX_INFO(logger, boost::format("parsing file %s") % filename);
-            std::istream stream(buf.get());
-            if (!hits2asqg(stream, output)) {
+            if (!converter.convert(filename, output)) {
                 LOG4CXX_ERROR(logger, boost::format("failed to convert hits to asqg %s") % filename);
                 return false;
             }
@@ -313,8 +386,8 @@ public:
 
                 // The probe interval contains the range of proper prefixes
                 if (probe[1].valid()) {
-                    std::cout << "overlaps\t" << OverlapBlock(probe, ranges, l - i + 1, af) << std::endl;
-                    //overlaps->push_back(OverlapBlock(probe, ranges, l - i + 1, af));
+                    //std::cout << "overlaps\t" << OverlapBlock(probe, ranges, l - i + 1, af) << std::endl;
+                    overlaps->push_back(OverlapBlock(probe, ranges, l - i + 1, af));
                 }
             }
         }
@@ -342,8 +415,8 @@ public:
                 // terminate the contained block and add it to the contained list
                 probe.updateR('$', _rfmi);
                 assert(probe.valid());
-                std::cout << "contains\t" << OverlapBlock(probe, ranges, l, af) << std::endl;
-                //contains->push_back(OverlapBlock(probe, ranges, l, af));
+                //std::cout << "contains\t" << OverlapBlock(probe, ranges, l, af) << std::endl;
+                contains->push_back(OverlapBlock(probe, ranges, l, af));
             }
         }
     }
@@ -364,17 +437,12 @@ OverlapResult OverlapBuilder::overlap(const DNASeq& read, size_t minOverlap, Ove
     OverlapBlockFinder finder(_fmi, _rfmi, minOverlap), rfinder(_rfmi, _fmi, minOverlap);
 
     // Match the suffix of seq to prefixes
-    finder.find(seq, kSuffixPrefixAF, NULL, NULL, &result);
-    rfinder.find(make_complement_dna(seq), kPrefixPrefixAF, NULL, NULL, &result);
+    finder.find(seq, kSuffixPrefixAF, blocks, blocks, &result);
+    rfinder.find(make_complement_dna(seq), kPrefixPrefixAF, blocks, blocks, &result);
 
     // Match the prefix of seq to suffixes
-    finder.find(make_reverse_complement_dna(seq), kSuffixSuffixAF, NULL, NULL, &result);
-    rfinder.find(make_reverse_dna(seq), kPrefixPrefixAF, NULL, NULL, &result);
+    finder.find(make_reverse_complement_dna(seq), kSuffixSuffixAF, blocks, blocks, &result);
+    rfinder.find(make_reverse_dna(seq), kPrefixPrefixAF, blocks, blocks, &result);
 
     return result;
 }
-
-bool OverlapBuilder::hits2asqg(std::istream& input, std::ostream& output) const {
-    return true;
-}
-

@@ -27,8 +27,6 @@ public:
     
     OverlapResult overlap(const DNASeq& read, size_t minOverlap, OverlapBlockList* blocks) const;
 private:
-    bool hits2asqg(std::istream& input, std::ostream& output) const;
-
     const FMIndex* _fmi;
     const FMIndex* _rfmi;
     std::string _prefix;

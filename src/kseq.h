@@ -42,11 +42,16 @@ bool ReadDNASequences(const std::vector< std::string >& filelist, DNASeqList& se
 class DNASeqReader {
 public:
     DNASeqReader(std::istream& stream) : _stream(stream) {
+        _pos = stream.tellg();
     }
 
+    void reset() {
+        _stream.seekg(_pos);
+    }
     virtual bool read(DNASeq& sequence) = 0;
 protected:
     std::istream& _stream;
+    size_t _pos;
 };
 
 class DNASeqReaderFactory {
