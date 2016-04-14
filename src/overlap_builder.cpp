@@ -82,8 +82,8 @@ public:
     }
     void updateL(char c, const FMIndex* index) {
         // Update the left index using the difference between the AlphaCounts in the reverse table
-        DNAAlphabet::AlphaCount64 l = index->getOcc(_intervals[1].lower - 1);
-        DNAAlphabet::AlphaCount64 u = index->getOcc(_intervals[1].upper);
+        DNAAlphabet::AlphaCount64 l = index->getOcc(_intervals[0].lower - 1);
+        DNAAlphabet::AlphaCount64 u = index->getOcc(_intervals[0].upper);
         updateL(c, index, l, u);
     } 
     void updateR(char c, const FMIndex* index) {
