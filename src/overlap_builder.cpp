@@ -288,6 +288,14 @@ private:
 bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream& output, size_t threads, size_t* processed) const {
     std::vector< std::string > hits;
 
+    // Build and write the ASQG header
+    {
+        ASQG::HeaderRecord record;
+        record.overlap(minOverlap);
+        record.containment(1);
+        output << record << '\n';
+    }
+
     if (threads <= 1) { // single thread
         std::string hit = _prefix + HITS_EXT + GZIP_EXT;
         std::shared_ptr< std::streambuf > buf(ASQG::ofstreambuf(hit));
