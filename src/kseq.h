@@ -46,6 +46,7 @@ public:
     }
 
     void reset() {
+        _stream.clear();
         _stream.seekg(_pos);
     }
     virtual bool read(DNASeq& sequence) = 0;

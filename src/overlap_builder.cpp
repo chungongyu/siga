@@ -145,19 +145,19 @@ struct OverlapBlock {
     friend std::ostream& operator<<(std::ostream& stream, const OverlapBlock& block);
     friend std::istream& operator>>(std::istream& stream, OverlapBlock& block);
 
-    IntervalPair ranges;
     IntervalPair probe;
+    IntervalPair ranges;
     size_t length;
     AlignFlags af;
 };
 
 std::ostream& operator<<(std::ostream& stream, const OverlapBlock& block) {
-    stream << block.ranges << ' ' << block.probe << ' ' << block.length << ' ' << block.af;
+    stream << block.probe << ' ' << block.ranges << ' ' << block.length << ' ' << block.af;
     return stream;
 }
 
 std::istream& operator>>(std::istream& stream, OverlapBlock& block) {
-    stream >> block.ranges >> block.probe >> block.length >> block.af;
+    stream >> block.probe >> block.ranges >> block.length >> block.af;
     return stream;
 }
 
@@ -223,6 +223,8 @@ private:
 class Hits2ASQGConverter {
 public:
     Hits2ASQGConverter(const SuffixArray& sa, const SuffixArray& rsa, DNASeqReader& reader) : _sa(sa), _rsa(rsa) {
+        reader.reset();
+
         DNASeq read;
         while (reader.read(read)) {
             _readinfo.push_back(ReadInfo(read.name, read.seq.length()));
@@ -252,7 +254,7 @@ public:
                     hits >> block;
                     
                     // Iterate thru the range and write the overlaps
-                    for (size_t j = block.ranges[0].lower; j <= block.ranges[0].upper; ++j) {
+                    for (size_t j = block.probe[0].lower; j <= block.probe[0].upper; ++j) {
                         const ReadInfo& query = _readinfo[idx];
 
                         const ReadInfo& target = _readinfo[_sa[j].i];
@@ -438,11 +440,11 @@ OverlapResult OverlapBuilder::overlap(const DNASeq& read, size_t minOverlap, Ove
 
     // Match the suffix of seq to prefixes
     finder.find(seq, kSuffixPrefixAF, blocks, blocks, &result);
-    rfinder.find(make_complement_dna(seq), kPrefixPrefixAF, blocks, blocks, &result);
+    //rfinder.find(make_complement_dna(seq), kPrefixPrefixAF, blocks, blocks, &result);
 
     // Match the prefix of seq to suffixes
-    finder.find(make_reverse_complement_dna(seq), kSuffixSuffixAF, blocks, blocks, &result);
-    rfinder.find(make_reverse_dna(seq), kPrefixPrefixAF, blocks, blocks, &result);
+    //finder.find(make_reverse_complement_dna(seq), kSuffixSuffixAF, blocks, blocks, &result);
+    //rfinder.find(make_reverse_dna(seq), kPrefixPrefixAF, blocks, blocks, &result);
 
     return result;
 }
