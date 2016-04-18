@@ -32,6 +32,7 @@ arcs_SOURCES=assembler.cpp \
 			 primer_screen.h \
 			 reads.cpp \
 			 reads.h \
+			 rmdup.cpp \
 			 runner.h \
 			 sequence_process_framework.h \
 			 scaffold.cpp \

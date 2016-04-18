@@ -120,6 +120,7 @@ private:
             _mp["assemble"] = 5;
             _mp["scaffold"] = 6;
             _mp["gapfill"] = 7;
+            _mp["rmdup"] = 8;
         }
         bool operator()(const std::string& l, const std::string& r) const {
             std::map< std::string, size_t >::const_iterator x = _mp.find(l), y = _mp.find(r);

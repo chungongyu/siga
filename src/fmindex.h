@@ -74,6 +74,9 @@ public:
             lower = pb + index->getOcc(c, lower - 1);
             upper = pb + index->getOcc(c, upper) - 1;
         }
+        DNAAlphabet::AlphaCount64 ext(const FMIndex* index) const {
+            return index->getOcc(upper) - index->getOcc(lower - 1);
+        }
 
         friend std::ostream& operator<<(std::ostream& stream, const Interval& interval);
         friend std::istream& operator>>(std::istream& stream, Interval& interval);

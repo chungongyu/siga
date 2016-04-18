@@ -61,6 +61,10 @@ namespace DNAAlphabet {
             }
             return false;
         }
+        void complement() {
+            std::swap(_data[torank('A')], _data[torank('T')]);
+            std::swap(_data[torank('C')], _data[torank('G')]);
+        }
         AlphaCount< Storage > operator-(const AlphaCount< Storage >& c) const {
             AlphaCount< Storage > r;
             for (size_t i = 0; i < size(); ++i) {
@@ -74,6 +78,18 @@ namespace DNAAlphabet {
                 r._data[i] = _data[i] + c._data[i];
             }
             return r;
+        }
+        AlphaCount< Storage >& operator-=(const AlphaCount< Storage >& c) {
+            for (size_t i = 0; i < size(); ++i) {
+                _data[i] -= c._data[i];
+            }
+            return *this;
+        }
+        AlphaCount< Storage >& operator+=(const AlphaCount< Storage >& c) {
+            for (size_t i = 0; i < size(); ++i) {
+                _data[i] += c._data[i];
+            }
+            return *this;
         }
     private:
         template< class T >
