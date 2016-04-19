@@ -39,7 +39,7 @@ public:
         FMIndex fmi, rfmi;
         if (loadIdx(output, fmi, rfmi)) {
             OverlapBuilder builder(&fmi, &rfmi, output);
-            if (!builder.rmdup(input, output)) {
+            if (!builder.rmdup(input, output + RMDUP_EXT + ".fa")) {
                 LOG4CXX_ERROR(logger, boost::format("Failed to remove duplicates from reads %s") % input);
                 r = -1;
             }

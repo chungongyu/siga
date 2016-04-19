@@ -188,7 +188,7 @@ struct OverlapResult {
 // Hit
 //
 struct Hit {
-    Hit() : idx(-1), substring(false) {
+    Hit(size_t idx=-1, bool substring=false) : idx(idx), substring(substring) {
     }
     Hit(size_t idx, bool substring, const OverlapBlockList& blocks) : idx(idx), substring(substring), blocks(blocks) {
     }
@@ -229,9 +229,7 @@ public:
     }
 
     OverlapResult process(const SequenceProcessFramework::SequenceWorkItem& workItem) {
-        Hit hit;
-
-        hit.idx = workItem.idx;
+        Hit hit(workItem.idx);
         OverlapResult result = _builder->overlap(workItem.read, _minOverlap, &hit.blocks);
         hit.substring = result.substring;
 
@@ -418,7 +416,10 @@ public:
     }
 
     OverlapResult process(const SequenceProcessFramework::SequenceWorkItem& workItem) {
-        OverlapResult result;// = _builder->overlap(workItem.read, _minOverlap, &blocks);
+        Hit hit(workItem.idx);
+        OverlapResult result = _builder->duplicate(workItem.read, &hit.blocks);
+        hit.substring = result.substring;
+        _stream << workItem.read.name << '\t' << workItem.read.seq << '\t' << hit << '\n';
 
         return result;
     }
@@ -465,13 +466,32 @@ public:
         while (hits) {
             // Read the overlap block for a read
             try {
+                std::string name, seq;
                 Hit hit;
-                hits >> hit;
+                hits >> name >> seq >> hit;
 
+                size_t numCopies = 0;
                 BOOST_FOREACH(const OverlapBlock& block, hit.blocks) {
                     // Iterate thru the range and write the overlaps
-                    for (size_t j = block.probe[0].lower; j <= block.probe[0].upper; ++j) {
-                    }
+                    assert(block.probe[0].lower <= block.probe[0].upper);
+                    numCopies += block.probe[0].upper - block.probe[0].lower + 1;
+                }
+
+                bool isContained = false;
+                if (hit.substring) {
+                    isContained = true;
+                }
+
+                DNASeq item(name, seq);
+                std::string meta = boost::str(boost::format("%s NumDuplicates=%d") % name % numCopies);
+                if (isContained) {
+                    // The read's index in the sequence data base
+                    // is needed when removing it from the FM-index.
+                    // In the output fasta, we set the reads ID to be the index
+                    // and record its old id in the fasta header.
+                } else {
+                    item.name = boost::str(boost::format("%s %s") % item.name % meta);
+                    fasta << item << '\n';
                 }
             } catch (...) {
                 return false;
@@ -651,7 +671,9 @@ public:
                 // The probe interval contains the range of proper prefixes
                 if (probe[1].valid()) {
                     //std::cout << "overlaps\t" << OverlapBlock(probe, ranges, l - i + 1, af) << std::endl;
-                    overlaps->push_back(OverlapBlock(probe, ranges, l - i + 1, af));
+                    if (overlaps != NULL) {
+                        overlaps->push_back(OverlapBlock(probe, ranges, l - i + 1, af));
+                    }
                 }
             }
         }
@@ -682,7 +704,9 @@ public:
                 probe.updateR('$', _rfmi);
                 assert(probe.valid());
                 //std::cout << "contains\t" << OverlapBlock(probe, ranges, l, af) << std::endl;
-                contains->push_back(OverlapBlock(probe, ranges, l, af));
+                if (contains != NULL) {
+                    contains->push_back(OverlapBlock(probe, ranges, l, af));
+                }
             }
         }
     }
@@ -697,9 +721,9 @@ OverlapResult OverlapBuilder::overlap(const DNASeq& read, size_t minOverlap, Ove
     // The complete set of overlap blocks are collected in workinglist
     // The filtered set (containing only irreducible overlaps) are placed into blocks
     // by calculateIrreducibleHits
-    const std::string& seq = read.seq;
     OverlapResult result;
 
+    const std::string& seq = read.seq;
     OverlapBlockFinder finder(_fmi, _rfmi, minOverlap), rfinder(_rfmi, _fmi, minOverlap);
 
     // Match the suffix of seq to prefixes
@@ -714,3 +738,17 @@ OverlapResult OverlapBuilder::overlap(const DNASeq& read, size_t minOverlap, Ove
 
     return result;
 }
+
+OverlapResult OverlapBuilder::duplicate(const DNASeq& read, OverlapBlockList* blocks) const {
+    OverlapResult result;
+
+    const std::string& seq = read.seq;
+    size_t minOverlap = seq.length();
+    OverlapBlockFinder finder(_fmi, _rfmi, minOverlap), rfinder(_rfmi, _fmi, minOverlap);
+
+    finder.find(seq, kSuffixPrefixAF, NULL, blocks, &result);
+    rfinder.find(make_complement_dna(seq), kPrefixPrefixAF, NULL, blocks, &result);
+
+    return result;
+}
+
