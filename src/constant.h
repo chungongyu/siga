@@ -3,13 +3,14 @@
 
 #include <cstdio>
 
-#define SAI_EXT  ".sai"
-#define RSAI_EXT ".rsai"
-#define BWT_EXT  ".bwt"
-#define RBWT_EXT ".rbwt"
-#define ASQG_EXT ".asqg"
-#define HITS_EXT ".hits"
-#define GZIP_EXT ".gz"
+#define SAI_EXT   ".sai"
+#define RSAI_EXT  ".rsai"
+#define BWT_EXT   ".bwt"
+#define RBWT_EXT  ".rbwt"
+#define ASQG_EXT  ".asqg"
+#define HITS_EXT  ".hits"
+#define GZIP_EXT  ".gz"
+#define RMDUP_EXT ".rmdup"
 
 // common
 extern const char* kLogConfig;

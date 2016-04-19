@@ -185,6 +185,42 @@ struct OverlapResult {
 };
 
 //
+// Hit
+//
+struct Hit {
+    Hit() : idx(-1), substring(false) {
+    }
+    Hit(size_t idx, bool substring, const OverlapBlockList& blocks) : idx(idx), substring(substring), blocks(blocks) {
+    }
+
+    size_t idx;
+    bool substring;
+    OverlapBlockList blocks;
+};
+
+std::ostream& operator<<(std::ostream& stream, const Hit& hit) {
+    // Write the header info
+    stream << hit.idx << ' ' << hit.substring << ' ' << hit.blocks.size() << ' ';
+    BOOST_FOREACH(const OverlapBlock& block, hit.blocks) {
+        stream << block << ' ';
+    }
+    return stream;
+}
+
+std::istream& operator>>(std::istream& stream, Hit& hit) {
+    size_t count = 0;
+
+    stream >> hit.idx >> hit.substring >> count;
+    for (size_t i = 0; i < count; ++i) {
+        OverlapBlock block;
+        stream >> block;
+        hit.blocks.push_back(block);
+    }
+
+    return stream;
+}
+
+//
 // OverlapProcess
 //
 class OverlapProcess {
@@ -193,18 +229,16 @@ public:
     }
 
     OverlapResult process(const SequenceProcessFramework::SequenceWorkItem& workItem) {
-        OverlapBlockList blocks;
-        OverlapResult result = _builder->overlap(workItem.read, _minOverlap, &blocks);
+        Hit hit;
+
+        hit.idx = workItem.idx;
+        OverlapResult result = _builder->overlap(workItem.read, _minOverlap, &hit.blocks);
+        hit.substring = result.substring;
 
         //
         // Write overlap blocks out to a file
         //
-        // Write the header info
-        _stream << workItem.idx << ' ' << result.substring << ' ' << blocks.size() << ' ';
-        BOOST_FOREACH(const OverlapBlock& block, blocks) {
-            _stream << block << ' ';
-        }
-        _stream << '\n';
+        _stream << hit << '\n';
 
         return result;
     }
@@ -258,17 +292,13 @@ public:
         while (hits) {
             // Read the overlap block for a read
             try {
-                size_t count = 0, idx = 0;
-                bool substring = false;
-                hits >> idx >> substring >> count;
+                Hit hit;
+                hits >> hit;
 
-                for (size_t i = 0; i < count; ++i) {
-                    OverlapBlock block;
-                    hits >> block;
-                    
+                BOOST_FOREACH(const OverlapBlock& block, hit.blocks) {
                     // Iterate thru the range and write the overlaps
                     for (size_t j = block.probe[0].lower; j <= block.probe[0].upper; ++j) {
-                        const ReadInfo& query = _readinfo[idx];
+                        const ReadInfo& query = _readinfo[hit.idx];
 
                         const ReadInfo& target = _readinfo[_sa[j].i];
                         if (query.name != target.name) {
@@ -379,11 +409,136 @@ bool OverlapBuilder::build(const std::string& input, size_t minOverlap, const st
     return build(*reader, minOverlap, asqg, threads, processed);
 }
 
-bool OverlapBuilder::rmdup(DNASeqReader& reader, std::ostream& output, size_t threads) const {
+//
+// DuplicateRemoveProcess
+//
+class DuplicateRemoveProcess {
+public:
+    DuplicateRemoveProcess(const OverlapBuilder* builder, std::ostream& stream) : _builder(builder), _stream(stream) {
+    }
+
+    OverlapResult process(const SequenceProcessFramework::SequenceWorkItem& workItem) {
+        OverlapResult result;// = _builder->overlap(workItem.read, _minOverlap, &blocks);
+
+        return result;
+    }
+
+private:
+    const OverlapBuilder* _builder;
+    std::ostream& _stream;
+};
+
+//
+// DuplicateRemovePostProcess
+//
+class DuplicateRemovePostProcess {
+public:
+    DuplicateRemovePostProcess() {
+    }
+
+    void process(const SequenceProcessFramework::SequenceWorkItem& workItem, const OverlapResult& result) {
+    }
+};
+
+class Hits2FastaConverter {
+public:
+    Hits2FastaConverter(const SuffixArray& sa, const SuffixArray& rsa, DNASeqReader& reader) : _sa(sa), _rsa(rsa) {
+        reader.reset();
+
+        DNASeq read;
+        while (reader.read(read)) {
+            _readinfo.push_back(ReadInfo(read.name, read.seq.length()));
+        }
+    }
+
+    bool convert(const std::string& hits, std::ostream& fasta) const {
+        std::shared_ptr< std::streambuf > buf(ASQG::ifstreambuf(hits));
+        if (!buf) {
+            LOG4CXX_ERROR(logger, boost::format("failed to read hits %s") % hits);
+            return false;
+        }
+        std::istream stream(buf.get());
+        return convert(stream, fasta);
+    }
+
+    bool convert(std::istream& hits, std::ostream& fasta) const {
+        while (hits) {
+            // Read the overlap block for a read
+            try {
+                Hit hit;
+                hits >> hit;
+
+                BOOST_FOREACH(const OverlapBlock& block, hit.blocks) {
+                    // Iterate thru the range and write the overlaps
+                    for (size_t j = block.probe[0].lower; j <= block.probe[0].upper; ++j) {
+                    }
+                }
+            } catch (...) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+private:
+    const SuffixArray& _sa;
+    const SuffixArray& _rsa;
+    ReadInfoList _readinfo;
+};
+
+bool OverlapBuilder::rmdup(DNASeqReader& reader, std::ostream& output, size_t threads, size_t* processed) const {
+    std::vector< std::string > hits;
+
+    if (threads <= 1) { // single thread
+        std::string hit = _prefix + RMDUP_EXT + HITS_EXT + GZIP_EXT;
+        std::shared_ptr< std::streambuf > buf(ASQG::ofstreambuf(hit));
+        if (!buf) {
+            LOG4CXX_ERROR(logger, boost::format("failed to create hits %s") % hit);
+            return false;
+        }
+        std::ostream stream(buf.get());
+        DuplicateRemoveProcess proc(this, stream);
+        DuplicateRemovePostProcess postproc;
+
+        SequenceProcessFramework::SerialWorker<
+            SequenceProcessFramework::SequenceWorkItem, 
+            OverlapResult, 
+            SequenceProcessFramework::WorkItemGenerator< SequenceProcessFramework::SequenceWorkItem >, 
+            DuplicateRemoveProcess, 
+            DuplicateRemovePostProcess
+            > worker;
+        size_t num = worker.run(reader, &proc, &postproc);
+        if (processed != NULL) {
+            *processed = num;
+        }
+
+        hits.push_back(hit);
+    } else { // multi thread
+        assert(false);
+    }
+
+    // Convert hits to fasta
+    {
+        std::shared_ptr< SuffixArray > sa(SuffixArray::load(_prefix + SAI_EXT)), rsa(SuffixArray::load(_prefix + RSAI_EXT));
+        if (!sa || !rsa) {
+            LOG4CXX_ERROR(logger, boost::format("failed to load suffix array index %s") % _prefix);
+            return false;
+        }
+
+        Hits2FastaConverter converter(*sa, *rsa, reader);
+        BOOST_FOREACH(const std::string& filename, hits) {
+            LOG4CXX_INFO(logger, boost::format("parsing file %s") % filename);
+            if (!converter.convert(filename, output)) {
+                LOG4CXX_ERROR(logger, boost::format("failed to convert hits to asqg %s") % filename);
+                return false;
+            }
+        }
+    }
+
     return true;
 }
 
-bool OverlapBuilder::rmdup(const std::string& input, const std::string& output, size_t threads) const {
+bool OverlapBuilder::rmdup(const std::string& input, const std::string& output, size_t threads, size_t* processed) const {
     // DNASeqReader
     std::ifstream reads(input);
     std::shared_ptr< DNASeqReader > reader(DNASeqReaderFactory::create(reads));
@@ -392,16 +547,15 @@ bool OverlapBuilder::rmdup(const std::string& input, const std::string& output, 
         return false;
     }
 
-    // ASQG
-    std::shared_ptr< std::streambuf > buf(ASQG::ofstreambuf(output));
-    if (!buf) {
-        LOG4CXX_ERROR(logger, boost::format("Failed to create ASQG %s") % output);
+    // FASTA
+    std::ofstream fasta(output.c_str());
+    if (!fasta) {
+        LOG4CXX_ERROR(logger, boost::format("Failed to create FASTA %s") % output);
         return false;
     }
-    std::ostream asqg(buf.get());
 
     // Build
-    return rmdup(*reader, asqg, threads);
+    return rmdup(*reader, fasta, threads, processed);
 }
 
 class IrreducibleBlockListExtractor {
