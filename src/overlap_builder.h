@@ -3,9 +3,7 @@
 
 #include "fmindex.h"
 #include "kseq.h"
-#include "utils.h"
 
-#include <bitset>
 #include <iostream>
 #include <list>
 

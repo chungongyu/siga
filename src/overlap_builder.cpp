@@ -6,9 +6,11 @@
 #include "suffix_array.h"
 #include "utils.h"
 
+#include <bitset>
 #include <iostream>
 #include <memory>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/assign.hpp>
 #include <boost/foreach.hpp>
 #include <boost/format.hpp>
@@ -93,6 +95,10 @@ public:
         updateL(c, index, l, u);
     } 
     void updateR(char c, const FMIndex* index) {
+        // Update the left index using the difference between the AlphaCounts in the reverse table
+        DNAAlphabet::AlphaCount64 l = index->getOcc(_intervals[1].lower - 1);
+        DNAAlphabet::AlphaCount64 u = index->getOcc(_intervals[1].upper);
+        updateR(c, index, l, u);
     }
 private:
     friend std::ostream& operator<<(std::ostream& stream, const IntervalPair& pair);
@@ -108,6 +114,17 @@ private:
         size_t pb = index->getPC(c);
         _intervals[0].lower = pb + l[DNAAlphabet::torank(c)];
         _intervals[0].upper = pb + u[DNAAlphabet::torank(c)] - 1;
+    }
+    void updateR(char c, const FMIndex* index, const DNAAlphabet::AlphaCount64& l, const DNAAlphabet::AlphaCount64& u) {
+        DNAAlphabet::AlphaCount64 diff = u - l;
+
+        _intervals[0].lower = _intervals[0].lower + std::accumulate(&diff[0], &diff[0] + DNAAlphabet::torank(c), 0);
+        _intervals[0].upper = _intervals[0].lower + diff[DNAAlphabet::torank(c)] - 1;
+
+        // Update the right index directly
+        size_t pb = index->getPC(c);
+        _intervals[1].lower = pb + l[DNAAlphabet::torank(c)];
+        _intervals[1].upper = pb + u[DNAAlphabet::torank(c)] - 1;
     }
 
     FMIndex::Interval _intervals[2];
@@ -147,8 +164,12 @@ struct OverlapBlock {
                 );
     }
 
-    DNAAlphabet::AlphaCount64 ext(const FMIndex* index, const FMIndex* rindex) const {
-        DNAAlphabet::AlphaCount64 count = probe[1].ext(af.test(AlignFlags::TARGETREV_BIT) ? rindex : index);
+    const FMIndex* index(const FMIndex* index, const FMIndex* rindex) const {
+        return af.test(AlignFlags::TARGETREV_BIT) ? rindex : index;
+    }
+
+    DNAAlphabet::AlphaCount64 ext(const FMIndex* fmi, const FMIndex* rfmi) const {
+        DNAAlphabet::AlphaCount64 count = probe[1].ext(index(fmi, rfmi));
         if (af.test(AlignFlags::QUERYCOMP_BIT)) {
             count.complement();
         }
@@ -287,11 +308,14 @@ public:
     }
 
     bool convert(std::istream& hits, std::ostream& asqg) const {
-        while (hits) {
-            // Read the overlap block for a read
-            try {
+        std::string line;
+        while (std::getline(hits, line)) {
+            boost::algorithm::trim(line);
+            if (!line.empty()) {
+                // Read the overlap block for a read
                 Hit hit;
-                hits >> hit;
+                std::stringstream ss(line);
+                ss >> hit;
 
                 BOOST_FOREACH(const OverlapBlock& block, hit.blocks) {
                     // Iterate thru the range and write the overlaps
@@ -313,8 +337,6 @@ public:
                         }
                     }
                 }
-            } catch (...) {
-                return false;
             }
         }
         return true;
@@ -463,12 +485,15 @@ public:
     }
 
     bool convert(std::istream& hits, std::ostream& fasta) const {
-        while (hits) {
-            // Read the overlap block for a read
-            try {
-                std::string name, seq;
+        std::string line;
+        while (std::getline(hits, line)) {
+            boost::algorithm::trim(line);
+            if (!line.empty()) {
+                // Read the overlap block for a read
+                DNASeq item;
                 Hit hit;
-                hits >> name >> seq >> hit;
+                std::stringstream ss(line);
+                ss >> item.name >> item.seq >> hit;
 
                 size_t numCopies = 0;
                 BOOST_FOREACH(const OverlapBlock& block, hit.blocks) {
@@ -482,8 +507,7 @@ public:
                     isContained = true;
                 }
 
-                DNASeq item(name, seq);
-                std::string meta = boost::str(boost::format("%s NumDuplicates=%d") % name % numCopies);
+                std::string meta = boost::str(boost::format("%s NumDuplicates=%d") % item.name % numCopies);
                 if (isContained) {
                     // The read's index in the sequence data base
                     // is needed when removing it from the FM-index.
@@ -491,10 +515,8 @@ public:
                     // and record its old id in the fasta header.
                 } else {
                     item.name = boost::str(boost::format("%s %s") % item.name % meta);
-                    fasta << item << '\n';
+                    fasta << item;
                 }
-            } catch (...) {
-                return false;
             }
         }
         return true;
@@ -621,7 +643,7 @@ public:
                     // (one in the forward and reverse direction). Since we can't decide which one
                     // contains the other at this point, we output hits to both. Under a fixed 
                     // length string assumption one will be contained within the other and removed later.
-                    for (OverlapBlockList::const_iterator j = blocklist.begin(); j != blocklist.end() && j->length != topLength; ++j) {
+                    for (OverlapBlockList::const_iterator j = blocklist.begin(); j != blocklist.end() && j->length == topLength; ++j) {
                         DNAAlphabet::AlphaCount64 test = (*j).ext(_fmi, _rfmi);
                         if (test[DNAAlphabet::torank('$')] == 0) {
                             LOG4CXX_ERROR(logger, "substring read found during overlap computation.");
@@ -630,6 +652,11 @@ public:
                         }
 
                         // Perform the final right-update to make the block terminal
+                        OverlapBlock branched = *j;
+                        branched.probe.updateR('$', branched.index(_fmi, _rfmi));
+                        output.push_back(branched);
+
+                        LOG4CXX_DEBUG(logger, boost::format("TLB of length %d has ended") % branched.length);
                     }
                 }
             }
@@ -650,9 +677,9 @@ public:
     void find(const std::string& seq, const AlignFlags& af, OverlapBlockList* overlaps, OverlapBlockList* contains, OverlapResult* result) const {
         assert(!seq.empty());
         // The algorithm is as follows:
-        // We perform a backwards search using the FM-index for the string w.
+        // We perform a backwards search using the FM-index for the string seq.
         // As we perform the search we collect the intervals 
-        // of the significant prefixes (len >= minOverlap) that overlap w.
+        // of the significant prefixes (len >= minOverlap) that overlap seq.
         IntervalPair ranges;
         size_t l = seq.length();
         ranges.init(seq[l - 1], _fmi, _rfmi);
