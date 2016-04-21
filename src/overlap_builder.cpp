@@ -9,6 +9,7 @@
 #include <bitset>
 #include <functional>
 #include <iostream>
+#include <iterator>
 #include <memory>
 
 #include <boost/algorithm/string.hpp>
@@ -694,7 +695,7 @@ public:
             }
 
             // Splice in the newly branched blocks, if any
-            std::copy(groups.end(), incomings.begin(), incomings.end());
+            std::copy(incomings.begin(), incomings.end(), std::back_inserter(groups));
         }
 
         return true;
@@ -797,6 +798,60 @@ private:
     size_t _minOverlap;
 };
 
+class SubMaximalBlockFilter {
+public:
+    SubMaximalBlockFilter(const FMIndex* fmi, const FMIndex* rfmi) : _fmi(fmi), _rfmi(rfmi) {
+    }
+
+    void filter(OverlapBlockList* blocks) {
+        assert(blocks != NULL);
+        // This algorithm removes any sub-maximal OverlapBlocks from pList
+        // The list is sorted by the left coordinate and iterated through
+        // if two adjacent blocks overlap they are split into maximal contiguous regions
+        // with resolveOverlap. The resulting list is merged back into pList. This process
+        // is repeated until each block in pList is a unique range
+        // The bookkeeping in the intersecting case could be more efficient 
+        // but the vast vast majority of the cases will not have overlapping 
+        // blocks.
+        if (!blocks->empty()) {
+            IntervalLeftSorter sorter;
+            blocks->sort(sorter);
+            OverlapBlockList::iterator prev = blocks->begin();
+            OverlapBlockList::iterator curr = std::next(prev);
+            while (curr != blocks->end()) {
+                // Check if prev and curr overlaps
+                if (Interval::isIntersecting(prev->probe[0].lower, prev->probe[1].upper, curr->probe[0].lower, curr->probe[0].upper)) {
+
+                    // Merge the new elements in and start back from the beginning of the list
+                    OverlapBlockList resolved;
+                    resolve(*prev, *curr, &resolved);
+
+                    blocks->erase(curr);
+                    blocks->erase(prev);
+                    blocks->merge(resolved, sorter);
+
+                    prev = blocks->begin();
+                } else {
+                    ++prev;
+                }
+                curr = std::next(prev);
+            }
+        }
+    }
+private:
+    void resolve(const OverlapBlock& x, const OverlapBlock& y, OverlapBlockList* resolve) {
+    }
+
+    class IntervalLeftSorter {
+    public:
+        bool operator()(const OverlapBlock& x, const OverlapBlock& y) const {
+            return x.probe[0].lower < y.probe[0].lower;
+        }
+    };
+    const FMIndex* _fmi;
+    const FMIndex* _rfmi;
+};
+
 OverlapResult OverlapBuilder::overlap(const DNASeq& read, size_t minOverlap, OverlapBlockList* blocks) const {
     // The complete set of overlap blocks are collected in workinglist
     // The filtered set (containing only irreducible overlaps) are placed into blocks
@@ -813,6 +868,9 @@ OverlapResult OverlapBuilder::overlap(const DNASeq& read, size_t minOverlap, Ove
     // Match the prefix of seq to suffixes
     rfinder.find(make_reverse_dna(seq), kPrefixSuffixAF, blocks, blocks, &result);
     finder.find(make_reverse_complement_dna(seq), kPrefixPrefixAF, blocks, blocks, &result);
+
+    SubMaximalBlockFilter filter(_fmi, _rfmi);
+    filter.filter(blocks);
     
     IrreducibleBlockListExtractor extractor(_fmi, _rfmi);
     extractor.extract(blocks);

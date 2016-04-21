@@ -35,6 +35,13 @@ public:
         end = flip(start, l);
     }
 
+    // Precondition: s1 >= e1 and s2 >= e2 
+    // Return true if the coordinates intersect
+    static bool isIntersecting(size_t s1, size_t e1, size_t s2, size_t e2) {
+        assert(s1 <= e1 && s2 <= e2);
+        return s1 <= e2 && s2 <= e1;
+    }
+
     friend std::ostream& operator<<(std::ostream& stream, const Interval& i);
     friend std::istream& operator>>(std::istream& stream, Interval& i);    
 
