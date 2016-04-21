@@ -38,7 +38,7 @@ public:
         LOG4CXX_INFO(logger, boost::format("output: %s") % output);
 
         FMIndex fmi, rfmi;
-        if (loadIdx(output, fmi, rfmi)) {
+        if (loadFMI(output + BWT_EXT, fmi) && loadFMI(output + RBWT_EXT, rfmi)) {
             OverlapBuilder builder(&fmi, &rfmi, output);
             if (!builder.build(input, options.get< size_t >("min-overlap", 10), output + ASQG_EXT + GZIP_EXT)) {
                 LOG4CXX_ERROR(logger, boost::format("Failed to build overlaps from reads %s") % input);
@@ -53,28 +53,6 @@ public:
     }
 
 private:
-    bool loadIdx(const std::string& prefix, FMIndex& fmi, FMIndex& rfmi) {
-        // forward
-        {
-            boost::filesystem::ifstream stream(prefix + BWT_EXT);
-            stream >> fmi;
-            if (!stream) {
-                return false;
-            }
-            fmi.info();
-        }
-        // reverse
-        {
-            boost::filesystem::ifstream stream(prefix + RBWT_EXT);
-            stream >> rfmi;
-            if (!stream) {
-                return false;
-            }
-            rfmi.info();
-        }
-        return true;
-    }
-
     Overlapping() : Runner("c:s:a:t:p:m:h", boost::assign::map_list_of('a', "algorithm")('t', "threads")('p', "prefix")('m', "min-overlap")) {
         RUNNER_INSTALL("overlap", this, "compute overlaps between reads");
     }

@@ -37,7 +37,7 @@ public:
         LOG4CXX_INFO(logger, boost::format("output: %s") % output);
 
         FMIndex fmi, rfmi;
-        if (loadIdx(output, fmi, rfmi)) {
+        if (loadFMI(output + BWT_EXT, fmi) && loadFMI(output + RBWT_EXT, rfmi)) {
             OverlapBuilder builder(&fmi, &rfmi, output);
             if (!builder.rmdup(input, output + RMDUP_EXT + ".fa")) {
                 LOG4CXX_ERROR(logger, boost::format("Failed to remove duplicates from reads %s") % input);
@@ -52,28 +52,6 @@ public:
     }
 
 private:
-    bool loadIdx(const std::string& prefix, FMIndex& fmi, FMIndex& rfmi) {
-        // forward
-        {
-            boost::filesystem::ifstream stream(prefix + BWT_EXT);
-            stream >> fmi;
-            if (!stream) {
-                return false;
-            }
-            fmi.info();
-        }
-        // reverse
-        {
-            boost::filesystem::ifstream stream(prefix + RBWT_EXT);
-            stream >> rfmi;
-            if (!stream) {
-                return false;
-            }
-            rfmi.info();
-        }
-        return true;
-    }
-
     DuplicateRemove() : Runner("c:s:t:p:d:h", boost::assign::map_list_of('t', "threads")('p', "prefix")('d', "sample-rate")) {
         RUNNER_INSTALL("rmdup", this, "duplicate reads removal");
     }

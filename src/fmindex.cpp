@@ -2,6 +2,7 @@
 #include "bwt.h"
 #include "utils.h"
 
+#include <fstream>
 #include <iterator>
 
 #include <boost/format.hpp>
@@ -289,4 +290,15 @@ std::istream& operator>>(std::istream& stream, FMIndex& index) {
     stream >> index._bwt;
     index.initialize();
     return stream;
+}
+
+bool loadFMI(const std::string& filename, FMIndex& fmi) {
+    std::ifstream stream(filename.c_str());
+    try {
+        stream >> fmi;
+        fmi.info();
+    } catch (...) {
+        return false;
+    }
+    return true;
 }
