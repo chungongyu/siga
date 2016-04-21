@@ -161,7 +161,7 @@ struct OverlapBlock {
                 0, 
                 length - 1, 
                 target.length, 
-                false, 
+                af.test(AlignFlags::QUERYCOMP_BIT), 
                 0
                 );
     }
@@ -288,15 +288,51 @@ private:
     std::ostream& _stream;
 };
 
-class Hits2ASQGConverter {
+class Hit2OverlapConverter {
 public:
-    Hits2ASQGConverter(const SuffixArray& sa, const SuffixArray& rsa, DNASeqReader& reader) : _sa(sa), _rsa(rsa) {
+    Hit2OverlapConverter(const SuffixArray& sa, const SuffixArray& rsa, DNASeqReader& reader) : _sa(sa), _rsa(rsa) {
         reader.reset();
 
         DNASeq read;
         while (reader.read(read)) {
             _readinfo.push_back(ReadInfo(read.name, read.seq.length()));
         }
+    }
+
+    size_t convert(const Hit& hit, OverlapList* overlaps) const {
+        size_t numCopies = 0;
+
+        const ReadInfo& query = _readinfo[hit.idx];
+        BOOST_FOREACH(const OverlapBlock& block, hit.blocks) {
+            // Iterate thru the range and write the overlaps
+            assert(block.probe[0].lower <= block.probe[0].upper);
+
+            for (size_t j = block.probe[0].lower; j <= block.probe[0].upper; ++j) {
+                ++numCopies;
+
+                const SuffixArray& sa = block.af.test(AlignFlags::TARGETREV_BIT) ? _rsa : _sa;
+                const ReadInfo& target = _readinfo[sa[j].i];
+                if (query.name != target.name) {
+                    if (overlaps != NULL) {
+                        Overlap o = block.overlap(query, target);
+                        overlaps->push_back(o);
+                    }
+                }
+            }
+        }
+
+        return numCopies;
+    }
+
+private:
+    const SuffixArray& _sa;
+    const SuffixArray& _rsa;
+    ReadInfoList _readinfo;
+};
+
+class Hits2ASQGConverter {
+public:
+    Hits2ASQGConverter(const SuffixArray& sa, const SuffixArray& rsa, DNASeqReader& reader) : _converter(sa, rsa, reader) {
     }
 
     bool convert(const std::string& hits, std::ostream& asqg) const {
@@ -319,24 +355,16 @@ public:
                 std::stringstream ss(line);
                 ss >> hit;
 
-                BOOST_FOREACH(const OverlapBlock& block, hit.blocks) {
-                    // Iterate thru the range and write the overlaps
-                    for (size_t j = block.probe[0].lower; j <= block.probe[0].upper; ++j) {
-                        const ReadInfo& query = _readinfo[hit.idx];
-
-                        const ReadInfo& target = _readinfo[_sa[j].i];
-                        if (query.name != target.name) {
-                            Overlap o = block.overlap(query, target);
-
-                            // The alignment logic above has potential to produce duplicate alignments
-                            // To avoid this, we skip overlaps where the id of the first coord is lexo. lower than
-                            // the second or the match is containment and the query is reversed (containments can be
-                            // output up to 4 times total).
-                            if (o.id[0] < o.id[1]) {
-                                ASQG::EdgeRecord recod(o);
-                                asqg << recod << '\n';
-                            }
-                        }
+                OverlapList overlaps;
+                size_t numCopies = _converter.convert(hit, &overlaps);
+                BOOST_FOREACH(const Overlap& o, overlaps) {
+                    // The alignment logic above has potential to produce duplicate alignments
+                    // To avoid this, we skip overlaps where the id of the first coord is lexo. lower than
+                    // the second or the match is containment and the query is reversed (containments can be
+                    // output up to 4 times total).
+                    if (o.id[0] < o.id[1]) {
+                        ASQG::EdgeRecord recod(o);
+                        asqg << recod << '\n';
                     }
                 }
             }
@@ -345,9 +373,7 @@ public:
     }
 
 private:
-    const SuffixArray& _sa;
-    const SuffixArray& _rsa;
-    ReadInfoList _readinfo;
+    Hit2OverlapConverter _converter;
 };
 
 bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream& output, size_t threads, size_t* processed) const {
@@ -467,13 +493,7 @@ public:
 
 class Hits2FastaConverter {
 public:
-    Hits2FastaConverter(const SuffixArray& sa, const SuffixArray& rsa, DNASeqReader& reader) : _sa(sa), _rsa(rsa) {
-        reader.reset();
-
-        DNASeq read;
-        while (reader.read(read)) {
-            _readinfo.push_back(ReadInfo(read.name, read.seq.length()));
-        }
+    Hits2FastaConverter(const SuffixArray& sa, const SuffixArray& rsa, DNASeqReader& reader) : _converter(sa, rsa, reader) {
     }
 
     bool convert(const std::string& hits, std::ostream& fasta) const {
@@ -497,16 +517,17 @@ public:
                 std::stringstream ss(line);
                 ss >> item.name >> item.seq >> hit;
 
-                size_t numCopies = 0;
-                BOOST_FOREACH(const OverlapBlock& block, hit.blocks) {
-                    // Iterate thru the range and write the overlaps
-                    assert(block.probe[0].lower <= block.probe[0].upper);
-                    numCopies += block.probe[0].upper - block.probe[0].lower + 1;
-                }
+                OverlapList overlaps;
+                size_t numCopies = _converter.convert(hit, &overlaps);
 
-                bool isContained = false;
-                if (hit.substring) {
-                    isContained = true;
+                bool isContained = hit.substring;
+                if (!isContained) {
+                    BOOST_FOREACH(const Overlap& o, overlaps) {
+                        if (o.isContainment() && o.containedIdx() == 0) {
+                            isContained = true;
+                            break;
+                        }
+                    }
                 }
 
                 std::string meta = boost::str(boost::format("%s NumDuplicates=%d") % item.name % numCopies);
@@ -525,9 +546,7 @@ public:
     }
 
 private:
-    const SuffixArray& _sa;
-    const SuffixArray& _rsa;
-    ReadInfoList _readinfo;
+    Hit2OverlapConverter _converter;
 };
 
 bool OverlapBuilder::rmdup(DNASeqReader& reader, std::ostream& output, size_t threads, size_t* processed) const {

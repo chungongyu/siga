@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <vector>
 
 //
 // Interval - A pair of integers denoting a closed interval
@@ -173,11 +174,27 @@ public:
         id[1] = i2;
     }
 
+    bool isContainment() const {
+        return match.isContainment();
+    }
+    size_t containedIdx() const {
+        // The verts are mutually contained, return the lexographically lower id
+        if (match.coords[0].isContained() && match.coords[1].isContained()) {
+            return id[0] < id[1] ? 1 : 0;
+        } else if (match.coords[0].isContained()) {
+            return 0;
+        }
+        assert(match.coords[1].isContained());
+        return 1;
+    }
+
     friend std::ostream& operator<<(std::ostream& stream, const Overlap& o);
     friend std::istream& operator>>(std::istream& stream, Overlap& o);
 
     std::string id[2];
     Match match;
 };
+
+typedef std::vector< Overlap > OverlapList;
 
 #endif // coord_h_
