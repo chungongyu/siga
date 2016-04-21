@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+char make_complement_dna(char c);
 void make_complement_dna(std::string& dna);
 std::string make_complement_dna(const std::string& dna);
 void make_reverse_dna(std::string& dna);

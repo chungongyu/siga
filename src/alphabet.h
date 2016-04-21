@@ -33,7 +33,7 @@ namespace DNAAlphabet {
         return RANK_ALL[(size_t)c];
     }
 
-    inline char tochar(int rank) {
+    inline char tochar(size_t rank) {
         return DNA_ALL[rank];
     }
 

@@ -14,6 +14,16 @@
 
 static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.DNASeq"));
 
+char make_complement_dna(char c) {
+    static std::map< char, char > mapping = boost::assign::map_list_of
+        ('A', 'T')
+        ('C', 'G')
+        ('G', 'C')
+        ('T', 'A')
+        ('N', 'N');
+    return mapping[c];
+}
+
 void make_complement_dna(std::string& sequence) {
     static std::map< char, char > mapping = boost::assign::map_list_of
         ('A', 'T')

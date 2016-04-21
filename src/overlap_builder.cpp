@@ -7,6 +7,7 @@
 #include "utils.h"
 
 #include <bitset>
+#include <functional>
 #include <iostream>
 #include <memory>
 
@@ -46,8 +47,8 @@ private:
 };
 
 static const AlignFlags kSuffixPrefixAF(false, false, false);
-static const AlignFlags kPrefixPrefixAF(false, true, true);
-static const AlignFlags kSuffixSuffixAF(true, false, true);
+static const AlignFlags kSuffixSuffixAF(false, true, true);
+static const AlignFlags kPrefixPrefixAF(true, false, true);
 static const AlignFlags kPrefixSuffixAF(true, true, false);
 
 std::ostream& operator<<(std::ostream& stream, const AlignFlags& af) {
@@ -605,16 +606,14 @@ public:
     IrreducibleBlockListExtractor(const FMIndex* fmi, const FMIndex* rfmi) : _fmi(fmi), _rfmi(rfmi) {
     }
 
-    bool extract(const OverlapBlockList& input, OverlapBlockList& output) {
-        if (input.empty()) {
-            return true;
-        }
+    bool extract(OverlapBlockList* blocks) {
+        assert(blocks != NULL);
 
         // We store the overlap blocks in groups of blocks that have the same right-extension.
         // When a branch is found, the groups are split based on the extension
         typedef std::list< OverlapBlockList > BlockGroups;
 
-        BlockGroups groups = boost::assign::list_of(input);
+        BlockGroups groups = boost::assign::list_of(*blocks);
         while (!groups.empty()) {
             // Perform one extenion round for each group.
             // If the top-level block has ended, push the result
@@ -622,12 +621,13 @@ public:
             BlockGroups incomings; // Branched blocks are placed here
             for (BlockGroups::iterator i = groups.begin(); i != groups.end(); ++i) {
                 OverlapBlockList& blocklist = *i;
+                bool eraseGroup = true;
 
                 // Count the extensions in the top level (longest) blocks first
                 DNAAlphabet::AlphaCount64 exts;
                 size_t topLength = blocklist.front().length;
-                for (OverlapBlockList::const_iterator j = blocklist.begin(); j != blocklist.end() && j->length != topLength; ++j) {
-                    exts += (*j).ext(_fmi, _rfmi);
+                for (OverlapBlockList::const_iterator j = blocklist.begin(); j != blocklist.end() && j->length == topLength; ++j) {
+                    exts += j->ext(_fmi, _rfmi);
                 }
 
                 // Three cases:
@@ -644,7 +644,7 @@ public:
                     // contains the other at this point, we output hits to both. Under a fixed 
                     // length string assumption one will be contained within the other and removed later.
                     for (OverlapBlockList::const_iterator j = blocklist.begin(); j != blocklist.end() && j->length == topLength; ++j) {
-                        DNAAlphabet::AlphaCount64 test = (*j).ext(_fmi, _rfmi);
+                        DNAAlphabet::AlphaCount64 test = j->ext(_fmi, _rfmi);
                         if (test[DNAAlphabet::torank('$')] == 0) {
                             LOG4CXX_ERROR(logger, "substring read found during overlap computation.");
                             LOG4CXX_ERROR(logger, "Please run rmdup before  overlap.");
@@ -654,15 +654,68 @@ public:
                         // Perform the final right-update to make the block terminal
                         OverlapBlock branched = *j;
                         branched.probe.updateR('$', branched.index(_fmi, _rfmi));
-                        output.push_back(branched);
+                        blocks->push_back(branched);
 
                         LOG4CXX_DEBUG(logger, boost::format("TLB of length %d has ended") % branched.length);
                     }
+                } else {
+                    // Count the extension for the rest of the blocks
+                    for (OverlapBlockList::const_iterator j = blocklist.begin(); j != blocklist.end() && j->length != topLength; ++j) {
+                        exts += j->ext(_fmi, _rfmi);
+                    }
+
+                    // If only one of the DNA characters has a non-zero count
+                    if (std::count_if(&exts[0], &exts[0] + exts.size(), std::bind2nd(std::greater< uint64_t >(), 0)) == 1) {
+                        // Update all the blocks using the unique extension character
+                        // This character is in the canonical representation wrt to the query
+                        char c = DNAAlphabet::tochar(
+                                std::find_if(&exts[0], &exts[0] + exts.size(), std::bind2nd(std::greater< uint64_t >(), 0)) - &exts[0]
+                                );
+                        updateR(c, &blocklist);
+
+                        // Set the flag to erase this group, it is finished
+                        eraseGroup = false;
+                    } else {
+                        for (size_t j = 0; j < exts.size(); ++j) {
+                            if (exts[j] > 0) {
+                                OverlapBlockList branched = blocklist;
+                                updateR(DNAAlphabet::tochar(j), &branched);
+                                incomings.push_back(branched);
+                            }
+                        }
+                    }
                 }
+
+                if (eraseGroup) {
+                    i = groups.erase(i);
+                } else {
+                    ++i;
+                }
+            }
+
+            // Splice in the newly branched blocks, if any
+            std::copy(groups.end(), incomings.begin(), incomings.end());
+        }
+
+        return true;
+    }
+private:
+    void updateR(char c, OverlapBlockList* blocks) {
+        assert(blocks != NULL);
+        OverlapBlockList::iterator i = blocks->begin();
+        while (i != blocks->end()) {
+            char b = i->af.test(AlignFlags::QUERYCOMP_BIT) ? make_complement_dna(c) : c;
+            i->probe.updateR(b, i->index(_fmi, _rfmi));
+
+            // remove the block from the list if its no longer valid
+            if (!i->probe.valid()) {
+                i = blocks->erase(i);
+            } else {
+                ++i;
             }
         }
     }
-private:
+
     const FMIndex* _fmi;
     const FMIndex* _rfmi;
 };
@@ -755,13 +808,14 @@ OverlapResult OverlapBuilder::overlap(const DNASeq& read, size_t minOverlap, Ove
 
     // Match the suffix of seq to prefixes
     finder.find(seq, kSuffixPrefixAF, blocks, blocks, &result);
-    //rfinder.find(make_complement_dna(seq), kPrefixPrefixAF, blocks, blocks, &result);
+    rfinder.find(make_complement_dna(seq), kSuffixSuffixAF, blocks, blocks, &result);
 
     // Match the prefix of seq to suffixes
     rfinder.find(make_reverse_dna(seq), kPrefixSuffixAF, blocks, blocks, &result);
-    //finder.find(make_reverse_complement_dna(seq), kSuffixSuffixAF, blocks, blocks, &result);
+    finder.find(make_reverse_complement_dna(seq), kPrefixPrefixAF, blocks, blocks, &result);
     
     IrreducibleBlockListExtractor extractor(_fmi, _rfmi);
+    extractor.extract(blocks);
 
     return result;
 }
@@ -774,7 +828,7 @@ OverlapResult OverlapBuilder::duplicate(const DNASeq& read, OverlapBlockList* bl
     OverlapBlockFinder finder(_fmi, _rfmi, minOverlap), rfinder(_rfmi, _fmi, minOverlap);
 
     finder.find(seq, kSuffixPrefixAF, NULL, blocks, &result);
-    rfinder.find(make_complement_dna(seq), kPrefixPrefixAF, NULL, blocks, &result);
+    rfinder.find(make_complement_dna(seq), kSuffixSuffixAF, NULL, blocks, &result);
 
     return result;
 }
