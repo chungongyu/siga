@@ -119,6 +119,7 @@ private:
     size_t _sampleRate;
 };
 
+bool loadFMI(std::istream& stream, FMIndex& fmi);
 bool loadFMI(const std::string& filename, FMIndex& fmi);
 
 #endif // fmindex_h_

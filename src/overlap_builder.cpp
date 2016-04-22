@@ -315,6 +315,13 @@ public:
                 if (query.name != target.name) {
                     if (overlaps != NULL) {
                         Overlap o = block.overlap(query, target);
+                        // The alignment logic above has the potential to produce duplicate alignments
+                        // To avoid this, we skip overlaps where the id of the first coord is lexo. lower than 
+                        // the second or the match is a containment and the query is reversed (containments can be 
+                        // output up to 4 times total).
+                        if (o.id[0] < o.id[1] || (o.isContainment() && block.af.test(AlignFlags::QUERYREV_BIT))) {
+                            continue;
+                        }
                         overlaps->push_back(o);
                     }
                 }

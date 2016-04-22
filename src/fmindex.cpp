@@ -50,8 +50,6 @@ protected:
 class LargeMarkerFill : public MarkerFill< LargeMarkerList > {
 public:
     LargeMarkerFill(LargeMarkerList& markers, size_t symbols, size_t sampleRate) : MarkerFill< LargeMarkerList >(markers, symbols, sampleRate) {
-        _currIdx = 1;
-        _nextPos = _sampleRate;
     }
 
     void fill(const DNAAlphabet::AlphaCount64& counts, uint64_t total, size_t unitIndex, bool lastOne) {
@@ -69,7 +67,7 @@ public:
             marker.counts = counts;
 
             _nextPos += _sampleRate;
-            lastOne = lastOne && total >= _nextPos;
+            lastOne = lastOne && _currIdx < _markers.size();
         }
     }
 };
@@ -102,7 +100,7 @@ public:
             smarker.unitIndex = unitIndex - lmarker.unitIndex;
 
             _nextPos += _sampleRate;
-            lastOne = lastOne && total >= _nextPos;
+            lastOne = lastOne && _currIdx < _markers.size();
         }
     };
 
@@ -292,8 +290,7 @@ std::istream& operator>>(std::istream& stream, FMIndex& index) {
     return stream;
 }
 
-bool loadFMI(const std::string& filename, FMIndex& fmi) {
-    std::ifstream stream(filename.c_str());
+bool loadFMI(std::istream& stream, FMIndex& fmi) {
     try {
         stream >> fmi;
         fmi.info();
@@ -301,4 +298,9 @@ bool loadFMI(const std::string& filename, FMIndex& fmi) {
         return false;
     }
     return true;
+}
+
+bool loadFMI(const std::string& filename, FMIndex& fmi) {
+    std::ifstream stream(filename.c_str());
+    return loadFMI(stream, fmi);
 }
