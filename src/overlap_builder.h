@@ -23,8 +23,8 @@ public:
     bool build(DNASeqReader& reader, size_t minOverlap, std::ostream& output, size_t threads=1, size_t* processed=NULL) const;
     bool build(const std::string& input, size_t minOverlap, const std::string& output, size_t threads=1, size_t* processed=NULL) const;
 
-    bool rmdup(DNASeqReader& reader, std::ostream& output, size_t threads=1, size_t* processed=NULL) const;
-    bool rmdup(const std::string& input, const std::string& output, size_t threads=1, size_t* processed=NULL) const;
+    bool rmdup(DNASeqReader& reader, std::ostream& output, std::ostream& duplicates, size_t threads=1, size_t* processed=NULL) const;
+    bool rmdup(const std::string& input, const std::string& output, const std::string& duplicates, size_t threads=1, size_t* processed=NULL) const;
     
     OverlapResult overlap(const DNASeq& read, size_t minOverlap, OverlapBlockList* blocks) const;
     OverlapResult duplicate(const DNASeq& read, OverlapBlockList* blocks) const;

@@ -496,17 +496,17 @@ public:
     Hits2FastaConverter(const SuffixArray& sa, const SuffixArray& rsa, DNASeqReader& reader) : _converter(sa, rsa, reader) {
     }
 
-    bool convert(const std::string& hits, std::ostream& fasta) const {
+    bool convert(const std::string& hits, std::ostream& fasta, std::ostream& duplicates) const {
         std::shared_ptr< std::streambuf > buf(ASQG::ifstreambuf(hits));
         if (!buf) {
             LOG4CXX_ERROR(logger, boost::format("failed to read hits %s") % hits);
             return false;
         }
         std::istream stream(buf.get());
-        return convert(stream, fasta);
+        return convert(stream, fasta, duplicates);
     }
 
-    bool convert(std::istream& hits, std::ostream& fasta) const {
+    bool convert(std::istream& hits, std::ostream& fasta, std::ostream& duplicates) const {
         std::string line;
         while (std::getline(hits, line)) {
             boost::algorithm::trim(line);
@@ -536,6 +536,10 @@ public:
                     // is needed when removing it from the FM-index.
                     // In the output fasta, we set the reads ID to be the index
                     // and record its old id in the fasta header.
+                    item.name = boost::str(
+                            boost::format("%s,seqrank=%d %s") % item.name % hit.idx % meta
+                            );
+                    duplicates << item;
                 } else {
                     item.name = boost::str(boost::format("%s %s") % item.name % meta);
                     fasta << item;
@@ -549,7 +553,7 @@ private:
     Hit2OverlapConverter _converter;
 };
 
-bool OverlapBuilder::rmdup(DNASeqReader& reader, std::ostream& output, size_t threads, size_t* processed) const {
+bool OverlapBuilder::rmdup(DNASeqReader& reader, std::ostream& output, std::ostream& duplicates, size_t threads, size_t* processed) const {
     std::vector< std::string > hits;
 
     if (threads <= 1) { // single thread
@@ -591,7 +595,7 @@ bool OverlapBuilder::rmdup(DNASeqReader& reader, std::ostream& output, size_t th
         Hits2FastaConverter converter(*sa, *rsa, reader);
         BOOST_FOREACH(const std::string& filename, hits) {
             LOG4CXX_INFO(logger, boost::format("parsing file %s") % filename);
-            if (!converter.convert(filename, output)) {
+            if (!converter.convert(filename, output, duplicates)) {
                 LOG4CXX_ERROR(logger, boost::format("failed to convert hits to asqg %s") % filename);
                 return false;
             }
@@ -601,7 +605,7 @@ bool OverlapBuilder::rmdup(DNASeqReader& reader, std::ostream& output, size_t th
     return true;
 }
 
-bool OverlapBuilder::rmdup(const std::string& input, const std::string& output, size_t threads, size_t* processed) const {
+bool OverlapBuilder::rmdup(const std::string& input, const std::string& output, const std::string& duplicates, size_t threads, size_t* processed) const {
     // DNASeqReader
     std::ifstream reads(input);
     std::shared_ptr< DNASeqReader > reader(DNASeqReaderFactory::create(reads));
@@ -617,8 +621,15 @@ bool OverlapBuilder::rmdup(const std::string& input, const std::string& output, 
         return false;
     }
 
+    // DUPLICATES 
+    std::ofstream dup(duplicates.c_str());
+    if (!fasta) {
+        LOG4CXX_ERROR(logger, boost::format("Failed to create dup FASTA %s") % duplicates);
+        return false;
+    }
+
     // Build
-    return rmdup(*reader, fasta, threads, processed);
+    return rmdup(*reader, fasta, dup, threads, processed);
 }
 
 class IrreducibleBlockListExtractor {
