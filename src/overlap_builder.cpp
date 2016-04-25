@@ -293,9 +293,12 @@ public:
     Hit2OverlapConverter(const SuffixArray& sa, const SuffixArray& rsa, DNASeqReader& reader) : _sa(sa), _rsa(rsa) {
         reader.reset();
 
+        size_t idx = 0;
         DNASeq read;
         while (reader.read(read)) {
-            _readinfo.push_back(ReadInfo(read.name, read.seq.length()));
+            std::string id = boost::str(boost::format("%d") % idx);
+            _readinfo.push_back(ReadInfo(id, read.seq.length()));
+            ++idx;
         }
     }
 
