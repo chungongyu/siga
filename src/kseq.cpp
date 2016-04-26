@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <map>
+#include <memory>
 #include <numeric>
 #include <unordered_map>
 
@@ -195,12 +196,12 @@ bool FASTAReader::read(DNASeq& sequence) {
 }
 
 bool ReadDNASequences(std::istream& stream, DNASeqList& sequences) {
-    if (!stream) {
+    std::shared_ptr< DNASeqReader > reader(DNASeqReaderFactory::create(stream));
+    if (!reader) {
         return false;
     }
-    FASTQReader reader(stream);
     DNASeq seq;
-    while (reader.read(seq)) {
+    while (reader->read(seq)) {
         sequences.push_back(seq);
     }
     return true;

@@ -46,7 +46,7 @@ public:
         _pos = stream.tellg();
     }
 
-    void reset() {
+    virtual void reset() {
         _stream.clear();
         _stream.seekg(_pos);
     }
@@ -104,6 +104,9 @@ public:
     FASTAReader(std::istream& stream) : DNASeqReader(stream) {
     }
 
+    void reset() {
+        _name.clear();
+    }
     bool read(DNASeq& sequence);
 private:
     std::string _name;
