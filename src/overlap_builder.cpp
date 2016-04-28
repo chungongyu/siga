@@ -879,7 +879,54 @@ public:
         }
     }
 private:
-    void resolve(const OverlapBlock& x, const OverlapBlock& y, OverlapBlockList* resolve) {
+    void resolve(const OverlapBlock& x, const OverlapBlock& y, OverlapBlockList* resolved) {
+        const OverlapBlock* higher = &x;
+        const OverlapBlock* lower = &y;
+        if (higher->length < lower->length) {
+            std::swap(higher, lower);
+        }
+        assert(higher->length >= lower->length);
+
+        // Complicated logic follows
+        // We always want the entirity of the block with the longer
+        // overlap so it is added to outList unmodified
+        if (resolved != NULL) {
+            resolved->push_back(*higher);
+        }
+
+        // The lower block can be split into up to two pieces:
+        // Case 1:
+        //     Lower  ------ 
+        //     Higher    ------
+        //     Result ---
+        //
+        // Case 2:
+        //     Lower  -----------
+        //     Higher    ------
+        //     Result ---      --
+        //
+        // Case 3:
+        //     Lower  ------
+        //     Higher ------
+        //     Result (empty set)
+
+        // It is unclear whether case 2 can happen in reality but we handle it 
+        // here anyway. Further complicating matters is that the BWTIntervalPair
+        // keeps track of both the BWT coordinates for the backwards search
+        // and forward search and we must take care to ensure that both intervals
+        // are updated and the mapping between them is correct. We do this
+        // by calculating the new forward interval using interval intersections
+        // and directly recalculating the coordinate of the reverse interval
+        //
+        if (higher->length == lower->length) {
+            if (higher->probe[0] != lower->probe[0]) {
+                LOG4CXX_ERROR(logger, boost::format("Overlap blocks with the same length don't have same coordinates"));
+                assert(false);
+            }
+        } else {
+            if (lower->probe[0].lower < higher->probe[0].lower) {
+            }
+        }
     }
 
     class IntervalLeftSorter {

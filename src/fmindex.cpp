@@ -265,7 +265,8 @@ DNAAlphabet::AlphaCount64 FMIndex::getOcc(size_t i) const {
 }
 
 std::ostream& operator<<(std::ostream& stream, const FMIndex& index) {
-    //stream << index._bwt;
+    stream << index._bwt;
+    /*
     stream << "lmarkers" << std::endl;
     for (size_t i = 0; i < index._lmarkers.size(); ++i) {
         const LargeMarker& marker = index._lmarkers[i];
@@ -281,6 +282,7 @@ std::ostream& operator<<(std::ostream& stream, const FMIndex& index) {
         stream << marker.counts << std::endl;
     }
     stream << index._pred << std::endl;
+    */
     return stream;
 }
 
