@@ -1,4 +1,6 @@
 bin_PROGRAMS=arcs
+arcs_CPPFLAGS=-I$(top_srcdir)/3rdparty
+arcs_LDADD=${top_srcdir}/3rdparty/lib3rdparty.a
 arcs_SOURCES=assembler.cpp \
 			 asqg.cpp \
 			 asqg.h \

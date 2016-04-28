@@ -12,6 +12,7 @@ AM_INIT_AUTOMAKE([-Wall -Werror])
 AC_PROG_CXX
 AC_PROG_CC
 AC_PROG_LIBTOOL 
+AM_PROG_AR
 
 AX_CXX_COMPILE_STDCXX_11([noext],[mandatory])
 
@@ -35,6 +36,7 @@ AC_FUNC_MALLOC
 AC_CHECK_FUNCS([memset pow sqrt])
 
 AC_CONFIG_FILES([Makefile
+                 3rdparty/Makefile
                  benchmark/Makefile
                  m4/Makefile
                  src/Makefile])

@@ -233,9 +233,19 @@ private:
 
 unsigned char SAISBuilder::_MASK[8] = {0x80,0x40,0x20,0x10,0x08,0x04,0x02,0x01};
 
+class RopeBuilder : public SuffixArrayBuilder {
+public:
+    SuffixArray* build(const DNASeqList& reads, size_t threads = 1) {
+        assert(!reads.empty());
+        return NULL;
+    }
+};
+
 SuffixArrayBuilder* SuffixArrayBuilder::create(const std::string& algorithm) {
     if (boost::algorithm::iequals(algorithm, "sais")) {
         return new SAISBuilder();
+    } else if (boost::algorithm::iequals(algorithm, "rope")) {
+        return new RopeBuilder();
     }
     return NULL;
 }
