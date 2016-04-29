@@ -55,16 +55,15 @@ public:
         }
 
         // setup buckets
-        const size_t ALPHABET_SIZE = 5;
-        size_t bucket_counts[ALPHABET_SIZE];
-        size_t buckets[ALPHABET_SIZE];
+        size_t bucket_counts[DNAAlphabet::ALL_SIZE];
+        size_t buckets[DNAAlphabet::ALL_SIZE];
 
         // find the ends of the buckets
-        countBuckets(reads, bucket_counts, ALPHABET_SIZE);
-        //getBuckets(bucket_counts, buckets, ALPHABET_SIZE, true); 
+        countBuckets(reads, bucket_counts, DNAAlphabet::ALL_SIZE);
+        //getBuckets(bucket_counts, buckets, DNAAlphabet::ALL_SIZE, true); 
 
         // Initialize the suffix array
-        size_t num_suffixes = std::accumulate(bucket_counts, bucket_counts + ALPHABET_SIZE, 0);
+        size_t num_suffixes = std::accumulate(&bucket_counts[0], &bucket_counts[0] + DNAAlphabet::ALL_SIZE, (size_t)0);
         LOG4CXX_DEBUG(logger, boost::format("initialize SA, strings: %d, suffixes: %d") % num_strings % num_suffixes);
 
         SuffixArray* sa = new SuffixArray(num_strings, num_suffixes);
@@ -101,7 +100,7 @@ public:
         }
 
         // Find the ends of the buckets
-        getBuckets(bucket_counts, buckets, ALPHABET_SIZE, true);
+        getBuckets(bucket_counts, buckets, DNAAlphabet::ALL_SIZE, true);
 
         for (size_t i = n1; i > 0; --i) {
             SuffixArray::Elem elem = (*sa)[i - 1];
@@ -111,8 +110,8 @@ public:
             (*sa)[--buckets[DNAAlphabet::torank(c)]] = elem;
         }
 
-        induceSAl(reads, sa, type_array, bucket_counts, buckets, num_suffixes, ALPHABET_SIZE, false);
-        induceSAs(reads, sa, type_array, bucket_counts, buckets, num_suffixes, ALPHABET_SIZE, true);
+        induceSAl(reads, sa, type_array, bucket_counts, buckets, num_suffixes, DNAAlphabet::ALL_SIZE, false);
+        induceSAs(reads, sa, type_array, bucket_counts, buckets, num_suffixes, DNAAlphabet::ALL_SIZE, true);
 
         // deallocate t array
         for (size_t i = 0; i < num_strings; ++i) {

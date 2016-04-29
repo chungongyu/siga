@@ -11,6 +11,8 @@
 #define HITS_EXT  ".hits"
 #define GZIP_EXT  ".gz"
 #define RMDUP_EXT ".rmdup"
+#define EC_EXT    ".ec"
+#define FA_EXT    ".fa"
 
 // common
 extern const char* kLogConfig;
