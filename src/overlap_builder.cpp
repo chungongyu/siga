@@ -109,7 +109,7 @@ private:
     void updateL(char c, const FMIndex* index, const DNAAlphabet::AlphaCount64& l, const DNAAlphabet::AlphaCount64& u) {
         DNAAlphabet::AlphaCount64 diff = u - l;
         // Update the left index using the difference between the AlphaCounts in the reverse table
-        _intervals[1].lower = _intervals[1].lower + std::accumulate(&diff[0], &diff[0] + DNAAlphabet::torank(c), 0);
+        _intervals[1].lower = _intervals[1].lower + std::accumulate(&diff[0], &diff[0] + DNAAlphabet::torank(c), (size_t)0);
         _intervals[1].upper = _intervals[1].lower + diff[DNAAlphabet::torank(c)] - 1;
 
         // Update the left index directly
@@ -120,7 +120,7 @@ private:
     void updateR(char c, const FMIndex* index, const DNAAlphabet::AlphaCount64& l, const DNAAlphabet::AlphaCount64& u) {
         DNAAlphabet::AlphaCount64 diff = u - l;
 
-        _intervals[0].lower = _intervals[0].lower + std::accumulate(&diff[0], &diff[0] + DNAAlphabet::torank(c), 0);
+        _intervals[0].lower = _intervals[0].lower + std::accumulate(&diff[0], &diff[0] + DNAAlphabet::torank(c), (size_t)0);
         _intervals[0].upper = _intervals[0].lower + diff[DNAAlphabet::torank(c)] - 1;
 
         // Update the right index directly

@@ -20,7 +20,7 @@ public:
     }
 
     size_t total() const {
-        return std::accumulate(&counts[0], &counts[0] + counts.size(), 0);
+        return std::accumulate(&counts[0], &counts[0] + counts.size(), (Storage)0);
     }
 
     bool operator==(const Marker& m) {
