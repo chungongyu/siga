@@ -226,12 +226,10 @@ public:
         size_t k = lmarker.total();
         assert(k >= i);
         size_t unitIndex = lmarker.unitIndex;
-        std::cout << "-----------------" << std::endl;
-        std::cout << unitIndex << std::endl;
         while (k > i) {
             assert(unitIndex != 0);
-            std::cout << k << ' ' << i << ' ' << unitIndex << std::endl;
-            k -= (size_t)_runs[--unitIndex];
+            const RLUnit& run = _runs[--unitIndex];
+            k -= run.count();
         }
         const RLUnit& run = _runs[unitIndex];
         assert(k <= i && k + (size_t)run >= i);
