@@ -148,7 +148,7 @@ std::istream& operator>>(std::istream& stream, IntervalPair& pair) {
 struct OverlapBlock {
     OverlapBlock() : length(0) {
     }
-    OverlapBlock(const IntervalPair& probe, const IntervalPair& ranges, size_t length, const AlignFlags& af) : probe(probe), ranges(ranges), length(length), af(af) {
+    OverlapBlock(const IntervalPair& probe, const IntervalPair& ranges, size_t length, const AlignFlags& af) : capped(probe), raw(ranges), length(length), af(af) {
     }
 
     Overlap overlap(const ReadInfo& query, const ReadInfo& target) const {
@@ -171,7 +171,7 @@ struct OverlapBlock {
     }
 
     DNAAlphabet::AlphaCount64 ext(const FMIndex* fmi, const FMIndex* rfmi) const {
-        DNAAlphabet::AlphaCount64 count = probe[1].ext(index(fmi, rfmi));
+        DNAAlphabet::AlphaCount64 count = capped[1].ext(index(fmi, rfmi));
         if (af.test(AlignFlags::QUERYCOMP_BIT)) {
             count.complement();
         }
@@ -181,19 +181,19 @@ struct OverlapBlock {
     friend std::ostream& operator<<(std::ostream& stream, const OverlapBlock& block);
     friend std::istream& operator>>(std::istream& stream, OverlapBlock& block);
 
-    IntervalPair probe;
-    IntervalPair ranges;
+    IntervalPair capped;
+    IntervalPair raw;
     size_t length;
     AlignFlags af;
 };
 
 std::ostream& operator<<(std::ostream& stream, const OverlapBlock& block) {
-    stream << block.probe << ' ' << block.ranges << ' ' << block.length << ' ' << block.af;
+    stream << block.capped << ' ' << block.raw << ' ' << block.length << ' ' << block.af;
     return stream;
 }
 
 std::istream& operator>>(std::istream& stream, OverlapBlock& block) {
-    stream >> block.probe >> block.ranges >> block.length >> block.af;
+    stream >> block.capped >> block.raw >> block.length >> block.af;
     return stream;
 }
 
@@ -308,9 +308,9 @@ public:
         const ReadInfo& query = _readinfo[hit.idx];
         BOOST_FOREACH(const OverlapBlock& block, hit.blocks) {
             // Iterate thru the range and write the overlaps
-            assert(block.probe[0].lower <= block.probe[0].upper);
+            assert(block.capped[0].lower <= block.capped[0].upper);
 
-            for (size_t j = block.probe[0].lower; j <= block.probe[0].upper; ++j) {
+            for (size_t j = block.capped[0].lower; j <= block.capped[0].upper; ++j) {
                 ++numCopies;
 
                 const SuffixArray& sa = block.af.test(AlignFlags::TARGETREV_BIT) ? _rsa : _sa;
@@ -694,7 +694,7 @@ public:
 
                         // Perform the final right-update to make the block terminal
                         OverlapBlock branched = *j;
-                        branched.probe.updateR('$', branched.index(_fmi, _rfmi));
+                        branched.capped.updateR('$', branched.index(_fmi, _rfmi));
                         blocks->push_back(branched);
 
                         LOG4CXX_DEBUG(logger, boost::format("TLB of length %d has ended") % branched.length);
@@ -746,10 +746,10 @@ private:
         OverlapBlockList::iterator i = blocks->begin();
         while (i != blocks->end()) {
             char b = i->af.test(AlignFlags::QUERYCOMP_BIT) ? make_complement_dna(c) : c;
-            i->probe.updateR(b, i->index(_fmi, _rfmi));
+            i->capped.updateR(b, i->index(_fmi, _rfmi));
 
             // remove the block from the list if its no longer valid
-            if (!i->probe.valid()) {
+            if (!i->capped.valid()) {
                 i = blocks->erase(i);
             } else {
                 ++i;
@@ -791,7 +791,7 @@ public:
 
                 // The probe interval contains the range of proper prefixes
                 if (probe[1].valid()) {
-                    //std::cout << "overlaps\t" << OverlapBlock(probe, ranges, l - i + 1, af) << std::endl;
+                    assert(probe[1].lower > 0);
                     if (overlaps != NULL) {
                         overlaps->push_back(OverlapBlock(probe, ranges, l - i + 1, af));
                     }
@@ -824,7 +824,6 @@ public:
                 // terminate the contained block and add it to the contained list
                 probe.updateR('$', _rfmi);
                 assert(probe.valid());
-                //std::cout << "contains\t" << OverlapBlock(probe, ranges, l, af) << std::endl;
                 if (contains != NULL) {
                     contains->push_back(OverlapBlock(probe, ranges, l, af));
                 }
@@ -860,11 +859,12 @@ public:
             OverlapBlockList::iterator curr = std::next(prev);
             while (curr != blocks->end()) {
                 // Check if prev and curr overlaps
-                if (Interval::isIntersecting(prev->probe[0].lower, prev->probe[1].upper, curr->probe[0].lower, curr->probe[0].upper)) {
+                if (Interval::isIntersecting(prev->capped[0].lower, prev->capped[1].upper, curr->capped[0].lower, curr->capped[0].upper)) {
 
                     // Merge the new elements in and start back from the beginning of the list
                     OverlapBlockList resolved;
                     resolve(*prev, *curr, &resolved);
+                    resolved.sort(sorter);
 
                     blocks->erase(curr);
                     blocks->erase(prev);
@@ -919,12 +919,20 @@ private:
         // and directly recalculating the coordinate of the reverse interval
         //
         if (higher->length == lower->length) {
-            if (higher->probe[0] != lower->probe[0]) {
+            if (higher->capped[0] != lower->capped[0]) {
                 LOG4CXX_ERROR(logger, boost::format("Overlap blocks with the same length don't have same coordinates"));
                 assert(false);
             }
         } else {
-            if (lower->probe[0].lower < higher->probe[0].lower) {
+            if (lower->capped[0].lower < higher->capped[0].lower || lower->capped[0].upper > higher->capped[0].upper) {
+                std::map< size_t, size_t > usedmappig;
+
+                // Remap every reverse position to a forward position
+                for (size_t j = lower->capped[1].lower; j <= lower->capped[1].upper; ++j) {
+                    bool done = false;
+                    while (!done) {
+                    }
+                }
             }
         }
     }
@@ -932,11 +940,30 @@ private:
     class IntervalLeftSorter {
     public:
         bool operator()(const OverlapBlock& x, const OverlapBlock& y) const {
-            return x.probe[0].lower < y.probe[0].lower;
+            return x.capped[0].lower < y.capped[0].lower;
         }
     };
     const FMIndex* _fmi;
     const FMIndex* _rfmi;
+};
+
+class ContainmentBlockRemover {
+public:
+    ContainmentBlockRemover(size_t seqlen) : _seqlen(seqlen) {
+    }
+    void remove(OverlapBlockList* blocks) const {
+        assert(blocks != NULL);
+        OverlapBlockList::iterator i = blocks->begin();
+        while (i != blocks->end()) {
+            if (i->length == _seqlen) {
+                i = blocks->erase(i);
+            } else {
+                ++i;
+            }
+        }
+    }
+private:
+    size_t _seqlen;
 };
 
 OverlapResult OverlapBuilder::overlap(const DNASeq& read, size_t minOverlap, OverlapBlockList* blocks) const {
@@ -956,8 +983,11 @@ OverlapResult OverlapBuilder::overlap(const DNASeq& read, size_t minOverlap, Ove
     rfinder.find(make_reverse_dna(seq), kPrefixSuffixAF, blocks, blocks, &result);
     finder.find(make_reverse_complement_dna(seq), kPrefixPrefixAF, blocks, blocks, &result);
 
-    SubMaximalBlockFilter filter(_fmi, _rfmi);
-    filter.filter(blocks);
+    //SubMaximalBlockFilter filter(_fmi, _rfmi);
+    //filter.filter(blocks);
+    
+    ContainmentBlockRemover remover(seq.length());
+    remover.remove(blocks);
     
     IrreducibleBlockListExtractor extractor(_fmi, _rfmi);
     extractor.extract(blocks);

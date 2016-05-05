@@ -221,6 +221,23 @@ public:
 
         return counts;
     }
+    char getChar(size_t i) const {
+        LargeMarker lmarker = upper(i);
+        size_t k = lmarker.total();
+        assert(k >= i);
+        size_t unitIndex = lmarker.unitIndex;
+        std::cout << "-----------------" << std::endl;
+        std::cout << unitIndex << std::endl;
+        while (k > i) {
+            assert(unitIndex != 0);
+            std::cout << k << ' ' << i << ' ' << unitIndex << std::endl;
+            k -= (size_t)_runs[--unitIndex];
+        }
+        const RLUnit& run = _runs[unitIndex];
+        assert(k <= i && k + (size_t)run >= i);
+        return run;
+    }
+
 private:
     LargeMarker nearest(size_t i) const {
         size_t baseIdx = i / _sampleRate; 
@@ -228,6 +245,12 @@ private:
         if (offset >= _sampleRate>>1) {
             ++baseIdx;
         }
+        return interpolated(baseIdx);
+    }
+
+    // Get the lowest interpolated marker whose position is strictly greater than position
+    LargeMarker upper(size_t i) const {
+        size_t baseIdx = (i / _sampleRate) + 1;
         return interpolated(baseIdx);
     }
 
@@ -253,6 +276,11 @@ private:
     const SmallMarkerList& _smarkers;
     size_t _sampleRate;
 };
+
+char FMIndex::getChar(size_t i) const {
+    MarkerFind finder(_bwt.str(), _lmarkers, _smarkers, _sampleRate);
+    return finder.getChar(i);
+}
 
 size_t FMIndex::getOcc(char c, size_t i) const {
     MarkerFind finder(_bwt.str(), _lmarkers, _smarkers, _sampleRate);

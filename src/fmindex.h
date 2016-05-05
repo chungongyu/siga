@@ -101,6 +101,7 @@ public:
         initialize();
     }
 
+    char getChar(size_t i) const;
     size_t getPC(char c) const {
         return _pred[DNAAlphabet::torank(c)];
     }
