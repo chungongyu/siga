@@ -221,6 +221,7 @@ public:
 
         return counts;
     }
+
     char getChar(size_t i) const {
         LargeMarker lmarker = upper(i);
         size_t k = lmarker.total();
@@ -278,6 +279,29 @@ private:
 char FMIndex::getChar(size_t i) const {
     MarkerFind finder(_bwt.str(), _lmarkers, _smarkers, _sampleRate);
     return finder.getChar(i);
+}
+
+std::string FMIndex::getString(size_t i) const {
+    assert(i < length());
+
+    // The range [0,n) in the BWT contains all the terminal
+    // symbols for the reads. Search backwards from one of them
+    // until the '$' is found gives a full string.
+    std::string out;
+
+    Interval interval(i, i);
+    while (true) {
+        assert(interval.valid());
+        char c = getChar(interval.lower);
+        if (c == '$') {
+            break;
+        }
+        out += c;
+        interval.update(c, this);
+    }
+
+    std::reverse(out.begin(), out.end());
+    return out;
 }
 
 size_t FMIndex::getOcc(char c, size_t i) const {

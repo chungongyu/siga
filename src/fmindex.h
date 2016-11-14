@@ -60,7 +60,27 @@ public:
     //
     class Interval {
     public:
-        Interval() : lower(0), upper(-1) {
+        Interval(size_t l = 0, size_t u = -1) : lower(l), upper(u) {
+        }
+        static Interval get(const std::string& w, const FMIndex* index) {
+            Interval interval;
+
+            size_t j = w.size();
+            if (j > 0) {
+                interval.init(w[j - 1], index);
+                while (--j > 0 && interval.valid()) {
+                    interval.update(w[j - 1], index);
+                }
+            }
+
+            return interval;
+        }
+        static size_t occurrences(const std::string& w, const FMIndex* index) {
+            Interval interval = get(w, index);
+            if (interval.valid()) {
+                return interval.upper - interval.lower + 1;
+            }
+            return 0;
         }
         bool valid() const {
             return upper != -1 && upper >= lower;
@@ -102,6 +122,7 @@ public:
     }
 
     char getChar(size_t i) const;
+    std::string getString(size_t i) const;
     size_t getPC(char c) const {
         return _pred[DNAAlphabet::torank(c)];
     }

@@ -23,6 +23,8 @@ arcs_SOURCES=assembler.cpp \
 			 fmindex.h \
 			 gapfiller.cpp \
 			 indexer.cpp \
+			 kmerdistr.cpp \
+			 kmerdistr.h \
 			 kseq.cpp \
 			 kseq.h \
 			 mkqs.h \
@@ -30,6 +32,7 @@ arcs_SOURCES=assembler.cpp \
 			 overlap_builder.cpp \
 			 overlap_builder.h \
 			 preprocess.cpp \
+			 preqc.cpp \
 			 primer_screen.cpp \
 			 primer_screen.h \
 			 reads.cpp \
