@@ -7,11 +7,11 @@
 
 char make_complement_dna(char c);
 void make_complement_dna(std::string& dna);
-std::string make_complement_dna(const std::string& dna);
+std::string make_complement_dna_copy(const std::string& dna);
 void make_reverse_dna(std::string& dna);
-std::string make_reverse_dna(const std::string& dna);
+std::string make_reverse_dna_copy(const std::string& dna);
 void make_reverse_complement_dna(std::string& dna);
-std::string make_reverse_complement_dna(const std::string& dna);
+std::string make_reverse_complement_dna_copy(const std::string& dna);
 
 //
 // DNASeq represents a DNA sequence.

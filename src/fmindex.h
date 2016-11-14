@@ -2,6 +2,7 @@
 #define fmindex_h_
 
 #include "alphabet.h"
+#include "kseq.h"
 #include "bwt.h"
 
 #include <cstring>
