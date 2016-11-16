@@ -223,10 +223,10 @@ public:
     }
 
     char getChar(size_t i) const {
-        LargeMarker lmarker = upper(i);
-        size_t k = lmarker.total();
+        LargeMarker amarker = upper(i);
+        size_t k = amarker.total();
         assert(k >= i);
-        size_t unitIndex = lmarker.unitIndex;
+        size_t unitIndex = amarker.unitIndex;
         while (k > i) {
             assert(unitIndex != 0);
             const RLUnit& run = _runs[--unitIndex];
@@ -234,7 +234,7 @@ public:
         }
         const RLUnit& run = _runs[unitIndex];
         assert(k <= i && k + (size_t)run >= i);
-        return run;
+        return (char)run;
     }
 
 private:

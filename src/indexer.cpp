@@ -45,14 +45,18 @@ public:
             std::shared_ptr< SuffixArrayBuilder > builder(SuffixArrayBuilder::create(algorithm));
             if (builder) {
                 // forward
-                build(builder.get(), reads, output + SAI_EXT, output + BWT_EXT);
-
-                BOOST_FOREACH(DNASeq& read, reads) {
-                    read.make_reverse();
+                if (options.find("no-forward") == options.not_found()) {
+                    build(builder.get(), reads, output + SAI_EXT, output + BWT_EXT);
                 }
 
                 // reverse
-                build(builder.get(), reads, output + RSAI_EXT, output + RBWT_EXT);
+                if (options.find("no-reverse") == options.not_found()) {
+                    BOOST_FOREACH(DNASeq& read, reads) {
+                        read.make_reverse();
+                    }
+
+                    build(builder.get(), reads, output + RSAI_EXT, output + RBWT_EXT);
+                }
             } else {
                 LOG4CXX_ERROR(logger, boost::format("Failed to create suffix array builder algorithm %s") % algorithm);
                 r = -1;
@@ -117,7 +121,6 @@ private:
                 "          --no-reverse                 suppress construction of the reverse BWT. Use this option when building the index\n"
                 "                                       for reads that will be error corrected using the k-mer corrector, which only needs the forward index\n"
                 "          --no-forward                 suppress construction of the forward BWT. Use this option when building the forward and reverse index separately\n"
-                "          --no-sai                     suppress construction of the SAI file. This option only applies to -a ropebwt\n"
                 "      -g, --gap-array=N                use N bits of storage for each element of the gap array. Acceptable values are 4,8,16 or 32. Lower\n"
                 "                                       values can substantially reduce the amount of memory required at the cost of less predictable memory usage.\n"
                 "                                       When this value is set to 32, the memory requirement is essentially deterministic and requires ~5N bytes where\n"
@@ -132,11 +135,13 @@ private:
 };
 
 static const std::string shortopts = "c:s:a:t:p:g:h";
-enum { OPT_HELP = 1 };
+enum { OPT_HELP = 1, OPT_NO_REVERSE, OPT_NO_FORWARD };
 static const option longopts[] = {
     {"prefix",              required_argument,  NULL, 'o'}, 
     {"threads",             required_argument,  NULL, 't'}, 
     {"algorithm",           required_argument,  NULL, 'a'}, 
+    {"no-reverse",          no_argument,        NULL, OPT_NO_REVERSE}, 
+    {"no-forward",          no_argument,        NULL, OPT_NO_FORWARD}, 
     {"gap-array",           required_argument,  NULL, 'g'}, 
     {"help",                no_argument,        NULL, 'h'}, 
     {NULL, 0, NULL, 0}, 

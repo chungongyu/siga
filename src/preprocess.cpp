@@ -37,8 +37,8 @@ public:
         if (options.find("min-length") != options.not_found()) {
             LOG4CXX_INFO(logger, boost::format("Min length: %d") % options.get< int >("min-length"));
         }
-        if (options.find("max-length") != options.not_found()) {
-            LOG4CXX_INFO(logger, boost::format("Max length: %d") % options.get< int >("max-length"));
+        if (options.find("hard-clip") != options.not_found()) {
+            LOG4CXX_INFO(logger, boost::format("hard clip: %d") % options.get< int >("hard-clip"));
         }
         if (options.find("quality-trim") != options.not_found()) {
             LOG4CXX_INFO(logger, boost::format("Quality Trim: %d") % options.get< int >("quality-trim"));
@@ -271,7 +271,7 @@ private:
 
         // Hard clip
         {
-            int maxLength = options.get< int >("max-length", 0);
+            int maxLength = options.get< int >("hard-clip", 0);
             if (maxLength > 0) {
                 hardClip(maxLength, record);
             }
@@ -401,7 +401,7 @@ private:
                 "                                       Do not use this option if you are planning to use the BCR algorithm for indexing.\n"
                 "      -m, --min-length=INT             discard sequences that are shorter than INT\n"
                 "                                       this is most useful when used in conjunction with --quality-trim. Default: 40\n"
-                "      -L, --hard-clip=INT              clip all reads to be length INT. In most cases it is better to use\n"
+                "          --hard-clip=INT              clip all reads to be length INT. In most cases it is better to use\n"
                 "                                       the soft clip (quality-trim) option.\n"
                 "\n"
                 "Adapter/Primer checks:\n"
@@ -416,14 +416,13 @@ private:
 };
 
 static const std::string shortopts = "c:s:o:p:q:f:m:h";
-enum { OPT_HELP = 1, OPT_MAX_LENGTH, OPT_HARD_CLIP, OPT_NO_PRIMER_CHECK };
+enum { OPT_HELP = 1, OPT_HARD_CLIP, OPT_NO_PRIMER_CHECK };
 static const option longopts[] = {
     {"out",                 required_argument,  NULL, 'o'}, 
     {"pe-mode",             required_argument,  NULL, 'p'}, 
     {"quality-trim",        required_argument,  NULL, 'q'}, 
     {"quality-filter",      required_argument,  NULL, 'f'}, 
     {"min-length",          required_argument,  NULL, 'm'}, 
-    {"max-length",          required_argument,  NULL, OPT_MAX_LENGTH}, 
     {"hard-clip",           required_argument,  NULL, OPT_HARD_CLIP}, 
     {"no-primer-check",     no_argument,        NULL, OPT_NO_PRIMER_CHECK}, 
     {"help",                no_argument,        NULL, 'h'}, 
