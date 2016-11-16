@@ -10,7 +10,6 @@
 #include <memory>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/assign.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/foreach.hpp>
@@ -93,11 +92,11 @@ private:
         return true;
     }
 
-    Indexer() : Runner("c:s:a:t:p:g:h", boost::assign::map_list_of('a', "algorithm")('t', "threads")('p', "prefix")('g', "gap-array")) {
-        RUNNER_INSTALL("index", this, "build the BWT and FM-index for a set of reads");
+    Indexer(const std::string& name, const std::string& description, const std::string& shortopts, const option* longopts) : Runner(shortopts, longopts) {
+        RUNNER_INSTALL(name, this, description);
     }
     int checkOptions(const Properties& options, const Arguments& arguments) const {
-        if (options.find("h") != options.not_found() || arguments.size() != 1) {
+        if (options.find("help") != options.not_found() || arguments.size() != 1) {
             return printHelps();
         }
         return 0;
@@ -132,5 +131,20 @@ private:
     static Indexer _runner;
 };
 
-Indexer Indexer::_runner;
+static const std::string shortopts = "c:s:a:t:p:g:h";
+enum { OPT_HELP = 1 };
+static const option longopts[] = {
+    {"prefix",              required_argument,  NULL, 'o'}, 
+    {"threads",             required_argument,  NULL, 't'}, 
+    {"algorithm",           required_argument,  NULL, 'a'}, 
+    {"gap-array",           required_argument,  NULL, 'g'}, 
+    {"help",                no_argument,        NULL, 'h'}, 
+    {NULL, 0, NULL, 0}, 
+};
+Indexer Indexer::_runner(
+        "index", 
+        "build the BWT and FM-index for a set of reads", 
+        shortopts, 
+        longopts
+        );
 

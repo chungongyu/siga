@@ -6,7 +6,6 @@
 #include <iostream>
 #include <memory>
 
-#include <boost/assign.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/format.hpp>
@@ -117,12 +116,12 @@ public:
     }
 
 private:
-    Assembler() : Runner("c:s:o:t:m:x:n:l:a:N:b:h", boost::assign::map_list_of('o', "prefix")('t', "threads")('m', "min-overlap")('x', "cut-terminal")('n', "min-branch-length")('l', "min-chimeric-length")('a', "max-chimeric-delta")('N', "max-edges")) {
-        RUNNER_INSTALL("assemble", this, "generate contigs from an assembly graph");
+    Assembler(const std::string& name, const std::string& description, const std::string& shortopts, const option* longopts) : Runner(shortopts, longopts) {
+        RUNNER_INSTALL(name, this, description);
     }
 
     int checkOptions(const Properties& options, const Arguments& arguments) const {
-        if (options.find("h") != options.not_found() || arguments.size() != 1) {
+        if (options.find("help") != options.not_found() || arguments.size() != 1) {
             return printHelps();
         }
         return 0;
@@ -137,7 +136,7 @@ private:
                 "      -o, --prefix=NAME            use NAME as the prefix of the output files (output files will be NAME-contigs.fa, etc)\n"
                 "      -t, --threads=NUM                use NUM threads to construct the index (default: 1)\n"
                 "      -m, --min-overlap=LEN            only use overlaps of at least LEN. This can be used to filter\n"
-                "      -N, --max-edges=N                limit each vertex to a maximum of N edges. For highly repetitive regions\n"
+                "          --max-edges=N                limit each vertex to a maximum of N edges. For highly repetitive regions\n"
                 "                                       this helps save memory by culling excessive edges around unresolvable repeats (default: 128)\n"
                 "\n"
                 "Bubble/Variation removal parameters:\n"
@@ -158,4 +157,24 @@ private:
     static Assembler _runner;
 };
 
-Assembler Assembler::_runner;
+static const std::string shortopts = "c:s:o:t:m:x:n:l:a:b:h";
+enum { OPT_HELP = 1, OPT_MAXEDGES };
+static const option longopts[] = {
+    {"prefix",              required_argument,  NULL, 'o'}, 
+    {"threads",             required_argument,  NULL, 't'}, 
+    {"min-overlap",         required_argument,  NULL, 'm'}, 
+    {"max-edges",           required_argument,  NULL, OPT_MAXEDGES}, 
+    {"bubble",              required_argument,  NULL, 'b'}, 
+    {"min-branch-length",   required_argument,  NULL, 'n'}, 
+    {"cut-terminal",        required_argument,  NULL, 'x'}, 
+    {"min-chimeric-length", required_argument,  NULL, 'l'}, 
+    {"max-chimeric-delta",  required_argument,  NULL, 'a'}, 
+    {"help",                no_argument,        NULL, 'h'}, 
+    {NULL, 0, NULL, 0}, 
+};
+Assembler Assembler::_runner(
+        "assemble", 
+        "generate contigs from an assembly graph", 
+        shortopts,  
+        longopts 
+        );

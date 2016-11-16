@@ -194,12 +194,11 @@ private:
         bool _diploid;
     };
 
-    PreQC() : Runner("c:s:o:p:q:f:m:L:Ph", boost::assign::map_list_of('o', "out")('p', "pe-mode")('q', "quality-trim")('f', "quality-filter")('m', "min-length")('L', "max-length")('P', "no-primer-check")) {
-        RUNNER_INSTALL("preqc", this, "preform pre-assembly quality checks");
+    PreQC(const std::string& name, const std::string& description, const std::string& shortopts, const option* longopts) : Runner(shortopts, longopts) {
+        RUNNER_INSTALL(name, this, description);
     }
-
     int checkOptions(const Properties& options, const Arguments& arguments) const {
-        if (options.find("h") != options.not_found() || arguments.empty()) {
+        if (options.find("help") != options.not_found() || arguments.empty()) {
             return printHelps();
         }
         return 0;
@@ -222,4 +221,24 @@ private:
     static PreQC _runner;
 };
 
-PreQC PreQC::_runner;
+static const std::string shortopts = "c:s:o:t:m:x:n:l:a:b:h";
+enum { OPT_HELP = 1, OPT_MAXEDGES };
+static const option longopts[] = {
+    {"prefix",              required_argument,  NULL, 'o'}, 
+    {"threads",             required_argument,  NULL, 't'}, 
+    {"min-overlap",         required_argument,  NULL, 'm'}, 
+    {"max-edges",           required_argument,  NULL, OPT_MAXEDGES}, 
+    {"bubble",              required_argument,  NULL, 'b'}, 
+    {"min-branch-length",   required_argument,  NULL, 'n'}, 
+    {"cut-terminal",        required_argument,  NULL, 'x'}, 
+    {"min-chimeric-length", required_argument,  NULL, 'l'}, 
+    {"max-chimeric-delta",  required_argument,  NULL, 'a'}, 
+    {"help",                no_argument,        NULL, 'h'}, 
+    {NULL, 0, NULL, 0}, 
+};
+PreQC PreQC::_runner(
+        "preqc", 
+        "preform pre-assembly quality checks", 
+        shortopts,  
+        longopts 
+        );

@@ -53,11 +53,11 @@ public:
     }
 
 private:
-    Overlapping() : Runner("c:s:a:t:p:m:h", boost::assign::map_list_of('a', "algorithm")('t', "threads")('p', "prefix")('m', "min-overlap")) {
-        RUNNER_INSTALL("overlap", this, "compute overlaps between reads");
+    Overlapping(const std::string& name, const std::string& description, const std::string& shortopts, const option* longopts) : Runner(shortopts, longopts) {
+        RUNNER_INSTALL(name, this, description);
     }
     int checkOptions(const Properties& options, const Arguments& arguments) const {
-        if (options.find("h") != options.not_found() || arguments.size() != 1) {
+        if (options.find("help") != options.not_found() || arguments.size() != 1) {
             return printHelps();
         }
         return 0;
@@ -80,5 +80,19 @@ private:
     static Overlapping _runner;
 };
 
-Overlapping Overlapping::_runner;
+static const std::string shortopts = "c:s:t:p:m:h";
+enum { OPT_HELP = 1 };
+static const option longopts[] = {
+    {"prefix",              required_argument,  NULL, 'o'}, 
+    {"threads",             required_argument,  NULL, 't'}, 
+    {"min-overlap",         required_argument,  NULL, 'p'}, 
+    {"help",                no_argument,        NULL, 'h'}, 
+    {NULL, 0, NULL, 0}, 
+};
+Overlapping Overlapping::_runner(
+        "overlap", 
+        "compute overlaps between reads", 
+        shortopts, 
+        longopts
+        );
 

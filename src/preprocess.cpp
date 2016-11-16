@@ -365,12 +365,12 @@ private:
         }
     }
 
-    Preprocess() : Runner("c:s:o:p:q:f:m:L:Ph", boost::assign::map_list_of('o', "out")('p', "pe-mode")('q', "quality-trim")('f', "quality-filter")('m', "min-length")('L', "max-length")('P', "no-primer-check")) {
-        RUNNER_INSTALL("preprocess", this, "filter and quality-trim reads");
+    Preprocess(const std::string& name, const std::string& description, const std::string& shortopts, const option* longopts) : Runner(shortopts, longopts) {
+        RUNNER_INSTALL(name, this, description);
     }
 
     int checkOptions(const Properties& options, const Arguments& arguments) const {
-        if (options.find("h") != options.not_found() || arguments.empty()) {
+        if (options.find("help") != options.not_found() || arguments.empty()) {
             return printHelps();
         }
         return 0;
@@ -415,4 +415,23 @@ private:
     static Preprocess _runner;
 };
 
-Preprocess Preprocess::_runner;
+static const std::string shortopts = "c:s:o:p:q:f:m:h";
+enum { OPT_HELP = 1, OPT_MAX_LENGTH, OPT_HARD_CLIP, OPT_NO_PRIMER_CHECK };
+static const option longopts[] = {
+    {"out",                 required_argument,  NULL, 'o'}, 
+    {"pe-mode",             required_argument,  NULL, 'p'}, 
+    {"quality-trim",        required_argument,  NULL, 'q'}, 
+    {"quality-filter",      required_argument,  NULL, 'f'}, 
+    {"min-length",          required_argument,  NULL, 'm'}, 
+    {"max-length",          required_argument,  NULL, OPT_MAX_LENGTH}, 
+    {"hard-clip",           required_argument,  NULL, OPT_HARD_CLIP}, 
+    {"no-primer-check",     no_argument,        NULL, OPT_NO_PRIMER_CHECK}, 
+    {"help",                no_argument,        NULL, 'h'}, 
+    {NULL, 0, NULL, 0}, 
+};
+Preprocess Preprocess::_runner(
+        "preprocess", 
+        "filter and quality-trim reads", 
+        shortopts,  
+        longopts 
+        );

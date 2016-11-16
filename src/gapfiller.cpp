@@ -4,7 +4,6 @@
 #include <iostream>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/assign.hpp>
 #include <boost/format.hpp>
 
 #include <log4cxx/logger.h>
@@ -31,12 +30,11 @@ public:
     }
 
 private:
-    GapFiller() : Runner("c:s:n:d:i:o:t:ESe:h", boost::assign::map_list_of('e', "READ_LENGTH_CUTOFF")('t', "THRESHOLD")) {
-        RUNNER_INSTALL("gapfill", this, "filter and quality-trim reads");
+    GapFiller(const std::string& name, const std::string& description, const std::string& shortopts, const option* longopts) : Runner(shortopts, longopts) {
+        RUNNER_INSTALL(name, this, description);
     }
-
     int checkOptions(const Properties& options, const Arguments& arguments) const {
-        if (options.find("h") != options.not_found()) {
+        if (options.find("help") != options.not_found()) {
             return printHelps();
         }
         return 0;
@@ -49,4 +47,15 @@ private:
     static GapFiller _runner;
 };
 
-GapFiller GapFiller::_runner;
+static const std::string shortopts = "c:s:n:d:i:o:t:ESe:h";
+enum { OPT_HELP = 1 };
+static const option longopts[] = {
+    {"help",                no_argument,        NULL, 'h'}, 
+    {NULL, 0, NULL, 0}, 
+};
+GapFiller GapFiller::_runner(
+        "gapfill", 
+        "filter and quality-trim reads", 
+        shortopts,  
+        longopts 
+        );

@@ -27,14 +27,17 @@ int main(int argc, char* argv[]) {
     {
         // command line options
         Properties cmd;
-        const std::string& opt_string = runner->options();
+        const option* longopts = NULL;
+        const std::string& shortopts = runner->options(&longopts);
         int opt = -1;
-        while ((opt = getopt(argc - 1, argv + 1, opt_string.c_str())) != -1) {
-            std::string key = runner->transform((char)opt);
-            if (optarg == NULL) {
+        while ((opt = getopt_long(argc - 1, argv + 1, shortopts.c_str(), longopts, NULL)) != -1) {
+            int flag = 0;
+            std::string key = runner->transform((char)opt, &flag);
+            if (flag != required_argument) {
                 cmd.put(key, NULL);
             } else {
                 std::string val = optarg;
+                // multiple key=value
                 if (cmd.find(key) != cmd.not_found()) {
                     val = boost::str(boost::format("%s:%s") % cmd.get< std::string >(key) % val);
                 }

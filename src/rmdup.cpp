@@ -52,8 +52,8 @@ public:
     }
 
 private:
-    DuplicateRemove() : Runner("c:s:t:p:d:h", boost::assign::map_list_of('t', "threads")('p', "prefix")('d', "sample-rate")) {
-        RUNNER_INSTALL("rmdup", this, "duplicate reads removal");
+    DuplicateRemove(const std::string& name, const std::string& description, const std::string& shortopts, const option* longopts) : Runner(shortopts, longopts) {
+        RUNNER_INSTALL(name, this, description);
     }
     int checkOptions(const Properties& options, const Arguments& arguments) const {
         if (options.find("h") != options.not_found() || arguments.size() != 1) {
@@ -79,5 +79,19 @@ private:
     static DuplicateRemove _runner;
 };
 
-DuplicateRemove DuplicateRemove::_runner;
+static const std::string shortopts = "c:s:t:p:d:h";
+enum { OPT_HELP = 1 };
+static const option longopts[] = {
+    {"prefix",              required_argument,  NULL, 'o'}, 
+    {"threads",             required_argument,  NULL, 't'}, 
+    {"sample-rate",         required_argument,  NULL, 'd'}, 
+    {"help",                no_argument,        NULL, 'h'}, 
+    {NULL, 0, NULL, 0}, 
+};
+DuplicateRemove DuplicateRemove::_runner(
+        "rmdup", 
+        "duplicate reads removal", 
+        shortopts,  
+        longopts 
+        );
 

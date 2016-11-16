@@ -6,7 +6,6 @@
 #include <memory>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/assign.hpp>
 #include <boost/format.hpp>
 
 #include <log4cxx/logger.h>
@@ -26,11 +25,11 @@ public:
     }
 
 private:
-    Correct() : Runner("c:s:a:t:p:g:h", boost::assign::map_list_of('a', "algorithm")('t', "threads")('p', "prefix")('g', "gap-array")) {
-        RUNNER_INSTALL("correct", this, "correct sequencing errors in a set of reads");
+    Correct(const std::string& name, const std::string& description, const std::string& shortopts, const option* longopts) : Runner(shortopts, longopts) {
+        RUNNER_INSTALL(name, this, description);
     }
     int checkOptions(const Properties& options, const Arguments& arguments) const {
-        if (options.find("h") != options.not_found() || arguments.size() != 1) {
+        if (options.find("help") != options.not_found() || arguments.size() != 1) {
             return printHelps();
         }
         return 0;
@@ -65,5 +64,20 @@ private:
     static Correct _runner;
 };
 
-Correct Correct::_runner;
+static const std::string shortopts = "c:s:a:t:p:g:h";
+enum { OPT_HELP = 1 };
+static const option longopts[] = {
+    {"prefix",              required_argument,  NULL, 'o'}, 
+    {"threads",             required_argument,  NULL, 't'}, 
+    {"algorithm",           required_argument,  NULL, 'a'}, 
+    {"gap-array",           required_argument,  NULL, 'g'}, 
+    {"help",                no_argument,        NULL, 'h'}, 
+    {NULL, 0, NULL, 0}, 
+};
+Correct Correct::_runner(
+        "correct", 
+        "correct sequencing errors in a set of reads", 
+        shortopts, 
+        longopts
+        );
 

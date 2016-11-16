@@ -9,6 +9,9 @@
 #include <tuple>
 #include <vector>
 
+#include <getopt.h>
+
+#include <boost/foreach.hpp>
 #include <boost/format.hpp>
 #include <boost/property_tree/ptree.hpp>
 
@@ -17,22 +20,28 @@ typedef std::vector< std::string > Arguments;
 
 class Runner {
 public:
-    const std::string& options() const {
-        return _options;
+    const std::string& options(const option** longopts = NULL) const {
+        if (longopts != NULL) {
+            *longopts = _longopts;
+        }
+        return _shortopts;
     }
-    std::string transform(char key) const {
-        std::map< char, std::string >::const_iterator i = _transform.find(key);
-        if (i != _transform.end()) {
-            return i->second;
+    std::string transform(char key, int* flag = NULL) const {
+        if (_longopts != NULL) {
+            for (size_t i = 0; _longopts[i].name != NULL; ++i) {
+                if (key == _longopts[i].val) {
+                    return _longopts[i].name;
+                }
+            }
         }
         return std::string(1, key);
     }
     virtual int run(const Properties& options, const Arguments& arguments) = 0;
 protected:
-    Runner(const std::string& options = "", const std::map< char, std::string >& table=std::map< char, std::string >()) : _options(options), _transform(table) {
+    Runner(const std::string& shortopts = "", const option* longopts = NULL) : _shortopts(shortopts), _longopts(longopts) {
     }
-    std::string _options;
-    std::map< char, std::string > _transform;
+    std::string _shortopts;
+    const option* _longopts;
 };
 
 typedef Runner* RunnerPtr;
@@ -73,9 +82,14 @@ public:
     }
 
     int help(int argc, char* argv[]) const {
-        static std::string options("vh");
+        static std::string shortopt("vh");
+        static option longopts[] = {
+            {"version",     no_argument, NULL, 'v'}, 
+            {"help",        no_argument, NULL, 'h'}, 
+            {NULL, 0, NULL, 0}
+        };
         int opt = -1;
-        while ((opt = getopt(argc, argv, options.c_str())) != -1) {
+        while ((opt = getopt_long(argc, argv, shortopt.c_str(), longopts, NULL)) != -1) {
             switch ((char)opt) {
             case 'v':
                 std::cout << boost::format("%s version %s") % PACKAGE_NAME % PACKAGE_VERSION << std::endl;
