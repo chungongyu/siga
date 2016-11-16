@@ -125,7 +125,16 @@ void MaximalOverlapVisitor::previsit(Bigraph* graph) {
 
     // Set all the vertices in the graph to "vacant"
     graph->color(GC_WHITE);
+
+    _dummys = 0;
 }
+
+class OverlapCmp {
+public:
+    bool operator()(const Edge* x, const Edge* y) const {
+        return x->coord().length() > y->coord().length();
+    }
+};
 
 bool MaximalOverlapVisitor::visit(Bigraph* graph, Vertex* vertex) {
     bool modified = false;
@@ -139,6 +148,8 @@ bool MaximalOverlapVisitor::visit(Bigraph* graph, Vertex* vertex) {
     for (size_t i = 0; i < Edge::ED_COUNT; ++i) {
         Edge::Dir dir = Edge::EDGE_DIRECTIONS[i];
         EdgePtrList edges = vertex->edges(dir);
+
+        std::sort(edges.begin(), edges.end(), OverlapCmp());
 
         for (size_t j = 1; j < edges.size(); ++j) {
             if (edges[j]->coord().length() == edges[0]->coord().length()) {
@@ -162,6 +173,7 @@ bool MaximalOverlapVisitor::visit(Bigraph* graph, Vertex* vertex) {
             if (!valid) {
                 edges[j]->color(GC_BLACK);
                 edges[j]->twin()->color(GC_BLACK);
+                ++_dummys;
                 modified = true;
             }
         }
@@ -172,6 +184,7 @@ bool MaximalOverlapVisitor::visit(Bigraph* graph, Vertex* vertex) {
 
 void MaximalOverlapVisitor::postvisit(Bigraph* graph) {
     graph->sweepEdges(GC_BLACK);
+    LOG4CXX_INFO(logger, boost::format("[TrimVisitor] Removed %d dummy edges") % _dummys);
 }
 
 bool MaximalOverlapVisitor::isSenseEdge(const Edge* edge) {

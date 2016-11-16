@@ -35,7 +35,7 @@ public:
         if (options.find("prefix") != options.not_found()) {
             output = options.get< std::string >("prefix");
         }
-        LOG4CXX_INFO(logger, boost::format("output: %s") % output);
+        LOG4CXX_INFO(logger, boost::format("output: %s.%s.%s") % output % ASQG_EXT % GZIP_EXT);
 
         FMIndex fmi, rfmi;
         if (loadFMI(output + BWT_EXT, fmi) && loadFMI(output + RBWT_EXT, rfmi)) {

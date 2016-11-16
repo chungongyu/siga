@@ -53,7 +53,7 @@ private:
 // Run the YU LIN's maximal overlap algorithm on each node
 class MaximalOverlapVisitor : public BigraphVisitor {
 public:
-    MaximalOverlapVisitor(size_t delta) : _delta(delta) {
+    MaximalOverlapVisitor(size_t delta) : _delta(delta), _dummys(0) {
     }
     void previsit(Bigraph* graph);
     bool visit(Bigraph* graph, Vertex* vertex);
@@ -63,6 +63,7 @@ private:
     static bool isAntiSenseEdge(const Edge* edge);
 
     size_t _delta;
+    size_t _dummys;
 };
 
 // Smooth out variation in the graph
