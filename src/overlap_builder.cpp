@@ -977,11 +977,15 @@ OverlapResult OverlapBuilder::overlap(const DNASeq& read, size_t minOverlap, Ove
 
     // Match the suffix of seq to prefixes
     finder.find(seq, kSuffixPrefixAF, blocks, blocks, &result);
-    rfinder.find(make_complement_dna_copy(seq), kSuffixSuffixAF, blocks, blocks, &result);
+    if (_reverse) {
+        rfinder.find(make_complement_dna_copy(seq), kSuffixSuffixAF, blocks, blocks, &result);
+    }
 
     // Match the prefix of seq to suffixes
     rfinder.find(make_reverse_dna_copy(seq), kPrefixSuffixAF, blocks, blocks, &result);
-    finder.find(make_reverse_complement_dna_copy(seq), kPrefixPrefixAF, blocks, blocks, &result);
+    if (_reverse) {
+        finder.find(make_reverse_complement_dna_copy(seq), kPrefixPrefixAF, blocks, blocks, &result);
+    }
 
     //SubMaximalBlockFilter filter(_fmi, _rfmi);
     //filter.filter(blocks);

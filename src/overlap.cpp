@@ -39,7 +39,7 @@ public:
 
         FMIndex fmi, rfmi;
         if (loadFMI(output + BWT_EXT, fmi) && loadFMI(output + RBWT_EXT, rfmi)) {
-            OverlapBuilder builder(&fmi, &rfmi, output);
+            OverlapBuilder builder(&fmi, &rfmi, output, options.find("no-reverse") == options.not_found());
             if (!builder.build(input, options.get< size_t >("min-overlap", 10), output + ASQG_EXT + GZIP_EXT)) {
                 LOG4CXX_ERROR(logger, boost::format("Failed to build overlaps from reads %s") % input);
                 r = -1;
@@ -81,11 +81,12 @@ private:
 };
 
 static const std::string shortopts = "c:s:t:p:m:h";
-enum { OPT_HELP = 1 };
+enum { OPT_HELP = 1, OPT_NO_REVERSE };
 static const option longopts[] = {
-    {"prefix",              required_argument,  NULL, 'o'}, 
+    {"prefix",              required_argument,  NULL, 'p'}, 
     {"threads",             required_argument,  NULL, 't'}, 
-    {"min-overlap",         required_argument,  NULL, 'p'}, 
+    {"min-overlap",         required_argument,  NULL, 'm'}, 
+    {"no-reverse",          no_argument,        NULL, OPT_NO_REVERSE}, 
     {"help",                no_argument,        NULL, 'h'}, 
     {NULL, 0, NULL, 0}, 
 };
