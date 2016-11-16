@@ -35,7 +35,7 @@ public:
         if (options.find("prefix") != options.not_found()) {
             output = options.get< std::string >("prefix");
         }
-        LOG4CXX_INFO(logger, boost::format("output: %s.%s.%s") % output % ASQG_EXT % GZIP_EXT);
+        LOG4CXX_INFO(logger, boost::format("output: %s%s%s") % output % ASQG_EXT % GZIP_EXT);
 
         FMIndex fmi, rfmi;
         if (loadFMI(output + BWT_EXT, fmi) && loadFMI(output + RBWT_EXT, rfmi)) {
@@ -54,7 +54,7 @@ public:
 
 private:
     Overlapping(const std::string& name, const std::string& description, const std::string& shortopts, const option* longopts) : Runner(shortopts, longopts) {
-        RUNNER_INSTALL(name, this, description);
+        RUNNER_INSTALL(name, this, description, kOverlap);
     }
     int checkOptions(const Properties& options, const Arguments& arguments) const {
         if (options.find("help") != options.not_found() || arguments.size() != 1) {

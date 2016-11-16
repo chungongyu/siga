@@ -65,11 +65,11 @@ public:
         }
         return RunnerPtr();
     }
-    bool install(const std::string& name, RunnerPtr runner, const std::string& introduction) {
+    bool install(const std::string& name, RunnerPtr runner, const std::string& introduction, double weight = 0) {
         if (_runners.find(name) != _runners.end()) {
             return false;
         }
-        _runners[name] = std::make_tuple(runner, introduction);
+        _runners[name] = std::make_tuple(runner, introduction, weight);
         return true;
     }
     bool uninstall(const std::string& name) {
@@ -103,20 +103,23 @@ public:
         std::cout << boost::format("The most commonly used %s commands are:") % PACKAGE_NAME << std::endl;
 
         {
-            size_t max_name_length = 2;
+            size_t max_name_length = 0;
+            typedef std::vector< std::tuple< std::string, double > > _RunnerList_;
+            _RunnerList_ runners;
             {
-                std::vector< size_t > name_length;
                 for (RunnerList::const_iterator i = _runners.begin(); i != _runners.end(); ++i) {
-                    name_length.push_back(i->first.length());
-                }
-                if (!name_length.empty()) {
-                    max_name_length += *std::max_element(name_length.begin(), name_length.end());
+                    max_name_length = std::max(max_name_length, i->first.length());
+                    runners.push_back(std::make_tuple(i->first, std::get< 2 >(i->second)));
                 }
             }
-            for (RunnerList::const_iterator i = _runners.begin(); i != _runners.end(); ++i) {
-                std::string cmd(i->first);
+            std::sort(runners.begin(), runners.end(), Cmp());
+            max_name_length += 2;
+            for (_RunnerList_::const_iterator i = runners.begin(); i != runners.end(); ++i) {
+                std::string cmd = std::get< 0 >(*i);
+                RunnerList::const_iterator info = _runners.find(cmd);
+                assert(info != _runners.end());
                 cmd.resize(max_name_length, ' ');
-                std::cout << boost::format("   %s%s") % cmd % std::get< 1 >(i->second) << std::endl;
+                std::cout << boost::format("   %s%s") % cmd % std::get< 1 >(info->second) << std::endl;
             }
         }
 
@@ -125,37 +128,22 @@ public:
         return 256;
     }
 private:
-    struct Cmp{
-        Cmp() {
-            _mp["preprocess"] = 1;
-            _mp["index"] = 2;
-            _mp["correct"] = 3;
-            _mp["overlap"] = 4;
-            _mp["assemble"] = 5;
-            _mp["scaffold"] = 6;
-            _mp["gapfill"] = 7;
-            _mp["rmdup"] = 8;
-        }
-        bool operator()(const std::string& l, const std::string& r) const {
-            std::map< std::string, size_t >::const_iterator x = _mp.find(l), y = _mp.find(r);
-            if (x != _mp.end() && y != _mp.end()) {
-                return x->second < y->second;
-            } else if (x != _mp.end()) {
-                return true;
-            } else if (y != _mp.end()) {
-                return false;
+    struct Cmp {
+        bool operator()(const std::tuple< std::string, double >& l, const std::tuple< std::string, double >& r) const {
+            double x = std::get< 1 >(l), y = std::get< 1 >(r);
+            if (x != y) {
+                return x < y;
             }
-            return l < r;
+            return std::get< 0 >(l) < std::get< 0 >(r);
         }
-        std::map< std::string, size_t > _mp;
     };
-    typedef std::tuple< RunnerPtr, std::string > RunnerInfo;
-    typedef std::map< std::string, RunnerInfo, Cmp> RunnerList;
+    typedef std::tuple< RunnerPtr, std::string, double > RunnerInfo;
+    typedef std::map< std::string, RunnerInfo > RunnerList;
     RunnerList _runners;
 };
 
-#define RUNNER_INSTALL(name, runner, introduction) \
-    RunnerManager::get()->install(name, runner, introduction)
+#define RUNNER_INSTALL(name, runner, introduction, weight) \
+    RunnerManager::get()->install(name, runner, introduction, weight)
 #define RUNNER_UNINSTALL(name) \
     RunnerManager::get()->uninstall(name)
 

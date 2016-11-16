@@ -97,7 +97,7 @@ private:
     }
 
     Indexer(const std::string& name, const std::string& description, const std::string& shortopts, const option* longopts) : Runner(shortopts, longopts) {
-        RUNNER_INSTALL(name, this, description);
+        RUNNER_INSTALL(name, this, description, kIndex);
     }
     int checkOptions(const Properties& options, const Arguments& arguments) const {
         if (options.find("help") != options.not_found() || arguments.size() != 1) {
@@ -137,7 +137,7 @@ private:
 static const std::string shortopts = "c:s:a:t:p:g:h";
 enum { OPT_HELP = 1, OPT_NO_REVERSE, OPT_NO_FORWARD };
 static const option longopts[] = {
-    {"prefix",              required_argument,  NULL, 'o'}, 
+    {"prefix",              required_argument,  NULL, 'p'}, 
     {"threads",             required_argument,  NULL, 't'}, 
     {"algorithm",           required_argument,  NULL, 'a'}, 
     {"no-reverse",          no_argument,        NULL, OPT_NO_REVERSE}, 

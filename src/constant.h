@@ -28,4 +28,18 @@ extern const int MIN_EDGE_COUNT_FOR_TRAINING;
 extern const int MAX_CHOICE;
 extern const int CANDI_THRESHOLD;
 
+// comand sorting
+enum {
+    kPreprocess, 
+    kIndex, 
+    kCorrect, 
+    kOverlap, 
+    kAssemble, 
+    kRmDup, 
+    kScaffold, 
+    kGapFill,
+    kPreQC, 
+    kUnkown = 1000
+};
+
 #endif // constant_h_

@@ -366,7 +366,7 @@ private:
     }
 
     Preprocess(const std::string& name, const std::string& description, const std::string& shortopts, const option* longopts) : Runner(shortopts, longopts) {
-        RUNNER_INSTALL(name, this, description);
+        RUNNER_INSTALL(name, this, description, kPreprocess);
     }
 
     int checkOptions(const Properties& options, const Arguments& arguments) const {

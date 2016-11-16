@@ -26,7 +26,7 @@ public:
 
 private:
     Correct(const std::string& name, const std::string& description, const std::string& shortopts, const option* longopts) : Runner(shortopts, longopts) {
-        RUNNER_INSTALL(name, this, description);
+        RUNNER_INSTALL(name, this, description, kCorrect);
     }
     int checkOptions(const Properties& options, const Arguments& arguments) const {
         if (options.find("help") != options.not_found() || arguments.size() != 1) {
