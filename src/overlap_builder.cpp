@@ -779,8 +779,8 @@ public:
         ranges.init(seq[l - 1], _fmi, _rfmi);
 
         // Collect the OverlapBlocks
-        for (size_t i = l - 1; i > 1; --i) {
-            if (l - i + 1 >= _minOverlap) {
+        for (size_t i = l - 1; i > 0; --i) {
+            if (l - i >= _minOverlap) {
                 // Calculate which of the prefixes that match w[i, l] are terminal
                 // These are the proper prefixes (they are the start of a read)
                 IntervalPair probe = ranges;
@@ -790,7 +790,7 @@ public:
                 if (probe[1].valid()) {
                     assert(probe[1].lower > 0);
                     if (overlaps != NULL) {
-                        overlaps->push_back(OverlapBlock(probe, ranges, l - i + 1, af));
+                        overlaps->push_back(OverlapBlock(probe, ranges, l - i, af));
                     }
                 }
             }
@@ -800,7 +800,6 @@ public:
         }
 
         // Determine if this sequence is contained and should not be processed further
-        ranges.updateL(seq[0], _fmi);
 
         // Ranges now holds the interval for the full-length read
         // To handle containments, we output the overlapBlock to the final overlap block list
@@ -825,7 +824,7 @@ public:
                 probe.updateR('$', _rfmi);
                 assert(probe.valid());
                 if (contains != NULL) {
-                    contains->push_back(OverlapBlock(probe, ranges, l, af));
+                    //contains->push_back(OverlapBlock(probe, ranges, l, af));
                 }
             }
         }
