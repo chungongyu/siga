@@ -184,7 +184,7 @@ bool MaximalOverlapVisitor::visit(Bigraph* graph, Vertex* vertex) {
 
 void MaximalOverlapVisitor::postvisit(Bigraph* graph) {
     graph->sweepEdges(GC_BLACK);
-    LOG4CXX_INFO(logger, boost::format("[TrimVisitor] Removed %d dummy edges") % _dummys);
+    LOG4CXX_INFO(logger, boost::format("[MaximalOverlapVisitor] Removed %d dummy edges") % _dummys);
 }
 
 bool MaximalOverlapVisitor::isSenseEdge(const Edge* edge) {

@@ -780,9 +780,6 @@ public:
 
         // Collect the OverlapBlocks
         for (size_t i = l - 1; i > 1; --i) {
-            // Compare the range of the suffix seq[i, l]
-            ranges.updateL(seq[i - 1], _fmi);
-
             if (l - i + 1 >= _minOverlap) {
                 // Calculate which of the prefixes that match w[i, l] are terminal
                 // These are the proper prefixes (they are the start of a read)
@@ -797,6 +794,9 @@ public:
                     }
                 }
             }
+
+            // Compare the range of the suffix seq[i, l]
+            ranges.updateL(seq[i - 1], _fmi);
         }
 
         // Determine if this sequence is contained and should not be processed further

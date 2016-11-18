@@ -30,6 +30,9 @@ public:
         if (_longopts != NULL) {
             for (size_t i = 0; _longopts[i].name != NULL; ++i) {
                 if (key == _longopts[i].val) {
+                    if (flag != NULL) {
+                        *flag = _longopts[i].has_arg;
+                    }
                     return _longopts[i].name;
                 }
             }

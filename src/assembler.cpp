@@ -51,12 +51,12 @@ public:
                 g.visit(&containVisit);
             }
 
+            // Compact together unbranched chains of vertices
+            g.simplify();
+
             // Pre-assembly graph stats
             LOG4CXX_INFO(logger, "[Stats] After removing contained vertices:");
             g.visit(&statsVisit);
-
-            // Compact together unbranched chains of vertices
-            g.simplify();
 
             // Trimming
             size_t numTrimRounds = options.get< size_t >("cut-terminal", 10);
@@ -133,7 +133,7 @@ private:
                 "\n"
                 "      -h, --help                       display this help and exit\n"
                 "\n"
-                "      -o, --prefix=NAME            use NAME as the prefix of the output files (output files will be NAME-contigs.fa, etc)\n"
+                "      -p, --prefix=NAME                use NAME as the prefix of the output files (output files will be NAME-contigs.fa, etc)\n"
                 "      -t, --threads=NUM                use NUM threads to construct the index (default: 1)\n"
                 "      -m, --min-overlap=LEN            only use overlaps of at least LEN. This can be used to filter\n"
                 "          --max-edges=N                limit each vertex to a maximum of N edges. For highly repetitive regions\n"
@@ -157,10 +157,10 @@ private:
     static Assembler _runner;
 };
 
-static const std::string shortopts = "c:s:o:t:m:x:n:l:a:b:h";
+static const std::string shortopts = "c:s:p:t:m:x:n:l:a:b:h";
 enum { OPT_HELP = 1, OPT_MAXEDGES };
 static const option longopts[] = {
-    {"prefix",              required_argument,  NULL, 'o'}, 
+    {"prefix",              required_argument,  NULL, 'p'}, 
     {"threads",             required_argument,  NULL, 't'}, 
     {"min-overlap",         required_argument,  NULL, 'm'}, 
     {"max-edges",           required_argument,  NULL, OPT_MAXEDGES}, 
