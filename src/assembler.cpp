@@ -30,7 +30,7 @@ public:
         LOG4CXX_INFO(logger, boost::format("output: %s") % output);
 
         Bigraph g;
-        if (loadASQG(input, options.get< size_t >("min-overlap", 0), false, options.get< size_t >("max-edges", 128), &g)) {
+        if (loadASQG(input, options.get< size_t >("min-overlap", 0), true, options.get< size_t >("max-edges", 128), &g)) {
             g.validate();
             LOG4CXX_INFO(logger, "load ok");
 

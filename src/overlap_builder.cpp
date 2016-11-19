@@ -858,9 +858,14 @@ public:
             OverlapBlockList::iterator curr = std::next(prev);
             while (curr != blocks->end()) {
                 // Check if prev and curr overlaps
-                if (Interval::isIntersecting(prev->capped[0].lower, prev->capped[1].upper, curr->capped[0].lower, curr->capped[0].upper)) {
+                if (Interval::isIntersecting(prev->capped[0].lower, prev->capped[0].upper, curr->capped[0].lower, curr->capped[0].upper)) {
+
+                    std::cerr << "-------------" << std::endl;
+                    std::cerr << *prev << std::endl;
+                    std::cerr << *curr << std::endl;
 
                     // Merge the new elements in and start back from the beginning of the list
+                    /*
                     OverlapBlockList resolved;
                     resolve(*prev, *curr, &resolved);
                     resolved.sort(sorter);
@@ -870,6 +875,8 @@ public:
                     blocks->merge(resolved, sorter);
 
                     prev = blocks->begin();
+                    */
+                    ++prev;
                 } else {
                     ++prev;
                 }
@@ -986,14 +993,14 @@ OverlapResult OverlapBuilder::overlap(const DNASeq& read, size_t minOverlap, Ove
         finder.find(make_reverse_complement_dna_copy(seq), kPrefixPrefixAF, blocks, blocks, &result);
     }
 
-    //SubMaximalBlockFilter filter(_fmi, _rfmi);
-    //filter.filter(blocks);
+    SubMaximalBlockFilter filter(_fmi, _rfmi);
+    filter.filter(blocks);
     
-    ContainmentBlockRemover remover(seq.length());
-    remover.remove(blocks);
+    //ContainmentBlockRemover remover(seq.length());
+    //remover.remove(blocks);
     
-    IrreducibleBlockListExtractor extractor(_fmi, _rfmi);
-    extractor.extract(blocks);
+    //IrreducibleBlockListExtractor extractor(_fmi, _rfmi);
+    //extractor.extract(blocks);
 
     return result;
 }

@@ -72,6 +72,7 @@ private:
                 "      -t, --threads=NUM                use NUM threads to construct the index (default: 1)\n"
                 "      -m, --min-overlap=LEN            minimum overlap required between two reads (default: 45)\n"
                 "      -p, --prefix=PREFIX              write index to file using PREFIX instead of prefix of READSFILE\n"
+                "          --no-reverse                 suppress construction of the reverse BWT. Use this option when building the index\n"
                 "\n"
                 ) % PACKAGE_NAME << std::endl;
         return 256;

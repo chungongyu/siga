@@ -136,6 +136,13 @@ void Vertex::merge(Edge* edge) {
 
 void Vertex::addEdge(Edge* edge) {
     assert(edge->start() == this);
+#ifdef VALIDATE
+    for (EdgePtrList::const_iterator i = _edges.begin(); i != _edges.end(); ++i) {
+        if (i->end()->id() == edge->end()->id()) {
+            LOG4CXX_ERROR(logger, boost::format("Attempted to add duplicate edge with ID: %s to vertex %s" % edge->end()->id() % _id));
+        }
+    }
+#endif
     _edges.push_back(edge);
 }
 
@@ -371,6 +378,8 @@ public:
         bool isContainment = overlap.match.isContainment();
         Edge::Comp comp = (overlap.match.isRC) ? Edge::EC_REVERSE : Edge::EC_SAME;
 
+        assert(_allowContainments || !isContainment);
+
         Vertex* verts[2];
         for (size_t i = 0; i < 2; ++i) {
             verts[i] = _graph->getVertex(overlap.id[i]);
@@ -399,7 +408,7 @@ public:
         // misassembly.
         {
             size_t degrees0 = verts[0]->degrees(), degrees1 = verts[1]->degrees();
-            if (degrees0 > _maxEdges || degrees1 > _maxEdges) {
+            if (degrees0 >= _maxEdges || degrees1 >= _maxEdges) {
                 return false;
             }
         }
@@ -441,6 +450,10 @@ public:
 
             _graph->addEdge(verts[0], edges[2]);
             _graph->addEdge(verts[1], edges[3]);
+
+            // Set containment flags
+            verts[overlap.containedIdx()]->contained(true);
+            _graph->containment(true);
         }
 
         return true;
@@ -521,7 +534,9 @@ bool loadASQG(std::istream& stream, size_t minOverlap, bool allowContainments, s
                 // Add the edge to the graph
                 if (ovr.match.length() >= minOverlap) {
                     EdgeCreator creator(g, allowContainments, maxEdges);
-                    creator.create(ovr);
+                    if (!creator.create(ovr)) {
+                        return false;
+                    }
                 }
 
                 break;

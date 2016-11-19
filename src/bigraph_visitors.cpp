@@ -77,6 +77,8 @@ void ContainRemoveVisitor::previsit(Bigraph* graph) {
     // during this algorithm the flag will be reset and another
     // round must be re-run
     graph->containment(false);
+
+    _contained = 0;
 }
 
 bool ContainRemoveVisitor::visit(Bigraph* graph, Vertex* vertex) {
@@ -99,12 +101,16 @@ bool ContainRemoveVisitor::visit(Bigraph* graph, Vertex* vertex) {
         }
 
         vertex->color(GC_BLACK);
+        ++_contained;
+
+        return true;
     }
     return false;
 }
 
 void ContainRemoveVisitor::postvisit(Bigraph* graph) {
     graph->sweepVertices(GC_BLACK);
+    LOG4CXX_INFO(logger, boost::format("[ContainRemoveVisitor] Removed %d containment vertices") % _contained);
 }
 
 //

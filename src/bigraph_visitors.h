@@ -35,9 +35,13 @@ private:
 // Remove contained vertices from the graph
 class ContainRemoveVisitor : public BigraphVisitor {
 public:
+    ContainRemoveVisitor() : _contained(0) {
+    }
     void previsit(Bigraph* graph);
     bool visit(Bigraph* graph, Vertex* vertex);
     void postvisit(Bigraph* graph);
+private:
+    size_t _contained;
 };
 
 // Visit each node, writing it to a file as a fasta record
