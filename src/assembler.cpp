@@ -29,6 +29,9 @@ public:
         std::string output = options.get< std::string >("prefix", "default");
         LOG4CXX_INFO(logger, boost::format("output: %s") % output);
 
+        LOG4CXX_INFO(logger, "parameters:");
+        LOG4CXX_INFO(logger, boost::format("min-overlap: %d") % options.get< size_t >("min-overlap", 0));
+
         Bigraph g;
         if (loadASQG(input, options.get< size_t >("min-overlap", 0), true, options.get< size_t >("max-edges", 128), &g)) {
             g.validate();
@@ -142,6 +145,9 @@ private:
                 "Bubble/Variation removal parameters:\n"
                 "      -b, --bubble=N                   perform N bubble removal steps (default: 3)\n"
                 "\n"
+                "MaximalOver parameters:\n"
+                "      -d, --max-overlap-delta=LEN      remove branches only if they are less than LEN bases in length (default: 0)\n"
+                "\n"
                 "Trimming parameters:\n"
                 "      -x, --cut-terminal=N             cut off terminal branches in N rounds (default: 10)\n"
                 "      -n, --min-branch-length=LEN      remove terminal branches only if they are less than LEN bases in length (default: 150)\n"
@@ -157,7 +163,7 @@ private:
     static Assembler _runner;
 };
 
-static const std::string shortopts = "c:s:p:t:m:x:n:l:a:b:h";
+static const std::string shortopts = "c:s:p:t:m:x:n:l:a:b:d:h";
 enum { OPT_HELP = 1, OPT_MAXEDGES };
 static const option longopts[] = {
     {"prefix",              required_argument,  NULL, 'p'}, 
@@ -166,6 +172,7 @@ static const option longopts[] = {
     {"max-edges",           required_argument,  NULL, OPT_MAXEDGES}, 
     {"bubble",              required_argument,  NULL, 'b'}, 
     {"min-branch-length",   required_argument,  NULL, 'n'}, 
+    {"max-overlap-delta",   required_argument,  NULL, 'd'}, 
     {"cut-terminal",        required_argument,  NULL, 'x'}, 
     {"min-chimeric-length", required_argument,  NULL, 'l'}, 
     {"max-chimeric-delta",  required_argument,  NULL, 'a'}, 

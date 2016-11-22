@@ -158,30 +158,34 @@ bool MaximalOverlapVisitor::visit(Bigraph* graph, Vertex* vertex) {
         std::sort(edges.begin(), edges.end(), OverlapCmp());
 
         for (size_t j = 1; j < edges.size(); ++j) {
-            if (edges[j]->coord().length() == edges[0]->coord().length()) {
+            if (edges[j]->color() == GC_BLACK) {
                 continue;
             }
 
-            bool valid = false;
-
-            {
-                EdgePtrList redges = edges[j]->end()->edges();
-                EdgePtrList::iterator last = std::remove_if(redges.begin(), redges.end(), PredicateEdgeArray[i]);
-                redges.resize(std::distance(redges.begin(), last));
-                assert(!redges.empty());
-                for (size_t k = 0; k < redges.size(); ++k) {
-                    if (redges[k]->end()->id() == vertex->id() && edges[0]->coord().length() - edges[i]->coord().length() <= _delta) {
-                        valid = true;
-                    }
-                }
+            if (edges[0]->coord().length() - edges[j]->coord().length() <= _delta) {
+                continue;
             }
 
-            if (!valid) {
-                edges[j]->color(GC_BLACK);
-                edges[j]->twin()->color(GC_BLACK);
-                ++_dummys;
-                modified = true;
+            EdgePtrList redges = edges[j]->end()->edges();
+            EdgePtrList::iterator last = std::remove_if(redges.begin(), redges.end(), PredicateEdgeArray[i]);
+            redges.resize(std::distance(redges.begin(), last));
+            assert(!redges.empty());
+
+            EdgePtrList::const_iterator largest = std::min_element(redges.begin(), redges.end(), OverlapCmp());
+
+            if ((*largest)->coord().length() - edges[j]->coord().length() <= _delta) {
+                continue;
             }
+
+            if (dir == Edge::ED_SENSE) {
+                LOG4CXX_INFO(logger, boost::format("[MaximalOverlapVisitor] remove edge %s->%s (%d)") % edges[j]->start()->id() % edges[j]->end()->id() % edges[j]->coord().length());
+            } else {
+                LOG4CXX_INFO(logger, boost::format("[MaximalOverlapVisitor] remove edge %s->%s (%d)") % edges[j]->end()->id() % edges[j]->start()->id() % edges[j]->coord().length());
+            }
+            edges[j]->color(GC_BLACK);
+            edges[j]->twin()->color(GC_BLACK);
+            ++_dummys;
+            modified = true;
         }
     }
 
