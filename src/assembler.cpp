@@ -145,7 +145,7 @@ private:
                 "Bubble/Variation removal parameters:\n"
                 "      -b, --bubble=N                   perform N bubble removal steps (default: 3)\n"
                 "\n"
-                "MaximalOver parameters:\n"
+                "MaximalOverlap parameters:\n"
                 "      -d, --max-overlap-delta=LEN      remove branches only if they are less than LEN bases in length (default: 0)\n"
                 "\n"
                 "Trimming parameters:\n"

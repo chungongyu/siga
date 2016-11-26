@@ -375,10 +375,12 @@ public:
 
     bool create(const Overlap& overlap) {
         // Initialize data and perform checks
-        bool isContainment = overlap.match.isContainment();
         Edge::Comp comp = (overlap.match.isRC) ? Edge::EC_REVERSE : Edge::EC_SAME;
+        bool isContainment = overlap.match.isContainment();
 
-        assert(_allowContainments || !isContainment);
+        if (!_allowContainments && isContainment) {
+            return false;
+        }
 
         Vertex* verts[2];
         for (size_t i = 0; i < 2; ++i) {
@@ -409,6 +411,7 @@ public:
         {
             size_t degrees0 = verts[0]->degrees(), degrees1 = verts[1]->degrees();
             if (degrees0 >= _maxEdges || degrees1 >= _maxEdges) {
+                LOG4CXX_ERROR(logger, boost::format("Edge limit reached for vertex: %s(%d) and %s(%d)") % verts[0]->id() % degrees0 % verts[1]->id() % degrees1);
                 return false;
             }
         }

@@ -142,7 +142,6 @@ public:
         return coords[0].isContained() || coords[1].isContained();
     }
 
-    size_t translate01() const;
     size_t translate10() const;
     SeqCoord translate10(const SeqCoord& coord) const;
 
