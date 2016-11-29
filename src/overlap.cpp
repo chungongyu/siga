@@ -38,8 +38,8 @@ public:
         LOG4CXX_INFO(logger, boost::format("output: %s%s%s") % output % ASQG_EXT % GZIP_EXT);
 
         FMIndex fmi, rfmi;
-        if (loadFMI(output + BWT_EXT, fmi) && loadFMI(output + RBWT_EXT, rfmi)) {
-            OverlapBuilder builder(&fmi, &rfmi, output, options.find("no-reverse") == options.not_found());
+        if (FMIndex::load(output + BWT_EXT, fmi) && FMIndex::load(output + RBWT_EXT, rfmi)) {
+            OverlapBuilder builder(&fmi, &rfmi, output, options.find("no-rc") == options.not_found());
             if (!builder.build(input, options.get< size_t >("min-overlap", 10), output + ASQG_EXT + GZIP_EXT)) {
                 LOG4CXX_ERROR(logger, boost::format("Failed to build overlaps from reads %s") % input);
                 r = -1;
@@ -72,7 +72,7 @@ private:
                 "      -t, --threads=NUM                use NUM threads to construct the index (default: 1)\n"
                 "      -m, --min-overlap=LEN            minimum overlap required between two reads (default: 45)\n"
                 "      -p, --prefix=PREFIX              write index to file using PREFIX instead of prefix of READSFILE\n"
-                "          --no-reverse                 suppress construction of the reverse BWT. Use this option when building the index\n"
+                "          --no-rc                      suppress construction of the reverse BWT. Use this option when building the index\n"
                 "\n"
                 ) % PACKAGE_NAME << std::endl;
         return 256;
@@ -82,12 +82,12 @@ private:
 };
 
 static const std::string shortopts = "c:s:t:p:m:h";
-enum { OPT_HELP = 1, OPT_NO_REVERSE };
+enum { OPT_HELP = 1, OPT_NO_RC };
 static const option longopts[] = {
     {"prefix",              required_argument,  NULL, 'p'}, 
     {"threads",             required_argument,  NULL, 't'}, 
     {"min-overlap",         required_argument,  NULL, 'm'}, 
-    {"no-reverse",          no_argument,        NULL, OPT_NO_REVERSE}, 
+    {"no-rc",               no_argument,        NULL, OPT_NO_RC}, 
     {"help",                no_argument,        NULL, 'h'}, 
     {NULL, 0, NULL, 0}, 
 };

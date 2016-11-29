@@ -215,20 +215,17 @@ public:
     bool containment() const {
         return _containment;
     }
-private:
-    friend bool loadASQG(std::istream& stream, size_t minOverlap, bool allowContainments, size_t maxEdges, Bigraph* g);
-    friend bool saveASQG(std::ostream& stream, const Bigraph* g);
 
+    static bool load(std::istream& stream, size_t minOverlap, bool allowContainments, size_t maxEdges, Bigraph* g);
+    static bool load(const std::string& filename, size_t minOverlap, bool allowContainments, size_t maxEdges, Bigraph* g);
+    static bool save(std::ostream& stream, const Bigraph* g);
+    static bool save(const std::string& filename, const Bigraph* g);
+private:
     // Simplify the graph by compacting edges in the given direction
     void simplify(Edge::Dir dir);
 
     VertexTable _vertices;
     bool _containment;
 };
-
-bool loadASQG(std::istream& stream, size_t minOverlap, bool allowContainments, size_t maxEdges, Bigraph* g);
-bool loadASQG(const std::string& filename, size_t minOverlap, bool allowContainments, size_t maxEdges, Bigraph* g);
-bool saveASQG(std::ostream& stream, const Bigraph* g);
-bool saveASQG(const std::string& filename, const Bigraph* g);
 
 #endif // bigraph_h_

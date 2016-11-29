@@ -342,7 +342,7 @@ std::istream& operator>>(std::istream& stream, FMIndex& index) {
     return stream;
 }
 
-bool loadFMI(std::istream& stream, FMIndex& fmi) {
+bool FMIndex::load(std::istream& stream, FMIndex& fmi) {
     try {
         stream >> fmi;
         fmi.info();
@@ -352,7 +352,7 @@ bool loadFMI(std::istream& stream, FMIndex& fmi) {
     return true;
 }
 
-bool loadFMI(const std::string& filename, FMIndex& fmi) {
+bool FMIndex::load(const std::string& filename, FMIndex& fmi) {
     std::ifstream stream(filename.c_str());
-    return loadFMI(stream, fmi);
+    return load(stream, fmi);
 }

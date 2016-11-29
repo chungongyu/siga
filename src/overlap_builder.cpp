@@ -865,7 +865,6 @@ public:
                     std::cerr << *curr << std::endl;
 
                     // Merge the new elements in and start back from the beginning of the list
-                    /*
                     OverlapBlockList resolved;
                     resolve(*prev, *curr, &resolved);
                     resolved.sort(sorter);
@@ -875,8 +874,6 @@ public:
                     blocks->merge(resolved, sorter);
 
                     prev = blocks->begin();
-                    */
-                    ++prev;
                 } else {
                     ++prev;
                 }
@@ -885,6 +882,14 @@ public:
         }
     }
 private:
+    struct TracingInterval {
+        size_t forward;
+        size_t reverse;
+        IntervalPair ranges;
+    };
+
+    typedef std::list< TracingInterval > TracingIntervalList;
+
     void resolve(const OverlapBlock& x, const OverlapBlock& y, OverlapBlockList* resolved) {
         const OverlapBlock* higher = &x;
         const OverlapBlock* lower = &y;
@@ -931,15 +936,81 @@ private:
             }
         } else {
             if (lower->capped[0].lower < higher->capped[0].lower || lower->capped[0].upper > higher->capped[0].upper) {
+                // The intervals do not perfectly overlap and must be recalculated. 
+                // We start from the raw intervals in the lower block (the intervals representing
+                // overlaps that are not capped by '$' symbols) and search backwards through the
+                // bwt until the start of the sequence has been found. This maps the source reverse
+                // index position to the forward index position. We can then decide which intervals
+                // are redundant and can be removed.
+                //
+                // If the index has duplicates, it is possible that a given source reverse position
+                // will map to multiple forward positions. To handle this case, we record the used
+                // forward positions in a std::map so we can lookup the next lowest index that is available.
+                //
+                // A better algorithm (that doesn't required so many interval calculations) probably exists
+                // but this case is very rare so simplicity wins here.
+                //
                 std::map< size_t, size_t > usedmappig;
 
                 // Remap every reverse position to a forward position
+                TracingIntervalList tracinglist;
                 for (size_t j = lower->capped[1].lower; j <= lower->capped[1].upper; ++j) {
+                    TracingInterval ti;
+                    ti.reverse = j;
+
                     bool done = false;
+                    FMIndex::Interval tracing(j, j);
                     while (!done) {
+                        char c = _rfmi->getChar(tracing.lower);
+                        if (c == '$') {
+                            ti.ranges.updateL('$', _fmi);
+                            done = true;
+                        }
+                        tracing.update(c, _rfmi);
+                        ti.ranges.updateR(c, _rfmi);
+                    }
+
+                    if (ti.ranges[0].lower == ti.ranges[0].upper) {
+                        // This read is not duplicated
+                        ti.forward = ti.ranges[0].lower;
+                    } else {
+                        // This read is duplicated, look up its value in the map
+                        size_t k = ti.ranges[0].lower;
+                        size_t idx = k;
+                        if (usedmappig.find(k) != usedmappig.end()) {
+                            // Use the value in the map and update it
+                            idx = usedmappig[k];
+                        }
+                        ti.forward = idx;
+                        usedmappig[k] = idx + 1;
+                    }
+
+                    tracinglist.push_back(ti);
+                }
+
+                // Write out the final blocks
+                if (resolved != NULL) {
+                    OverlapBlock split = *lower;
+                    for (TracingIntervalList::const_iterator i = tracinglist.begin(); i != tracinglist.end(); ++i) {
+                        // Check if the forward position intersects the higer block, if so this block
+                        // is redundant and can be removed.
+                        if (!Interval::isIntersecting(i->forward, i->forward, higher->capped[0].lower, higher->capped[0].upper)) {
+                            split.capped[0].lower = i->forward;
+                            split.capped[0].upper = i->forward;
+                            split.capped[1].lower = i->reverse;
+                            split.capped[1].upper = i->reverse;
+
+                            resolved->push_back(split);
+                        }
                     }
                 }
             }
+        }
+
+        // Sort the resolved list by left coordinate
+        if (resolved != NULL) {
+            IntervalLeftSorter sorter;
+            resolved->sort(sorter);
         }
     }
 
@@ -983,13 +1054,13 @@ OverlapResult OverlapBuilder::overlap(const DNASeq& read, size_t minOverlap, Ove
 
     // Match the suffix of seq to prefixes
     finder.find(seq, kSuffixPrefixAF, blocks, blocks, &result);
-    if (_reverse) {
+    if (_rc) {
         rfinder.find(make_complement_dna_copy(seq), kSuffixSuffixAF, blocks, blocks, &result);
     }
 
     // Match the prefix of seq to suffixes
     rfinder.find(make_reverse_dna_copy(seq), kPrefixSuffixAF, blocks, blocks, &result);
-    if (_reverse) {
+    if (_rc) {
         finder.find(make_reverse_complement_dna_copy(seq), kPrefixPrefixAF, blocks, blocks, &result);
     }
 

@@ -467,7 +467,7 @@ private:
     size_t _maxEdges;
 };
 
-bool loadASQG(std::istream& stream, size_t minOverlap, bool allowContainments, size_t maxEdges, Bigraph* g) {
+bool Bigraph::load(std::istream& stream, size_t minOverlap, bool allowContainments, size_t maxEdges, Bigraph* g) {
     enum {
         STAGE_HEAD, 
         STAGE_VERTEX, 
@@ -553,16 +553,16 @@ bool loadASQG(std::istream& stream, size_t minOverlap, bool allowContainments, s
     return true;
 }
 
-bool loadASQG(const std::string& filename, size_t minOverlap, bool allowContainments, size_t maxEdges, Bigraph* g) {
+bool Bigraph::load(const std::string& filename, size_t minOverlap, bool allowContainments, size_t maxEdges, Bigraph* g) {
     std::shared_ptr< std::streambuf > buf(ASQG::ifstreambuf(filename));
     if (buf) {
         std::istream stream(buf.get());
-        return loadASQG(stream, minOverlap, allowContainments, maxEdges, g);
+        return load(stream, minOverlap, allowContainments, maxEdges, g);
     }
     return false;
 }
 
-bool saveASQG(std::ostream& stream, const Bigraph* g) {
+bool Bigraph::save(std::ostream& stream, const Bigraph* g) {
     // Header
     {
         ASQG::HeaderRecord record;
@@ -606,11 +606,12 @@ bool saveASQG(std::ostream& stream, const Bigraph* g) {
     return true;
 }
 
-bool saveASQG(const std::string& filename, const Bigraph* g) {
+bool Bigraph::save(const std::string& filename, const Bigraph* g) {
     std::shared_ptr< std::streambuf > buf(ASQG::ofstreambuf(filename));
     if (buf) {
         std::ostream stream(buf.get());
-        return saveASQG(stream, g);
+        return save(stream, g);
     }
     return false;
 }
+

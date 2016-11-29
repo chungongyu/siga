@@ -37,7 +37,7 @@ public:
         LOG4CXX_INFO(logger, boost::format("output: %s") % output);
 
         FMIndex fmi, rfmi;
-        if (loadFMI(output + BWT_EXT, fmi) && loadFMI(output + RBWT_EXT, rfmi)) {
+        if (FMIndex::load(output + BWT_EXT, fmi) && FMIndex::load(output + RBWT_EXT, rfmi)) {
             OverlapBuilder builder(&fmi, &rfmi, output);
             if (!builder.rmdup(input, output + RMDUP_EXT + ".fa", output + RMDUP_EXT + ".dups.fa")) {
                 LOG4CXX_ERROR(logger, boost::format("Failed to remove duplicates from reads %s") % input);

@@ -135,6 +135,9 @@ public:
     }
 
     void info() const;
+
+    static bool load(std::istream& stream, FMIndex& fmi);
+    static bool load(const std::string& filename, FMIndex& fmi);
 private:
     void initialize();
 
@@ -147,8 +150,5 @@ private:
     SmallMarkerList _smarkers;
     size_t _sampleRate;
 };
-
-bool loadFMI(std::istream& stream, FMIndex& fmi);
-bool loadFMI(const std::string& filename, FMIndex& fmi);
 
 #endif // fmindex_h_

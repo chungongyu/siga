@@ -33,7 +33,7 @@ public:
         LOG4CXX_INFO(logger, boost::format("min-overlap: %d") % options.get< size_t >("min-overlap", 0));
 
         Bigraph g;
-        if (loadASQG(input, options.get< size_t >("min-overlap", 0), true, options.get< size_t >("max-edges", 128), &g)) {
+        if (Bigraph::load(input, options.get< size_t >("min-overlap", 0), true, options.get< size_t >("max-edges", 128), &g)) {
             g.validate();
             LOG4CXX_INFO(logger, "load ok");
 
@@ -106,7 +106,7 @@ public:
                     r = 1;
                 }
             }
-            if (!saveASQG(output + "-graph" + ASQG_EXT + GZIP_EXT, &g)) {
+            if (!Bigraph::save(output + "-graph" + ASQG_EXT + GZIP_EXT, &g)) {
                 LOG4CXX_ERROR(logger, boost::format("failed to open stream %s-graph.asqg.gz") % output);
                 r = 1;
             }
