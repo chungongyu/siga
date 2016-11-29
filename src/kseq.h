@@ -106,6 +106,7 @@ public:
 
     void reset() {
         _name.clear();
+        DNASeqReader::reset();
     }
     bool read(DNASeq& sequence);
 private:

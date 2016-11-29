@@ -824,7 +824,7 @@ public:
                 probe.updateR('$', _rfmi);
                 assert(probe.valid());
                 if (contains != NULL) {
-                    //contains->push_back(OverlapBlock(probe, ranges, l, af));
+                    contains->push_back(OverlapBlock(probe, ranges, l, af));
                 }
             }
         }
@@ -860,14 +860,10 @@ public:
                 // Check if prev and curr overlaps
                 if (Interval::isIntersecting(prev->capped[0].lower, prev->capped[0].upper, curr->capped[0].lower, curr->capped[0].upper)) {
 
-                    std::cerr << "-------------" << std::endl;
-                    std::cerr << *prev << std::endl;
-                    std::cerr << *curr << std::endl;
-
                     // Merge the new elements in and start back from the beginning of the list
                     OverlapBlockList resolved;
                     resolve(*prev, *curr, &resolved);
-                    resolved.sort(sorter);
+                    resolved.sort(sorter);// Sort the resolved list by left coordinate
 
                     blocks->erase(curr);
                     blocks->erase(prev);
@@ -957,6 +953,7 @@ private:
                 for (size_t j = lower->capped[1].lower; j <= lower->capped[1].upper; ++j) {
                     TracingInterval ti;
                     ti.reverse = j;
+                    ti.ranges = lower->raw;
 
                     bool done = false;
                     FMIndex::Interval tracing(j, j);
@@ -1006,12 +1003,6 @@ private:
                 }
             }
         }
-
-        // Sort the resolved list by left coordinate
-        if (resolved != NULL) {
-            IntervalLeftSorter sorter;
-            resolved->sort(sorter);
-        }
     }
 
     class IntervalLeftSorter {
@@ -1052,24 +1043,47 @@ OverlapResult OverlapBuilder::overlap(const DNASeq& read, size_t minOverlap, Ove
     const std::string& seq = read.seq;
     OverlapBlockFinder finder(_fmi, _rfmi, minOverlap), rfinder(_rfmi, _fmi, minOverlap);
 
+    OverlapBlockList suffixfwd, suffixrev, prefixfwd, prefixrev, containfwd, containrev;
     // Match the suffix of seq to prefixes
-    finder.find(seq, kSuffixPrefixAF, blocks, blocks, &result);
+    finder.find(seq, kSuffixPrefixAF, &suffixfwd, &containfwd, &result);
     if (_rc) {
-        rfinder.find(make_complement_dna_copy(seq), kSuffixSuffixAF, blocks, blocks, &result);
+        rfinder.find(make_complement_dna_copy(seq), kSuffixSuffixAF, &suffixrev, &containrev, &result);
     }
 
     // Match the prefix of seq to suffixes
-    rfinder.find(make_reverse_dna_copy(seq), kPrefixSuffixAF, blocks, blocks, &result);
+    rfinder.find(make_reverse_dna_copy(seq), kPrefixSuffixAF, &prefixrev, &containrev, &result);
     if (_rc) {
-        finder.find(make_reverse_complement_dna_copy(seq), kPrefixPrefixAF, blocks, blocks, &result);
+        finder.find(make_reverse_complement_dna_copy(seq), kPrefixPrefixAF, &prefixfwd, &containfwd, &result);
     }
 
+    // Remove submaximal blocks for each block list including fully contained blocks
+    // Copy the containment blocks into the prefix/suffix lists
+    std::copy(containfwd.begin(), containfwd.end(), std::back_inserter(suffixfwd));
+    std::copy(containfwd.begin(), containfwd.end(), std::back_inserter(prefixfwd));
+    std::copy(containrev.begin(), containrev.end(), std::back_inserter(suffixrev));
+    std::copy(containrev.begin(), containrev.end(), std::back_inserter(prefixrev));
+
     SubMaximalBlockFilter filter(_fmi, _rfmi);
-    filter.filter(blocks);
+    filter.filter(&suffixfwd);
+    filter.filter(&prefixfwd);
+    filter.filter(&suffixrev);
+    filter.filter(&prefixrev);
     
-    //ContainmentBlockRemover remover(seq.length());
-    //remover.remove(blocks);
+    // Remove the contain blocks from the suffix/prefix lists
+    ContainmentBlockRemover remover(seq.length());
+    remover.remove(&suffixfwd);
+    remover.remove(&prefixfwd);
+    remover.remove(&suffixrev);
+    remover.remove(&prefixrev);
     
+    // Move the containments to the output list
+    std::copy(containfwd.begin(), containfwd.end(), std::back_inserter(*blocks));
+    std::copy(containrev.begin(), containrev.end(), std::back_inserter(*blocks));
+
+    std::copy(suffixfwd.begin(), suffixfwd.end(), std::back_inserter(*blocks));
+    std::copy(suffixrev.begin(), suffixrev.end(), std::back_inserter(*blocks));
+    std::copy(prefixfwd.begin(), prefixfwd.end(), std::back_inserter(*blocks));
+    std::copy(prefixrev.begin(), prefixrev.end(), std::back_inserter(*blocks));
     //IrreducibleBlockListExtractor extractor(_fmi, _rfmi);
     //extractor.extract(blocks);
 
