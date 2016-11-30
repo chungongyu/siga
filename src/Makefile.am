@@ -6,12 +6,8 @@ arcs_SOURCES=assembler.cpp \
 			 asqg.h \
 			 bigraph.cpp \
 			 bigraph.h \
-			 bigraph_search.cpp \
-			 bigraph_search.h \
 			 bigraph_visitors.cpp \
 			 bigraph_visitors.h \
-			 bigraph_walk.cpp \
-			 bigraph_walk.h \
 			 bwt.cpp \
 			 bwt.h \
 			 constant.cpp \
@@ -43,7 +39,6 @@ arcs_SOURCES=assembler.cpp \
 			 suffix_array.h \
 			 suffix_array_builder.cpp \
 			 suffix_array_builder.h \
-			 utils.cpp \
 			 utils.h \
 			 main.cpp
 arcs_CXXFLAGS=${LOG4CXX_CFLAGS}
