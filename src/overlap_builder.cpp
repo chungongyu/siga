@@ -152,15 +152,20 @@ struct OverlapBlock {
     }
 
     Overlap overlap(const ReadInfo& query, const ReadInfo& target) const {
+        SeqCoord c1(query.length - length, query.length - 1, query.length);
+        SeqCoord c2(0, length - 1, target.length);
+
+        if (af.test(AlignFlags::QUERYREV_BIT)) {
+            c1.flip();
+        }
+        if (af.test(AlignFlags::TARGETREV_BIT)) {
+            c2.flip();
+        }
         return Overlap(
                 query.name, 
-                query.length - length,
-                query.length - 1, 
-                query.length, 
+                c1, 
                 target.name, 
-                0, 
-                length - 1, 
-                target.length, 
+                c2, 
                 af.test(AlignFlags::QUERYCOMP_BIT), 
                 0
                 );
@@ -296,8 +301,8 @@ public:
         size_t idx = 0;
         DNASeq read;
         while (reader.read(read)) {
-            std::string id = boost::str(boost::format("%d") % idx);
-            _readinfo.push_back(ReadInfo(id, read.seq.length()));
+            //std::string id = boost::str(boost::format("%d") % idx);
+            _readinfo.push_back(ReadInfo(read.name, read.seq.length()));
             ++idx;
         }
     }
@@ -368,14 +373,8 @@ public:
                 OverlapList overlaps;
                 size_t numCopies = _converter.convert(hit, &overlaps);
                 BOOST_FOREACH(const Overlap& o, overlaps) {
-                    // The alignment logic above has potential to produce duplicate alignments
-                    // To avoid this, we skip overlaps where the id of the first coord is lexo. lower than
-                    // the second or the match is containment and the query is reversed (containments can be
-                    // output up to 4 times total).
-                    if (o.id[0] < o.id[1]) {
-                        ASQG::EdgeRecord recod(o);
-                        asqg << recod << '\n';
-                    }
+                    ASQG::EdgeRecord recod(o);
+                    asqg << recod << '\n';
                 }
             }
         }
@@ -1047,13 +1046,13 @@ OverlapResult OverlapBuilder::overlap(const DNASeq& read, size_t minOverlap, Ove
     // Match the suffix of seq to prefixes
     finder.find(seq, kSuffixPrefixAF, &suffixfwd, &containfwd, &result);
     if (_rc) {
-        rfinder.find(make_complement_dna_copy(seq), kSuffixSuffixAF, &suffixrev, &containrev, &result);
+        finder.find(make_reverse_complement_dna_copy(seq), kPrefixPrefixAF, &prefixfwd, &containfwd, &result);
     }
 
     // Match the prefix of seq to suffixes
     rfinder.find(make_reverse_dna_copy(seq), kPrefixSuffixAF, &prefixrev, &containrev, &result);
     if (_rc) {
-        finder.find(make_reverse_complement_dna_copy(seq), kPrefixPrefixAF, &prefixfwd, &containfwd, &result);
+        rfinder.find(make_complement_dna_copy(seq), kSuffixSuffixAF, &suffixrev, &containrev, &result);
     }
 
     // Remove submaximal blocks for each block list including fully contained blocks

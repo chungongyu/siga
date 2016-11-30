@@ -33,7 +33,7 @@ public:
     void flip(size_t l) {
         size_t t = start;
         start = flip(end, l);
-        end = flip(start, l);
+        end = flip(t, l);
     }
 
     // Precondition: s1 >= e1 and s2 >= e2 
