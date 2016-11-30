@@ -646,14 +646,18 @@ public:
     IrreducibleBlockListExtractor(const FMIndex* fmi, const FMIndex* rfmi) : _fmi(fmi), _rfmi(rfmi) {
     }
 
-    bool extract(OverlapBlockList* blocks) {
-        assert(blocks != NULL);
+    bool extract(OverlapBlockList* inblocks, OverlapBlockList* outblocks) {
+        assert(inblocks != NULL && outblocks != NULL);
+
+        // Require blocks to be sorted in descending order.
+        OverlapBlockLengthSorter sorter;
+        inblocks->sort(sorter);
 
         // We store the overlap blocks in groups of blocks that have the same right-extension.
         // When a branch is found, the groups are split based on the extension
         typedef std::list< OverlapBlockList > BlockGroups;
 
-        BlockGroups groups = boost::assign::list_of(*blocks);
+        BlockGroups groups = boost::assign::list_of(*inblocks);
         while (!groups.empty()) {
             // Perform one extenion round for each group.
             // If the top-level block has ended, push the result
@@ -694,7 +698,7 @@ public:
                         // Perform the final right-update to make the block terminal
                         OverlapBlock branched = *j;
                         branched.capped.updateR('$', branched.index(_fmi, _rfmi));
-                        blocks->push_back(branched);
+                        outblocks->push_back(branched);
 
                         LOG4CXX_DEBUG(logger, boost::format("TLB of length %d has ended") % branched.length);
                     }
@@ -740,6 +744,12 @@ public:
         return true;
     }
 private:
+    class OverlapBlockLengthSorter {
+    public:
+        bool operator()(const OverlapBlock& x, const OverlapBlock& y) const {
+            return x.length > y.length;
+        }
+    };
     void updateR(char c, OverlapBlockList* blocks) {
         assert(blocks != NULL);
         OverlapBlockList::iterator i = blocks->begin();
@@ -1079,12 +1089,22 @@ OverlapResult OverlapBuilder::overlap(const DNASeq& read, size_t minOverlap, Ove
     std::copy(containfwd.begin(), containfwd.end(), std::back_inserter(*blocks));
     std::copy(containrev.begin(), containrev.end(), std::back_inserter(*blocks));
 
-    std::copy(suffixfwd.begin(), suffixfwd.end(), std::back_inserter(*blocks));
-    std::copy(suffixrev.begin(), suffixrev.end(), std::back_inserter(*blocks));
-    std::copy(prefixfwd.begin(), prefixfwd.end(), std::back_inserter(*blocks));
-    std::copy(prefixrev.begin(), prefixrev.end(), std::back_inserter(*blocks));
-    //IrreducibleBlockListExtractor extractor(_fmi, _rfmi);
-    //extractor.extract(blocks);
+    // Filter out transitive overlap blocks if requested
+    if (_irreducible) {
+        IrreducibleBlockListExtractor extractor(_fmi, _rfmi);
+
+        // Join the suffix and prefix lists
+        std::copy(suffixrev.begin(), suffixrev.end(), std::back_inserter(suffixfwd));
+        result.aborted |= extractor.extract(&suffixfwd, blocks);
+
+        std::copy(prefixrev.begin(), prefixrev.end(), std::back_inserter(prefixfwd));
+        result.aborted |= extractor.extract(&prefixfwd, blocks);
+    } else {
+        std::copy(suffixfwd.begin(), suffixfwd.end(), std::back_inserter(*blocks));
+        std::copy(suffixrev.begin(), suffixrev.end(), std::back_inserter(*blocks));
+        std::copy(prefixfwd.begin(), prefixfwd.end(), std::back_inserter(*blocks));
+        std::copy(prefixrev.begin(), prefixrev.end(), std::back_inserter(*blocks));
+    }
 
     return result;
 }

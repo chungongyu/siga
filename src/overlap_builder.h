@@ -17,7 +17,7 @@ typedef std::list< OverlapBlock > OverlapBlockList;
 //
 class OverlapBuilder {
 public:
-    OverlapBuilder(const FMIndex* fmi, const FMIndex* rfmi, const std::string& prefix="default", bool rc=true) : _fmi(fmi), _rfmi(rfmi), _prefix(prefix), _rc(rc) {
+    OverlapBuilder(const FMIndex* fmi, const FMIndex* rfmi, const std::string& prefix="default", bool irreducible=true, bool rc=true) : _fmi(fmi), _rfmi(rfmi), _prefix(prefix), _irreducible(irreducible), _rc(rc) {
     }
 
     bool build(DNASeqReader& reader, size_t minOverlap, std::ostream& output, size_t threads=1, size_t* processed=NULL) const;
@@ -33,6 +33,7 @@ private:
     const FMIndex* _fmi;
     const FMIndex* _rfmi;
     std::string _prefix;
+    bool _irreducible;
     bool _rc; // reverse complement
 };
 
