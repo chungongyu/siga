@@ -21,7 +21,6 @@ arcs_SOURCES=assembler.cpp \
 			 coord.h \
 			 fmindex.cpp \
 			 fmindex.h \
-			 gapfiller.cpp \
 			 indexer.cpp \
 			 kmerdistr.cpp \
 			 kmerdistr.h \
@@ -40,7 +39,6 @@ arcs_SOURCES=assembler.cpp \
 			 rmdup.cpp \
 			 runner.h \
 			 sequence_process_framework.h \
-			 scaffold.cpp \
 			 suffix_array.cpp \
 			 suffix_array.h \
 			 suffix_array_builder.cpp \

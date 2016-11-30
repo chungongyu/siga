@@ -405,7 +405,7 @@ private:
                 "                                       the soft clip (quality-trim) option.\n"
                 "\n"
                 "Adapter/Primer checks:\n"
-                "      -P, --no-primer-check            disable the default check for primer sequences\n"
+                "          --no-primer-check            disable the default check for primer sequences\n"
                 "\n"
                 ) % PACKAGE_NAME << std::endl;
 
