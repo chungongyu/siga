@@ -10,7 +10,6 @@ arcs_SOURCES=assembler.cpp \
 			 bigraph_visitors.h \
 			 bwt.cpp \
 			 bwt.h \
-			 constant.cpp \
 			 constant.h \
 			 correct.cpp \
 			 coord.cpp \
