@@ -93,6 +93,29 @@ namespace SequenceProcessFramework {
 
     template< class Input, class Output, class Generator, class Processor, class PostProcessor >
     log4cxx::LoggerPtr SerialWorker< Input, Output, Generator, Processor, PostProcessor >::logger(log4cxx::Logger::getLogger("arcs.SequenceProcessFramework"));
+
+    //
+    // Producer/Consumer Queue
+    //
+    template< typename T >
+    class ProducerConsumerQueue {
+    public:
+        ProducerConsumerQueue(bool active=true) : _active(true) {
+        }
+
+        bool activate() {
+            _active = true;
+        }
+        bool deactivate() {
+            _active = false;
+        }
+    private:
+        bool _active;
+        static log4cxx::LoggerPtr logger;
+    };
+
+    template< typename T >
+    log4cxx::LoggerPtr ProducerConsumerQueue< T >::logger(log4cxx::Logger::getLogger("arcs.SequenceProcessFramework"));
 };
 
 #endif // sequence_process_framework_h_

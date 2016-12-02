@@ -39,7 +39,7 @@ public:
 
         FMIndex fmi, rfmi;
         if (FMIndex::load(output + BWT_EXT, fmi) && FMIndex::load(output + RBWT_EXT, rfmi)) {
-            OverlapBuilder builder(&fmi, &rfmi, output, options.find("exhaustive") == options.not_found(), options.find("no-rc") == options.not_found());
+            OverlapBuilder builder(&fmi, &rfmi, output, options.find("exhaustive") == options.not_found(), options.find("no-opposite-strand") == options.not_found());
             if (!builder.build(input, options.get< size_t >("min-overlap", 10), output + ASQG_EXT + GZIP_EXT)) {
                 LOG4CXX_ERROR(logger, boost::format("Failed to build overlaps from reads %s") % input);
                 r = -1;
@@ -73,7 +73,7 @@ private:
                 "      -m, --min-overlap=LEN            minimum overlap required between two reads (default: 45)\n"
                 "      -p, --prefix=PREFIX              write index to file using PREFIX instead of prefix of READSFILE\n"
                 "      -x, --exhaustive                 output all overlaps, including transitive edges\n"
-                "          --no-rc                      suppress construction of the reverse BWT. Use this option when building the index\n"
+                "          --no-opposite-strand         treat all reads as forward strand\n"
                 "\n"
                 ) % PACKAGE_NAME << std::endl;
         return 256;
@@ -82,14 +82,14 @@ private:
     static Overlapping _runner;
 };
 
-static const std::string shortopts = "c:s:t:p:m:h";
+static const std::string shortopts = "c:s:t:p:m:xh";
 enum { OPT_HELP = 1, OPT_NO_RC };
 static const option longopts[] = {
     {"prefix",              required_argument,  NULL, 'p'}, 
     {"threads",             required_argument,  NULL, 't'}, 
     {"min-overlap",         required_argument,  NULL, 'm'}, 
     {"exhaustive",          no_argument,        NULL, 'x'}, 
-    {"no-rc",               no_argument,        NULL, OPT_NO_RC}, 
+    {"no-opposite-strand",  no_argument,        NULL, OPT_NO_RC}, 
     {"help",                no_argument,        NULL, 'h'}, 
     {NULL, 0, NULL, 0}, 
 };

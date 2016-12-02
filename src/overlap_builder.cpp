@@ -393,6 +393,10 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
         ASQG::HeaderRecord record;
         record.overlap(minOverlap);
         record.containment(1);
+        std::string* infile = (std::string *)reader.extra();
+        if (infile != NULL) {
+            record.infile(*infile);
+        }
         output << record << '\n';
     }
 
@@ -448,7 +452,7 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
 bool OverlapBuilder::build(const std::string& input, size_t minOverlap, const std::string& output, size_t threads, size_t* processed) const {
     // DNASeqReader
     std::ifstream reads(input);
-    std::shared_ptr< DNASeqReader > reader(DNASeqReaderFactory::create(reads));
+    std::shared_ptr< DNASeqReader > reader(DNASeqReaderFactory::create(reads, &input));
     if (!reader) {
         LOG4CXX_ERROR(logger, boost::format("Failed to create DNASeqReader %s") % input);
         return false;
@@ -704,8 +708,10 @@ public:
                     }
                 } else {
                     // Count the extension for the rest of the blocks
-                    for (OverlapBlockList::const_iterator j = blocklist.begin(); j != blocklist.end() && j->length != topLength; ++j) {
-                        exts += j->ext(_fmi, _rfmi);
+                    for (OverlapBlockList::const_iterator j = blocklist.begin(); j != blocklist.end(); ++j) {
+                        if (j->length < topLength) {
+                            exts += j->ext(_fmi, _rfmi);
+                        }
                     }
 
                     // If only one of the DNA characters has a non-zero count

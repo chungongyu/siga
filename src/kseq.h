@@ -42,7 +42,7 @@ bool ReadDNASequences(const std::vector< std::string >& filelist, DNASeqList& se
 
 class DNASeqReader {
 public:
-    DNASeqReader(std::istream& stream) : _stream(stream) {
+    DNASeqReader(std::istream& stream, const void* extra=NULL) : _stream(stream), _extra(extra) {
         _pos = stream.tellg();
     }
 
@@ -51,14 +51,20 @@ public:
         _stream.seekg(_pos);
     }
     virtual bool read(DNASeq& sequence) = 0;
+
+    const void* extra() const {
+        return _extra;
+    }
 protected:
     std::istream& _stream;
     size_t _pos;
+
+    const void* _extra;
 };
 
 class DNASeqReaderFactory {
 public:
-    static DNASeqReader* create(std::istream& stream);
+    static DNASeqReader* create(std::istream& stream, const void* extra=NULL);
 };
 
 //
@@ -85,7 +91,7 @@ public:
 // 
 class FASTQReader : public DNASeqReader {
 public:
-    FASTQReader(std::istream& stream) : DNASeqReader(stream) {
+    FASTQReader(std::istream& stream, const void* extra=NULL) : DNASeqReader(stream, extra) {
     }
     
     bool read(DNASeq& sequence);
@@ -101,7 +107,7 @@ public:
 // 
 class FASTAReader : public DNASeqReader {
 public:
-    FASTAReader(std::istream& stream) : DNASeqReader(stream) {
+    FASTAReader(std::istream& stream, const void* extra=NULL) : DNASeqReader(stream, extra) {
     }
 
     void reset() {
