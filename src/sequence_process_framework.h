@@ -1,6 +1,7 @@
 #ifndef sequence_process_framework_h_
 #define sequence_process_framework_h_
 
+#include "config.h"
 #include "kseq.h"
 
 #ifdef HAVE_OMP_H
