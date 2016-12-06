@@ -24,7 +24,7 @@ PKG_CHECK_MODULES([LOG4CXX], [liblog4cxx >= 0.10.0])
 AC_CHECK_LIB([pthread], [main])
 
 # Checks for header files.
-AC_CHECK_HEADERS([stdlib.h string.h unistd.h])
+AC_CHECK_HEADERS([stdlib.h string.h unistd.h omp.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_CHECK_HEADER_STDBOOL

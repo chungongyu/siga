@@ -3,7 +3,9 @@
 
 #include "kseq.h"
 
+#ifdef HAVE_OMP_H
 #include <omp.h>
+#endif
 
 #include <fstream>
 #include <iostream>
