@@ -100,7 +100,7 @@ namespace SequenceProcessFramework {
     template< class Input, class Output, class Generator, class Processor, class PostProcessor >
     log4cxx::LoggerPtr SerialWorker< Input, Output, Generator, Processor, PostProcessor >::logger(log4cxx::Logger::getLogger("arcs.SequenceProcessFramework"));
 
-#if _OPENMP
+#ifdef _OPENMP
     template< class Input, class Output, class Generator, class Processor, class PostProcessor >
     class ParallelWorker {
     public:

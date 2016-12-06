@@ -425,7 +425,7 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
 
         hits.push_back(hit);
     } else { // multi thread
-#if _OPENMP
+#ifdef _OPENMP
         std::vector< std::shared_ptr< std::streambuf > > buflist(threads);
         std::vector< std::shared_ptr< std::ostream > > streamlist(threads);
         std::vector< OverlapProcess* > proclist(threads);
@@ -459,7 +459,8 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
             delete proclist[i];
         }
 #else
-        assert(false);
+        LOG4CXX_ERROR(logger, "failed to OpenMP");
+        return false;
 #endif
     }
 
