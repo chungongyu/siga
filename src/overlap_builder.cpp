@@ -172,7 +172,7 @@ struct OverlapBlock {
     }
 
     const FMIndex* index(const FMIndex* index, const FMIndex* rindex) const {
-        return af.test(AlignFlags::TARGETREV_BIT) ? rindex : index;
+        return !af.test(AlignFlags::TARGETREV_BIT) ? rindex : index;
     }
 
     DNAAlphabet::AlphaCount64 ext(const FMIndex* fmi, const FMIndex* rfmi) const {
