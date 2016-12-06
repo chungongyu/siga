@@ -3,9 +3,12 @@
 
 #include "kseq.h"
 
+#include <omp.h>
+
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <vector>
 
 #include <boost/format.hpp>
 
@@ -94,28 +97,71 @@ namespace SequenceProcessFramework {
     template< class Input, class Output, class Generator, class Processor, class PostProcessor >
     log4cxx::LoggerPtr SerialWorker< Input, Output, Generator, Processor, PostProcessor >::logger(log4cxx::Logger::getLogger("arcs.SequenceProcessFramework"));
 
-    //
-    // Producer/Consumer Queue
-    //
-    template< typename T >
-    class ProducerConsumerQueue {
+#if _OPENMP
+    template< class Input, class Output, class Generator, class Processor, class PostProcessor >
+    class ParallelWorker {
     public:
-        ProducerConsumerQueue(bool active=true) : _active(true) {
+        size_t run(Generator& generator, std::vector< Processor* >* proclist, PostProcessor* postproc, size_t n = -1) {
+            size_t threads = proclist->size();
+            omp_set_num_threads(threads);
+
+            bool done = false;
+            std::vector< Input > inputs;
+            while (!done) {
+                Input workItem;
+                if (generator.consumed() < n && generator.generate(workItem)) {
+                    inputs.push_back(workItem);
+                } else {
+                    done = true;
+                }
+
+                // Once all buffers are full or the input is finished, dispatch the work to the threads
+                if (inputs.size() == threads * 1000 || done) { 
+                    std::vector< Output > outputs(inputs.size());
+
+                    #pragma omp parallel for schedule(dynamic, 256)
+                    for (size_t i = 0; i < inputs.size(); ++i) {
+                        size_t tid = omp_get_thread_num();
+                        outputs[i] = (*proclist)[tid]->process(inputs[i]);
+                    }
+
+                    for (size_t i = 0; i < inputs.size(); ++i) {
+                        if (postproc != NULL) {
+                            postproc->process(inputs[i], outputs[i]);
+                        }
+                    }
+                    inputs.clear();
+                }
+            }
+            
+            LOG4CXX_INFO(logger, boost::format("processed %d sequences") % generator.consumed());
+
+            return generator.consumed();
         }
 
-        bool activate() {
-            _active = true;
+        size_t run(DNASeqReader& reader, std::vector< Processor* >* proclist, PostProcessor* postproc, size_t n = -1) {
+            WorkItemGenerator< Input > generator(reader);
+            return run(generator, proclist, postproc, n);
         }
-        bool deactivate() {
-            _active = false;
+
+        size_t run(std::istream& stream, std::vector< Processor* >* proclist, PostProcessor* postproc, size_t n = -1) {
+            std::shared_ptr< DNASeqReader > reader(DNASeqReaderFactory::create(stream));
+            if (reader) {
+                return run(*reader, proclist, postproc, n);
+            }
+            return 0;
+        }
+        size_t run(const std::string& filename, std::vector< Processor* >* proclist, PostProcessor* postproc, size_t n = -1) {
+            std::ofstream stream(filename.c_str());
+            return run(stream, proclist, postproc, n);
         }
     private:
-        bool _active;
         static log4cxx::LoggerPtr logger;
     };
 
-    template< typename T >
-    log4cxx::LoggerPtr ProducerConsumerQueue< T >::logger(log4cxx::Logger::getLogger("arcs.SequenceProcessFramework"));
+    template< class Input, class Output, class Generator, class Processor, class PostProcessor >
+    log4cxx::LoggerPtr ParallelWorker< Input, Output, Generator, Processor, PostProcessor >::logger(log4cxx::Logger::getLogger("arcs.SequenceProcessFramework"));
+#endif // _OPENMP
 };
 
 #endif // sequence_process_framework_h_

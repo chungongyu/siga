@@ -11,8 +11,9 @@ AM_INIT_AUTOMAKE([-Wall -Werror])
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_CC
-AC_PROG_LIBTOOL 
 AM_PROG_AR
+AC_PROG_LIBTOOL 
+AC_OPENMP
 
 AX_CXX_COMPILE_STDCXX_11([noext],[mandatory])
 

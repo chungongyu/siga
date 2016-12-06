@@ -40,8 +40,10 @@ arcs_SOURCES=assembler.cpp \
 			 suffix_array_builder.h \
 			 utils.h \
 			 main.cpp
-arcs_CXXFLAGS=${LOG4CXX_CFLAGS}
+arcs_CXXFLAGS=${LOG4CXX_CFLAGS} \
+			  ${OPENMP_CFLAGS}
 arcs_LDFLAGS=${LOG4CXX_LIBS} \
+			 ${OPENMP_LIBS} \
 			 -lboost_filesystem \
 			 -lboost_iostreams \
 			 -lboost_system

@@ -425,7 +425,42 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
 
         hits.push_back(hit);
     } else { // multi thread
+#if _OPENMP
+        std::vector< std::shared_ptr< std::streambuf > > buflist(threads);
+        std::vector< std::shared_ptr< std::ostream > > streamlist(threads);
+        std::vector< OverlapProcess* > proclist(threads);
+        for (size_t i = 0; i < threads; ++i) {
+            std::string hit = boost::str(boost::format("%s-thread%d%s%s") % _prefix % i % HITS_EXT % GZIP_EXT);
+            std::shared_ptr< std::streambuf > buf(ASQG::ofstreambuf(hit));
+            if (!buf) {
+                LOG4CXX_ERROR(logger, boost::format("failed to create hits %s") % hit);
+                return false;
+            }
+            std::shared_ptr< std::ostream > stream(new std::ostream(buf.get()));
+            proclist[i] = new OverlapProcess(this, minOverlap, *stream);
+            streamlist[i] = stream;
+            buflist[i] = buf;
+            hits.push_back(hit);
+        }
+        OverlapPostProcess postproc(output);
+
+        SequenceProcessFramework::ParallelWorker<
+            SequenceProcessFramework::SequenceWorkItem, 
+            OverlapResult, 
+            SequenceProcessFramework::WorkItemGenerator< SequenceProcessFramework::SequenceWorkItem >, 
+            OverlapProcess, 
+            OverlapPostProcess
+            > worker;
+        size_t num = worker.run(reader, &proclist, &postproc);
+        if (processed != NULL) {
+            *processed = num;
+        }
+        for (size_t i = 0; i < threads; ++i) {
+            delete proclist[i];
+        }
+#else
         assert(false);
+#endif
     }
 
     // Convert hits to ASQG
