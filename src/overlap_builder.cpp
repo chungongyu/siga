@@ -459,9 +459,9 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
             delete proclist[i];
         }
 #else
-        LOG4CXX_ERROR(logger, "failed to OpenMP");
+        LOG4CXX_ERROR(logger, "failed to load OpenMP");
         return false;
-#endif
+#endif // _OPENMP
     }
 
     // Convert hits to ASQG
