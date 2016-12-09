@@ -14,8 +14,9 @@ enum GraphColor {
     GC_WHITE = 0, 
     GC_GRAY, 
     GC_BLACK, 
-    GC_BLUE, 
-    GC_RED
+    GC_RED, 
+    GC_GREEN, 
+    GC_BLUE 
 };
 
 class Vertex;

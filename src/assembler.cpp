@@ -29,11 +29,16 @@ public:
         std::string output = options.get< std::string >("prefix", "default");
         LOG4CXX_INFO(logger, boost::format("output: %s") % output);
 
+        size_t minOverlap = options.get< size_t >("min-overlap", 0);
+
         LOG4CXX_INFO(logger, "parameters:");
-        LOG4CXX_INFO(logger, boost::format("min-overlap: %d") % options.get< size_t >("min-overlap", 0));
+        LOG4CXX_INFO(logger, boost::format("min-overlap: %d") % minOverlap);
+        if (options.find("insert-size") != options.not_found()) {
+            LOG4CXX_INFO(logger, boost::format("insert-size: %d") % options.get< size_t >("insert-size"));
+        }
 
         Bigraph g;
-        if (Bigraph::load(input, options.get< size_t >("min-overlap", 0), true, options.get< size_t >("max-edges", 128), &g)) {
+        if (Bigraph::load(input, minOverlap, true, options.get< size_t >("max-edges", 128), &g)) {
             g.validate();
             LOG4CXX_INFO(logger, "load ok");
 
@@ -48,6 +53,11 @@ public:
             // Pre-assembly graph stats
             LOG4CXX_INFO(logger, "[Stats] Input graph:");
             g.visit(&statsVisit);
+
+            if (options.find("insert-size") != options.not_found()) {
+                PairedReadVisitor prVisit(minOverlap, options.get< size_t >("insert-size"));
+                g.visit(&prVisit);
+            }
 
             LOG4CXX_INFO(logger, "Removing contained vertices from graph");
             while (g.containment()) {
@@ -141,6 +151,7 @@ private:
                 "      -m, --min-overlap=LEN            only use overlaps of at least LEN. This can be used to filter\n"
                 "          --max-edges=N                limit each vertex to a maximum of N edges. For highly repetitive regions\n"
                 "                                       this helps save memory by culling excessive edges around unresolvable repeats (default: 128)\n"
+                "          --insert-size=INT            treat reads as paired white insert size INT (default 0)\n"
                 "\n"
                 "Bubble/Variation removal parameters:\n"
                 "      -b, --bubble=N                   perform N bubble removal steps (default: 3)\n"
@@ -164,11 +175,12 @@ private:
 };
 
 static const std::string shortopts = "c:s:p:t:m:x:n:l:a:b:d:h";
-enum { OPT_HELP = 1, OPT_MAXEDGES };
+enum { OPT_HELP = 1, OPT_INSERTSIZE, OPT_MAXEDGES };
 static const option longopts[] = {
     {"prefix",              required_argument,  NULL, 'p'}, 
     {"threads",             required_argument,  NULL, 't'}, 
     {"min-overlap",         required_argument,  NULL, 'm'}, 
+    {"insert-size",         required_argument,  NULL, OPT_INSERTSIZE}, 
     {"max-edges",           required_argument,  NULL, OPT_MAXEDGES}, 
     {"bubble",              required_argument,  NULL, 'b'}, 
     {"min-branch-length",   required_argument,  NULL, 'n'}, 

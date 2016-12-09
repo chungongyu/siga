@@ -70,6 +70,21 @@ private:
     size_t _dummys;
 };
 
+// Visit each paired node, sweep false positive edges.
+class PairedReadVisitor : public BigraphVisitor {
+public:
+    PairedReadVisitor(size_t minOverlap, size_t gap) : _minOverlap(minOverlap), _gap(gap), _dummys(0) {
+    }
+    void previsit(Bigraph* graph);
+    bool visit(Bigraph* graph, Vertex* vertex);
+    void postvisit(Bigraph* graph);
+private:
+    size_t _minOverlap;
+    size_t _gap; // insert size
+    size_t _dummys;
+};
+
+
 // Smooth out variation in the graph
 class SmoothingVisitor : public BigraphVisitor {
 public:

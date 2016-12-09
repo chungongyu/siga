@@ -1,6 +1,7 @@
 #include "bigraph_visitors.h"
 #include "bigraph.h"
 #include "kseq.h"
+#include "reads.h"
 #include "utils.h"
 
 #include <boost/format.hpp>
@@ -203,6 +204,34 @@ bool MaximalOverlapVisitor::isSenseEdge(const Edge* edge) {
 
 bool MaximalOverlapVisitor::isAntiSenseEdge(const Edge* edge) {
     return !isSenseEdge(edge);
+}
+
+//
+// PairedReadVisitor
+//
+
+void PairedReadVisitor::previsit(Bigraph* graph) {
+    graph->color(GC_WHITE);
+    _dummys = 0;
+}
+
+bool PairedReadVisitor::visit(Bigraph* graph, Vertex* vertex) {
+    if (vertex->color() == GC_WHITE) {
+        /*
+        // forward extend
+        while (true) {
+        }
+        // backward extend
+        while (true) {
+        }
+        */
+    }
+    return false;
+}
+
+void PairedReadVisitor::postvisit(Bigraph* graph) {
+    graph->sweepEdges(GC_BLACK);
+    LOG4CXX_INFO(logger, boost::format("[PairedReadVisitor] Removed %d dummy edges") % _dummys);
 }
 
 //
