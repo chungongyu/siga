@@ -147,7 +147,6 @@ private:
                 "      -h, --help                       display this help and exit\n"
                 "\n"
                 "      -p, --prefix=NAME                use NAME as the prefix of the output files (output files will be NAME-contigs.fa, etc)\n"
-                "      -t, --threads=NUM                use NUM threads to construct the index (default: 1)\n"
                 "      -m, --min-overlap=LEN            only use overlaps of at least LEN. This can be used to filter\n"
                 "          --max-edges=N                limit each vertex to a maximum of N edges. For highly repetitive regions\n"
                 "                                       this helps save memory by culling excessive edges around unresolvable repeats (default: 128)\n"
@@ -178,7 +177,6 @@ static const std::string shortopts = "c:s:p:t:m:x:n:l:a:b:d:h";
 enum { OPT_HELP = 1, OPT_INSERTSIZE, OPT_MAXEDGES };
 static const option longopts[] = {
     {"prefix",              required_argument,  NULL, 'p'}, 
-    {"threads",             required_argument,  NULL, 't'}, 
     {"min-overlap",         required_argument,  NULL, 'm'}, 
     {"insert-size",         required_argument,  NULL, OPT_INSERTSIZE}, 
     {"max-edges",           required_argument,  NULL, OPT_MAXEDGES}, 

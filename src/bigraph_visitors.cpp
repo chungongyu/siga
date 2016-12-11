@@ -4,6 +4,7 @@
 #include "reads.h"
 #include "utils.h"
 
+#include <boost/assign.hpp>
 #include <boost/format.hpp>
 
 #include <log4cxx/logger.h>
@@ -205,6 +206,96 @@ bool MaximalOverlapVisitor::isSenseEdge(const Edge* edge) {
 bool MaximalOverlapVisitor::isAntiSenseEdge(const Edge* edge) {
     return !isSenseEdge(edge);
 }
+
+// 
+// BigraphSearchTree
+//
+
+template< typename DistanceT >
+class BigraphSearchTree {
+    class Node;
+    typedef std::vector< Node* > NodePtrList;
+    class Node {
+        Node(Vertex* vertex, Edge* edge, size_t distance, Node* parent) : vertex(vertex), edge(edge), distance(distance), parent(parent) {
+            if (parent != NULL) {
+                ++parent->children;
+            }
+        }
+        ~Node() {
+            assert(children == 0);
+            if (parent != NULL) {
+                assert(parent->children > 0);
+                --parent->children;
+            }
+        }
+
+        Vertex* vertex;
+        Edge* edge;
+        size_t distance;
+        Node* parent;
+
+        size_t children;
+    };
+public:
+    BigraphSearchTree(Vertex* start, Vertex* end, Edge::Dir searchDir, size_t minDistance, size_t maxDistance, size_t maxNodes) : _searchDir(searchDir), _minDistance(minDistance), _maxDistance(maxDistance), _maxNodes(maxNodes), _numNodes(1) {
+        _leaves = boost::assign::list_of(new Node(start, NULL, 0, NULL));
+    }
+    ~BigraphSearchTree() {
+        // Delete the tree: 
+        // delete each leaf and recurse up the tree iteratively.
+        for (typename NodePtrList::iterator i = _leaves.begin(); i != _leaves.end(); ++i) {
+            Node* curr = *i;
+            // loop invariant: curr is a deletable node
+            do {
+                assert(curr->children == 0);
+                Node* next = curr->parent;
+                delete curr;
+                curr = next;
+            } while (curr != NULL && curr->children == 0);
+        }
+    }
+
+    void build() {
+        typedef std::deque< Node* > NodePtrQueue;
+
+        NodePtrQueue Q;
+        std::copy(_leaves.begin(), _leaves.end(), std::back_inserter(Q));
+
+        _leaves.clear();
+        while (!Q.empty()) {
+            if (_numNodes >= _maxNodes) {
+                std::copy(Q.begin(), Q.end(), std::back_inserter(Q));
+                break;
+            }
+
+            Node* curr = Q.front();
+            Q.pop_front();
+
+            assert(curr->children == 0);
+            EdgePtrList edges = curr->vertex->getEdges(_searchDir);
+
+            if (curr->distance >= _maxDistance || edges.empty()) {
+                _leaves.push_back(curr);
+            } else {
+                for (EdgePtrList::const_iterator i = edges.begin(); i != edges.end(); ++i) {
+                    Edge* edge = *i;
+                    Node* child = new Node(edge->end(), edge, curr->distance + 1, curr);
+                    _leaves.push_back(child);
+                }
+            }
+        }
+    }
+private:
+    NodePtrList _leaves;
+
+    Vertex* _end;
+    Edge::Dir _searchDir;
+    size_t _numNodes;
+
+    size_t _minDistance;
+    size_t _maxDistance;
+    size_t _maxNodes;
+};
 
 //
 // PairedReadVisitor
