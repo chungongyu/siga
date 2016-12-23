@@ -248,6 +248,7 @@ private:
 
         // Ensure sequence is entirely ACGT
         if (record.seq.find_first_not_of("ACGT") != std::string::npos) {
+            LOG4CXX_DEBUG(logger, boost::format("%s is not entirely ACGT") % record.name);
             return false;
         }
 

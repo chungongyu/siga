@@ -150,7 +150,7 @@ private:
                 "      -m, --min-overlap=LEN            only use overlaps of at least LEN. This can be used to filter\n"
                 "          --max-edges=N                limit each vertex to a maximum of N edges. For highly repetitive regions\n"
                 "                                       this helps save memory by culling excessive edges around unresolvable repeats (default: 128)\n"
-                "          --insert-size=INT            treat reads as paired white insert size INT (default 0)\n"
+                "          --insert-size=INT            treat reads as paired with insert size INT (default 0)\n"
                 "\n"
                 "Bubble/Variation removal parameters:\n"
                 "      -b, --bubble=N                   perform N bubble removal steps (default: 3)\n"
