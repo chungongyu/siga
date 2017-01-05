@@ -63,9 +63,10 @@ void Edge::validate() const {
     }
     if (m1 != m2) {
         LOG4CXX_ERROR(logger, "Error, matching strings are not the same length");
-        LOG4CXX_ERROR(logger, boost::format("V1M: %s") % m1);
-        LOG4CXX_ERROR(logger, boost::format("V2M: %s") % m2);
+        LOG4CXX_ERROR(logger, boost::format("V1M: %s,%s") % start()->id() % m1);
+        LOG4CXX_ERROR(logger, boost::format("V2M: %s,%s") % end()->id() % m2);
         LOG4CXX_ERROR(logger, boost::format("V1: %s") % v1)
+        LOG4CXX_ERROR(logger, boost::format("V2: %s") % v2)
         assert(false);
     }
 }

@@ -1114,11 +1114,16 @@ OverlapResult OverlapBuilder::overlap(const DNASeq& read, size_t minOverlap, Ove
     std::copy(containrev.begin(), containrev.end(), std::back_inserter(suffixrev));
     std::copy(containrev.begin(), containrev.end(), std::back_inserter(prefixrev));
 
-    SubMaximalBlockFilter filter(_fmi, _rfmi);
-    filter.filter(&suffixfwd);
-    filter.filter(&prefixfwd);
-    filter.filter(&suffixrev);
-    filter.filter(&prefixrev);
+    {
+        SubMaximalBlockFilter filter(_fmi, _rfmi);
+        filter.filter(&suffixfwd);
+        filter.filter(&prefixfwd);
+    }
+    {
+        SubMaximalBlockFilter filter(_rfmi, _fmi);
+        filter.filter(&suffixrev);
+        filter.filter(&prefixrev);
+    }
     
     // Remove the contain blocks from the suffix/prefix lists
     ContainmentBlockRemover remover(seq.length());
