@@ -12,6 +12,8 @@ arcs_SOURCES=assembler.cpp \
 			 bwt.h \
 			 constant.h \
 			 correct.cpp \
+			 correct_processor.cpp \
+			 correct_processor.h \
 			 coord.cpp \
 			 coord.h \
 			 fmindex.cpp \

@@ -35,8 +35,8 @@ void inssort(T* a, int n, int d, const PrimarySorter& primarySorter, const Final
     for (pi = a + 1; --n > 0; pi++) {
         for (pj = pi; pj > a; pj--) {
             // Inline strcmp: break if *(pj-1) <= *pj
-            T elem_s = *(pj - 1);
-            T elem_t = *pj;
+            const T& elem_s = *(pj - 1);
+            const T& elem_t = *pj;
             const char* s = primarySorter.getChrPtr(elem_s);
             const char* t = primarySorter.getChrPtr(elem_t);
 

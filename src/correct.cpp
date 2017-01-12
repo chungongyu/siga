@@ -1,11 +1,14 @@
 #include "config.h"
 #include "constant.h"
+#include "correct_processor.h"
+#include "fmindex.h"
 #include "runner.h"
 
 #include <iostream>
 #include <memory>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 
 #include <log4cxx/logger.h>
@@ -19,6 +22,30 @@ public:
 
         if ((r = checkOptions(options, arguments)) != 0) {
             return r;
+        }
+
+        std::string input = arguments[0];
+        LOG4CXX_INFO(logger, boost::format("input: %s") % input);
+        //input = boost::filesystem::path(input).stem().string();
+
+        std::string prefix = boost::filesystem::path(input).stem().string();
+        if (options.find("prefix") != options.not_found()) {
+            prefix = options.get< std::string >("prefix");
+        }
+
+        FMIndex fmi;
+        if (FMIndex::load(prefix + BWT_EXT, fmi)) {
+            // Prepare parameters
+            CorrectProcessor::Options parms;
+
+            CorrectProcessor processor(parms);
+            if (!processor.process(input, prefix, options.get< size_t >("threads", 1))) {
+                LOG4CXX_ERROR(logger, boost::format("Failed to do error correction for reads %s") % input);
+                r = -1;
+            }
+        } else {
+            LOG4CXX_ERROR(logger, boost::format("Failed to load FMIndex from %s") % prefix);
+            r = -1;
         }
 
         return r;
@@ -41,16 +68,12 @@ private:
                 "\n"
                 "      -h, --help                       display this help and exit\n"
                 "\n"
-                "      -a, --algorithm=STR              BWT construction algorithm. STR can be:\n"
-                "                                       sais - induced sort algorithm, slower but works for very long sequences (default)\n"
-                "                                       ropebwt - very fast and memory efficient. use this for short (<200bp) reads\n"
-                "      -t, --threads=NUM                use NUM threads to construct the index (default: 1)\n"
-                "      -c, --check                      validate that the suffix array/bwt is correct\n"
-                "      -p, --prefix=PREFIX              write index to file using PREFIX instead of prefix of READSFILE\n"
-                "          --no-reverse                 suppress construction of the reverse BWT. Use this option when building the index\n"
-                "                                       for reads that will be error corrected using the k-mer corrector, which only needs the forward index\n"
-                "          --no-forward                 suppress construction of the forward BWT. Use this option when building the forward and reverse index separately\n"
-                "          --no-sai                     suppress construction of the SAI file. This option only applies to -a ropebwt\n"
+                "      -p, --prefix=PREFIX              use PREFIX instead of prefix of READSFILE for the names of the index files\n"
+                "      -t, --threads=NUM                use NUM threads for the computation (default: 1)\n"
+                "\n"
+                "      -k, --kmer-size=N                the length of the kmer to user (default: 31)\n"
+                "      -x, --kmer-threshold=N           attempt to correct kmers that are seen less than N times (default: 3)\n"
+                "      -i, --kmer-rounds=N              perform up to N rounds of kmer correction (default: 10)\n"
                 "\n"
                 ) % PACKAGE_NAME << std::endl;
         return 256;
@@ -59,12 +82,15 @@ private:
     static Correct _runner;
 };
 
-static const std::string shortopts = "c:s:a:t:p:g:h";
+static const std::string shortopts = "c:s:p:t:k:x:i:h";
 enum { OPT_HELP = 1 };
 static const option longopts[] = {
     {"prefix",              required_argument,  NULL, 'o'}, 
+    {"prefip",              required_argument,  NULL, 'p'}, 
     {"threads",             required_argument,  NULL, 't'}, 
-    {"algorithm",           required_argument,  NULL, 'a'}, 
+    {"kmer-size",           required_argument,  NULL, 'k'}, 
+    {"kmer-threshold",      required_argument,  NULL, 'x'}, 
+    {"kmer-rounds",         required_argument,  NULL, 'i'}, 
     {"help",                no_argument,        NULL, 'h'}, 
     {NULL, 0, NULL, 0}, 
 };
