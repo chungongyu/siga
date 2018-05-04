@@ -2,7 +2,6 @@
 #define bigraph_h_
 
 #include "coord.h"
-#include "bigraph_visitors.h"
 
 #include <cassert>
 #include <iostream>
@@ -20,6 +19,7 @@ enum GraphColor {
 };
 
 class Vertex;
+class BigraphVisitor;
 
 //
 // Edge

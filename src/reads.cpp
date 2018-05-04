@@ -12,7 +12,7 @@ namespace PairEnd {
             return name;
         }
         return name.substr(0, pos);
-    };
+    }
 
     std::string id(const std::string& name) {
         assert(!name.empty());
@@ -36,11 +36,11 @@ namespace PairEnd {
         else
             pid = "";
         return pid;
-    };
+    }
 
     std::string index(const std::string& name) {
         return name;
-    };
+    }
 };
 
 std::istream& operator>>(std::istream& stream, ReadInfoList& infos) {

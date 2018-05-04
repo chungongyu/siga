@@ -1,5 +1,6 @@
 #include "bigraph.h"
 #include "asqg.h"
+#include "bigraph_visitors.h"
 #include "constant.h"
 #include "kseq.h"
 #include "utils.h"

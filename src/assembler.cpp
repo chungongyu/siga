@@ -33,8 +33,14 @@ public:
 
         LOG4CXX_INFO(logger, "parameters:");
         LOG4CXX_INFO(logger, boost::format("min-overlap: %d") % minOverlap);
+        if (options.find("min-overlap2") != options.not_found()) {
+            LOG4CXX_INFO(logger, boost::format("min-overlap2: %d") % options.get< size_t >("min-overlap2"));
+        }
         if (options.find("insert-size") != options.not_found()) {
             LOG4CXX_INFO(logger, boost::format("insert-size: %d") % options.get< size_t >("insert-size"));
+        }
+        if (options.find("insert-size-delta") != options.not_found()) {
+            LOG4CXX_INFO(logger, boost::format("insert-size-delta: %d") % options.get< size_t >("insert-size-delta"));
         }
 
         Bigraph g;
@@ -54,15 +60,15 @@ public:
             LOG4CXX_INFO(logger, "[Stats] Input graph:");
             g.visit(&statsVisit);
 
-            if (options.find("insert-size") != options.not_found()) {
-                PairedReadVisitor prVisit(minOverlap, options.get< size_t >("insert-size"));
+            //if (options.find("insert-size") != options.not_found()) {
+                PairedReadVisitor prVisit(options.get< size_t >("min-overlap2", 50), options.get< size_t >("insert-size-delta", 100), options.get< size_t >("max-search-nodes", 100), options.get< size_t >("threads", 1));
                 g.visit(&prVisit);
-            }
+            //}
 
-            LOG4CXX_INFO(logger, "Removing contained vertices from graph");
-            while (g.containment()) {
-                g.visit(&containVisit);
-            }
+            //LOG4CXX_INFO(logger, "Removing contained vertices from graph");
+            //while (g.containment()) {
+            //    g.visit(&containVisit);
+            //}
 
             // Compact together unbranched chains of vertices
             g.simplify();
@@ -72,6 +78,7 @@ public:
             g.visit(&statsVisit);
 
             // Trimming
+            /*
             size_t numTrimRounds = options.get< size_t >("cut-terminal", 10);
             for (size_t numTrim = 0; numTrim < numTrimRounds; ++numTrim) {
                 LOG4CXX_INFO(logger, "Trimming tips");
@@ -101,6 +108,7 @@ public:
                 LOG4CXX_INFO(logger, "[Stats] Graph after trimming:");
                 g.visit(&statsVisit);
             }
+            */
 
             LOG4CXX_INFO(logger, "[Stats] Final graph:");
             g.visit(&statsVisit);
@@ -150,7 +158,10 @@ private:
                 "      -m, --min-overlap=LEN            only use overlaps of at least LEN. This can be used to filter\n"
                 "          --max-edges=N                limit each vertex to a maximum of N edges. For highly repetitive regions\n"
                 "                                       this helps save memory by culling excessive edges around unresolvable repeats (default: 128)\n"
+                "          --min-overlap2=INT           treat reads as paired with insert size INT (default 0)\n"
                 "          --insert-size=INT            treat reads as paired with insert size INT (default 0)\n"
+                "          --insert-size-delta=INT      treat reads as paired with insert size delta INT (default 0)\n"
+                "      -t, --threads=NUM                use NUM threads to construct the paired graph (default: 1)\n"
                 "\n"
                 "Bubble/Variation removal parameters:\n"
                 "      -b, --bubble=N                   perform N bubble removal steps (default: 3)\n"
@@ -174,11 +185,14 @@ private:
 };
 
 static const std::string shortopts = "c:s:p:t:m:x:n:l:a:b:d:h";
-enum { OPT_HELP = 1, OPT_INSERTSIZE, OPT_MAXEDGES };
+enum { OPT_HELP = 1, OPT_MINOVERLAP2, OPT_INSERTSIZE, OPT_INSERTSIZE_DELTA, OPT_MAXEDGES };
 static const option longopts[] = {
     {"prefix",              required_argument,  NULL, 'p'}, 
     {"min-overlap",         required_argument,  NULL, 'm'}, 
+    {"threads",             required_argument,  NULL, 't'}, 
+    {"min-overlap2",        required_argument,  NULL, OPT_MINOVERLAP2}, 
     {"insert-size",         required_argument,  NULL, OPT_INSERTSIZE}, 
+    {"insert-size-delta",   required_argument,  NULL, OPT_INSERTSIZE_DELTA}, 
     {"max-edges",           required_argument,  NULL, OPT_MAXEDGES}, 
     {"bubble",              required_argument,  NULL, 'b'}, 
     {"min-branch-length",   required_argument,  NULL, 'n'}, 

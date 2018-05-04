@@ -1,11 +1,10 @@
 #ifndef bigraph_visitors_h_
 #define bigraph_visitors_h_
 
-#include <iostream>
+#include "bigraph.h"
 
-class Bigraph;
-class Edge;
-class Vertex;
+#include <iostream>
+#include <unordered_map>
 
 class BigraphVisitor {
 public:
@@ -70,18 +69,68 @@ private:
     size_t _dummys;
 };
 
-// Visit each paired node, sweep false positive edges.
+// Visit each paired node via zigzag, sweep false positive edges.
 class PairedReadVisitor : public BigraphVisitor {
 public:
-    PairedReadVisitor(size_t minOverlap, size_t gap) : _minOverlap(minOverlap), _gap(gap), _dummys(0) {
+    PairedReadVisitor(size_t minOverlap, size_t maxDistance, size_t maxNodes, size_t threads=1) : _minOverlap(minOverlap), _maxDistance(maxDistance), _maxNodes(maxNodes), _threads(threads) {
     }
     void previsit(Bigraph* graph);
     bool visit(Bigraph* graph, Vertex* vertex);
     void postvisit(Bigraph* graph);
 private:
+    typedef std::vector< std::pair< const Vertex*, int > > DistanceList;
+    typedef std::unordered_map< Vertex::Id, int > DistanceMap;
+    typedef std::unordered_map< Vertex::Id, DistanceMap > LinkList;
+
+    class VertexGenerator {
+    public:
+        VertexGenerator(const std::vector< const Vertex* >& vertices) : _vertices(vertices), _consumed(0) {
+        }
+
+        bool generate(const Vertex*& item) {
+            if (_consumed < _vertices.size()) {
+                item = _vertices[_consumed];
+                ++_consumed;
+                return true;
+            }
+            return false;
+        }
+        size_t consumed() const {
+            return _consumed;
+        }
+    private:
+        const std::vector< const Vertex* >& _vertices;
+        size_t _consumed;
+    };
+    class VertexProcess {
+    public:
+        VertexProcess(Bigraph* graph, PairedReadVisitor* vistor) : _graph(graph), _visitor(vistor) {
+        }
+        DistanceList process(const Vertex* vertex);
+    private:
+        Bigraph* _graph;
+        PairedReadVisitor* _visitor;
+    };
+    class VertexPostProcess {
+    public:
+        VertexPostProcess(LinkList* links) : _links(links) {
+        }
+        void process(const Vertex* vertex, DistanceList& links);
+    private:
+        void addLink(const Vertex::Id& v1, const Vertex::Id& v2, int distance, LinkList* links);
+
+        LinkList* _links;
+    };
+
     size_t _minOverlap;
-    size_t _gap; // insert size
-    size_t _dummys;
+    size_t _maxDistance;
+    size_t _maxNodes;
+    size_t _threads;
+
+    void addEdge(const Vertex::Id& v1, const Vertex::Id& v2, int distance, Bigraph* graph);
+
+    std::vector< const Vertex* > _vertices;
+    friend class VertexProcess;
 };
 
 

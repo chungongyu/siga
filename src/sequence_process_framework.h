@@ -128,8 +128,8 @@ namespace SequenceProcessFramework {
                         outputs[i] = (*proclist)[tid]->process(inputs[i]);
                     }
 
-                    for (size_t i = 0; i < inputs.size(); ++i) {
-                        if (postproc != NULL) {
+                    if (postproc != NULL) {
+                        for (size_t i = 0; i < inputs.size(); ++i) {
                             postproc->process(inputs[i], outputs[i]);
                         }
                     }
