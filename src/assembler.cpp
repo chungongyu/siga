@@ -30,6 +30,7 @@ public:
         LOG4CXX_INFO(logger, boost::format("output: %s") % output);
 
         size_t minOverlap = options.get< size_t >("min-overlap", 0);
+        int peMode = options.get< int >("pe-mode", 0);
 
         LOG4CXX_INFO(logger, "parameters:");
         LOG4CXX_INFO(logger, boost::format("min-overlap: %d") % minOverlap);
@@ -60,55 +61,58 @@ public:
             LOG4CXX_INFO(logger, "[Stats] Input graph:");
             g.visit(&statsVisit);
 
-            //if (options.find("insert-size") != options.not_found()) {
+            if (peMode == 1) {
                 PairedReadVisitor prVisit(options.get< size_t >("min-overlap2", 50), options.get< size_t >("insert-size-delta", 100), options.get< size_t >("max-search-nodes", 100), options.get< size_t >("threads", 1));
                 g.visit(&prVisit);
-            //}
-
-            //LOG4CXX_INFO(logger, "Removing contained vertices from graph");
-            //while (g.containment()) {
-            //    g.visit(&containVisit);
-            //}
+            } else {
+                LOG4CXX_INFO(logger, "Removing contained vertices from graph");
+                while (g.containment()) {
+                    g.visit(&containVisit);
+                }
+            }
 
             // Compact together unbranched chains of vertices
             g.simplify();
 
-            // Pre-assembly graph stats
-            LOG4CXX_INFO(logger, "[Stats] After removing contained vertices:");
-            g.visit(&statsVisit);
+            if (peMode == 1) {
+            } else {
+                // Pre-assembly graph stats
+                LOG4CXX_INFO(logger, "[Stats] After removing contained vertices:");
+                g.visit(&statsVisit);
 
-            // Trimming
-            /*
-            size_t numTrimRounds = options.get< size_t >("cut-terminal", 10);
-            for (size_t numTrim = 0; numTrim < numTrimRounds; ++numTrim) {
-                LOG4CXX_INFO(logger, "Trimming tips");
-                if (g.visit(&trimVisit)) {
-                    g.simplify();
-                }
+                // Trimming
+                /*
+                size_t numTrimRounds = options.get< size_t >("cut-terminal", 10);
+                for (size_t numTrim = 0; numTrim < numTrimRounds; ++numTrim) {
+                    LOG4CXX_INFO(logger, "Trimming tips");
+                    if (g.visit(&trimVisit)) {
+                        g.simplify();
+                    }
 
-                LOG4CXX_INFO(logger, "Performing variation smoothing");
-                if (g.visit(&smoothVisit)) {
-                    g.simplify();
-                }
+                    LOG4CXX_INFO(logger, "Performing variation smoothing");
+                    if (g.visit(&smoothVisit)) {
+                        g.simplify();
+                    }
 
-                if (options.get< size_t >("min-chimeric-length", 0) > 0) {
-                    LOG4CXX_INFO(logger, "removing chimerics:");
-                    if (g.visit(&chVisit)) {
+                    if (options.get< size_t >("min-chimeric-length", 0) > 0) {
+                        LOG4CXX_INFO(logger, "removing chimerics:");
+                        if (g.visit(&chVisit)) {
+                            g.simplify();
+                        }
+                    }
+
+                    LOG4CXX_INFO(logger, "Removing non-maximal overlap edges from graph");
+                    if (g.visit(&moVisit)) {
                         g.simplify();
                     }
                 }
 
-                LOG4CXX_INFO(logger, "Removing non-maximal overlap edges from graph");
-                if (g.visit(&moVisit)) {
-                    g.simplify();
+                if (numTrimRounds > 0) {
+                    LOG4CXX_INFO(logger, "[Stats] Graph after trimming:");
+                    g.visit(&statsVisit);
                 }
+                */
             }
-
-            if (numTrimRounds > 0) {
-                LOG4CXX_INFO(logger, "[Stats] Graph after trimming:");
-                g.visit(&statsVisit);
-            }
-            */
 
             LOG4CXX_INFO(logger, "[Stats] Final graph:");
             g.visit(&statsVisit);
@@ -158,6 +162,7 @@ private:
                 "      -m, --min-overlap=LEN            only use overlaps of at least LEN. This can be used to filter\n"
                 "          --max-edges=N                limit each vertex to a maximum of N edges. For highly repetitive regions\n"
                 "                                       this helps save memory by culling excessive edges around unresolvable repeats (default: 128)\n"
+                "          --pe-mode=INT                treat reads as paired with insert size INT (default 0)\n"
                 "          --min-overlap2=INT           treat reads as paired with insert size INT (default 0)\n"
                 "          --insert-size=INT            treat reads as paired with insert size INT (default 0)\n"
                 "          --insert-size-delta=INT      treat reads as paired with insert size delta INT (default 0)\n"
@@ -185,11 +190,12 @@ private:
 };
 
 static const std::string shortopts = "c:s:p:t:m:x:n:l:a:b:d:h";
-enum { OPT_HELP = 1, OPT_MINOVERLAP2, OPT_INSERTSIZE, OPT_INSERTSIZE_DELTA, OPT_MAXEDGES };
+enum { OPT_HELP = 1, OPT_PEMODE, OPT_MINOVERLAP2, OPT_INSERTSIZE, OPT_INSERTSIZE_DELTA, OPT_MAXEDGES };
 static const option longopts[] = {
     {"prefix",              required_argument,  NULL, 'p'}, 
     {"min-overlap",         required_argument,  NULL, 'm'}, 
     {"threads",             required_argument,  NULL, 't'}, 
+    {"pe-mode",             required_argument,  NULL, OPT_PEMODE}, 
     {"min-overlap2",        required_argument,  NULL, OPT_MINOVERLAP2}, 
     {"insert-size",         required_argument,  NULL, OPT_INSERTSIZE}, 
     {"insert-size-delta",   required_argument,  NULL, OPT_INSERTSIZE_DELTA}, 

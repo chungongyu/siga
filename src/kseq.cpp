@@ -170,6 +170,11 @@ bool FASTAReader::read(DNASeq& sequence) {
             if (line.empty()) continue;
             if (boost::algorithm::starts_with(line, ">")) {
                 if (!seq.empty() && !_name.empty()) {
+                    // name
+                    size_t i = _name.find_first_of(" \t");
+                    if (i != std::string::npos) {
+                        _name.resize(i);
+                    }
                     sequence.name = _name;
                     sequence.seq = seq;
                     _name = line.substr(1);
@@ -186,6 +191,11 @@ bool FASTAReader::read(DNASeq& sequence) {
 
         // the last one
         if (!seq.empty() && !_name.empty()) {
+            // name
+            size_t i = _name.find_first_of(" \t");
+            if (i != std::string::npos) {
+                _name.resize(i);
+            }
             sequence.name = _name;
             sequence.seq = seq;
             return true;
