@@ -44,9 +44,10 @@ public:
         if (ReadDNASequences(input, reads)) {
             std::shared_ptr< SuffixArrayBuilder > builder(SuffixArrayBuilder::create(algorithm));
             if (builder) {
+                size_t threads = options.get< size_t >("threads", 1);
                 // forward
                 if (options.find("no-forward") == options.not_found()) {
-                    build(builder.get(), reads, output + SAI_EXT, output + BWT_EXT);
+                    build(builder.get(), reads, threads, output + SAI_EXT, output + BWT_EXT);
                 }
 
                 // reverse
@@ -55,7 +56,7 @@ public:
                         read.make_reverse();
                     }
 
-                    build(builder.get(), reads, output + RSAI_EXT, output + RBWT_EXT);
+                    build(builder.get(), reads, threads, output + RSAI_EXT, output + RBWT_EXT);
                 }
             } else {
                 LOG4CXX_ERROR(logger, boost::format("Failed to create suffix array builder algorithm %s") % algorithm);
@@ -70,8 +71,8 @@ public:
     }
 
 private:
-    bool build(SuffixArrayBuilder* builder, const DNASeqList& reads, const std::string& safile, const std::string& bwtfile) {
-        std::shared_ptr< SuffixArray > sa(builder->build(reads));
+    bool build(SuffixArrayBuilder* builder, const DNASeqList& reads, size_t threads, const std::string& safile, const std::string& bwtfile) {
+        std::shared_ptr< SuffixArray > sa(builder->build(reads, threads));
         if (!sa) {
             return false;
         }

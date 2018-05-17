@@ -89,7 +89,7 @@ public:
             if (threads <= 1) {
                 mkqs2(&(*sa)[0], n1, 0, radixcmp, indexcmp);
             } else {
-                mkqs2(&(*sa)[0], n1, 0, radixcmp, indexcmp);
+                mkqs_parallel(&(*sa)[0], n1, threads, radixcmp, indexcmp);
             }
         }
         LOG4CXX_DEBUG(logger, "mkqs finished");
