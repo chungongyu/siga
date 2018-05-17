@@ -36,6 +36,7 @@ arcs_SOURCES=assembler.cpp \
 			 rmdup.cpp \
 			 runner.h \
 			 sequence_process_framework.h \
+			 subgraph.cpp \
 			 suffix_array.cpp \
 			 suffix_array.h \
 			 suffix_array_builder.cpp \

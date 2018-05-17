@@ -370,104 +370,94 @@ void Bigraph::color(GraphColor c) {
     }
 }
 
-class EdgeCreator {
-public:
-    EdgeCreator(Bigraph* g, bool allowContainments, size_t maxEdges) : _graph(g), _allowContainments(allowContainments), _maxEdges(maxEdges) {
+bool EdgeCreator::create(const Overlap& overlap) {
+    // Initialize data and perform checks
+    Edge::Comp comp = (overlap.match.isRC) ? Edge::EC_REVERSE : Edge::EC_SAME;
+    bool isContainment = overlap.match.isContainment();
+
+    if (!_allowContainments && isContainment) {
+        return false;
     }
 
-    bool create(const Overlap& overlap) {
-        // Initialize data and perform checks
-        Edge::Comp comp = (overlap.match.isRC) ? Edge::EC_REVERSE : Edge::EC_SAME;
-        bool isContainment = overlap.match.isContainment();
+    Vertex* verts[2];
+    for (size_t i = 0; i < 2; ++i) {
+        verts[i] = _graph->getVertex(overlap.id[i]);
 
-        if (!_allowContainments && isContainment) {
+        // If one of the vertices is not in the graph, skip this edge
+        // This can occur if one of the verts is a strict substring of some other vertex so it will
+        // never be added to the graph
+        if (verts[i] == NULL) {
             return false;
         }
-
-        Vertex* verts[2];
-        for (size_t i = 0; i < 2; ++i) {
-            verts[i] = _graph->getVertex(overlap.id[i]);
-
-            // If one of the vertices is not in the graph, skip this edge
-            // This can occur if one of the verts is a strict substring of some other vertex so it will
-            // never be added to the graph
-            if (verts[i] == NULL) {
-                return false;
-            }
-        }
-
-        // Check if this is a substring containment, if so mark the contained read
-        // but do not create edges
-        for (size_t i = 0; i < 2; ++i) {
-            if (!overlap.match.coords[i].isExtreme()) {
-                return false;
-            }
-        }
-
-        // If either vertex has the maximum number of edges,
-        // do not add any more. This is to protect against ultra-dense
-        // regions of the graph inflating memory usage. The nodes that reach
-        // this limit, and nodes connected to them are marked as super repeats.
-        // After loading the graph, all edges to super repeats are cut to prevent
-        // misassembly.
-        {
-            size_t degrees0 = verts[0]->degrees(), degrees1 = verts[1]->degrees();
-            if (degrees0 >= _maxEdges || degrees1 >= _maxEdges) {
-                LOG4CXX_WARN(logger, boost::format("Edge limit reached for vertex: %s(%d) and %s(%d)") % verts[0]->id() % degrees0 % verts[1]->id() % degrees1);
-                return true;
-            }
-        }
-
-        if (!isContainment) {
-            Edge* edges[2];
-            for (size_t i = 0; i < 2; ++i) {
-                const SeqCoord& coord = overlap.match.coords[i];
-                Edge::Dir dir = coord.isLeftExtreme() ? Edge::ED_ANTISENSE : Edge::ED_SENSE;
-                edges[i] = new Edge(verts[1 - i], dir, comp, coord);
-            }
-
-            edges[0]->twin(edges[1]);
-            edges[1]->twin(edges[0]);
-
-            _graph->addEdge(verts[0], edges[0]);
-            _graph->addEdge(verts[1], edges[1]);
-        } else {
-            // Contained edges don't have a direction, they can be travelled from
-            // one vertex to the other in either direction. Hence, we 
-            // add two edges per vertex. Later during the contain removal
-            // algorithm this is important to determine transitivity
-            Edge* edges[4];
-            for (size_t i = 0; i < 2; ++i) {
-                const SeqCoord& coord = overlap.match.coords[i];
-                edges[i    ] = new Edge(verts[1 - i], Edge::ED_SENSE,     comp, coord);
-                edges[i + 2] = new Edge(verts[1 - i], Edge::ED_ANTISENSE, comp, coord);
-            }
-
-            // Twin the edges and add them to the graph
-            edges[0]->twin(edges[1]);
-            edges[1]->twin(edges[0]);
-
-            edges[2]->twin(edges[3]);
-            edges[3]->twin(edges[2]);
-
-            _graph->addEdge(verts[0], edges[0]);
-            _graph->addEdge(verts[1], edges[1]);
-
-            _graph->addEdge(verts[0], edges[2]);
-            _graph->addEdge(verts[1], edges[3]);
-
-            // Set containment flags
-            verts[overlap.containedIdx()]->contained(true);
-            _graph->containment(true);
-        }
-
-        return true;
     }
-private:
-    Bigraph* _graph;
-    bool _allowContainments;
-    size_t _maxEdges;
-};
+
+    // Check if this is a substring containment, if so mark the contained read
+    // but do not create edges
+    for (size_t i = 0; i < 2; ++i) {
+        if (!overlap.match.coords[i].isExtreme()) {
+            return false;
+        }
+    }
+
+    // If either vertex has the maximum number of edges,
+    // do not add any more. This is to protect against ultra-dense
+    // regions of the graph inflating memory usage. The nodes that reach
+    // this limit, and nodes connected to them are marked as super repeats.
+    // After loading the graph, all edges to super repeats are cut to prevent
+    // misassembly.
+    {
+        size_t degrees0 = verts[0]->degrees(), degrees1 = verts[1]->degrees();
+        if (degrees0 >= _maxEdges || degrees1 >= _maxEdges) {
+            LOG4CXX_WARN(logger, boost::format("Edge limit reached for vertex: %s(%d) and %s(%d)") % verts[0]->id() % degrees0 % verts[1]->id() % degrees1);
+            return true;
+        }
+    }
+
+    if (!isContainment) {
+        Edge* edges[2];
+        for (size_t i = 0; i < 2; ++i) {
+            const SeqCoord& coord = overlap.match.coords[i];
+            Edge::Dir dir = coord.isLeftExtreme() ? Edge::ED_ANTISENSE : Edge::ED_SENSE;
+            edges[i] = new Edge(verts[1 - i], dir, comp, coord);
+        }
+
+        edges[0]->twin(edges[1]);
+        edges[1]->twin(edges[0]);
+
+        _graph->addEdge(verts[0], edges[0]);
+        _graph->addEdge(verts[1], edges[1]);
+    } else {
+        // Contained edges don't have a direction, they can be travelled from
+        // one vertex to the other in either direction. Hence, we 
+        // add two edges per vertex. Later during the contain removal
+        // algorithm this is important to determine transitivity
+        Edge* edges[4];
+        for (size_t i = 0; i < 2; ++i) {
+            const SeqCoord& coord = overlap.match.coords[i];
+            edges[i    ] = new Edge(verts[1 - i], Edge::ED_SENSE,     comp, coord);
+            edges[i + 2] = new Edge(verts[1 - i], Edge::ED_ANTISENSE, comp, coord);
+        }
+
+        // Twin the edges and add them to the graph
+        edges[0]->twin(edges[1]);
+        edges[1]->twin(edges[0]);
+
+        edges[2]->twin(edges[3]);
+        edges[3]->twin(edges[2]);
+
+        _graph->addEdge(verts[0], edges[0]);
+        _graph->addEdge(verts[1], edges[1]);
+
+        _graph->addEdge(verts[0], edges[2]);
+        _graph->addEdge(verts[1], edges[3]);
+
+        // Set containment flags
+        verts[overlap.containedIdx()]->contained(true);
+        _graph->containment(true);
+    }
+
+    return true;
+}
 
 bool Bigraph::load(std::istream& stream, size_t minOverlap, bool allowContainments, size_t maxEdges, Bigraph* g) {
     enum {

@@ -85,8 +85,7 @@ private:
 static const std::string shortopts = "c:s:p:t:k:x:i:h";
 enum { OPT_HELP = 1 };
 static const option longopts[] = {
-    {"prefix",              required_argument,  NULL, 'o'}, 
-    {"prefip",              required_argument,  NULL, 'p'}, 
+    {"prefix",              required_argument,  NULL, 'p'}, 
     {"threads",             required_argument,  NULL, 't'}, 
     {"kmer-size",           required_argument,  NULL, 'k'}, 
     {"kmer-threshold",      required_argument,  NULL, 'x'}, 

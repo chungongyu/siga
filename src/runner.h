@@ -145,8 +145,8 @@ private:
     RunnerList _runners;
 };
 
-#define RUNNER_INSTALL(name, runner, introduction, weight) \
-    RunnerManager::get()->install(name, runner, introduction, weight)
+#define RUNNER_INSTALL(name, runner, introduction, rank) \
+    RunnerManager::get()->install(name, runner, introduction, rank)
 #define RUNNER_UNINSTALL(name) \
     RunnerManager::get()->uninstall(name)
 

@@ -21,6 +21,7 @@ enum {
     kCorrect, 
     kOverlap, 
     kAssemble, 
+    kSubgraph, 
     kRmDup, 
     kPreQC, 
     kUnkown = 1000

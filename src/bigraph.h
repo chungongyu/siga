@@ -229,4 +229,16 @@ private:
     bool _containment;
 };
 
+// helper class
+class EdgeCreator {
+public:
+    EdgeCreator(Bigraph* g, bool allowContainments, size_t maxEdges) : _graph(g), _allowContainments(allowContainments), _maxEdges(maxEdges) {
+    }
+    bool create(const Overlap& overlap);
+private:
+    Bigraph* _graph;
+    bool _allowContainments;
+    size_t _maxEdges;
+};
+
 #endif // bigraph_h_
