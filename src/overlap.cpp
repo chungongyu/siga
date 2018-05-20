@@ -40,7 +40,7 @@ public:
         FMIndex fmi, rfmi;
         if (FMIndex::load(output + BWT_EXT, fmi) && FMIndex::load(output + RBWT_EXT, rfmi)) {
             OverlapBuilder builder(&fmi, &rfmi, output, options.find("exhaustive") == options.not_found(), options.find("no-opposite-strand") == options.not_found());
-            if (!builder.build(input, options.get< size_t >("min-overlap", 10), output + ASQG_EXT + GZIP_EXT, options.get< size_t >("threads", 1), options.get< size_t >("batch", 1000))) {
+            if (!builder.build(input, options.get< size_t >("min-overlap", 10), output + ASQG_EXT + GZIP_EXT, options.get< size_t >("threads", 1), options.get< size_t >("batch-size", 1000))) {
                 LOG4CXX_ERROR(logger, boost::format("Failed to build overlaps from reads %s") % input);
                 r = -1;
             }
