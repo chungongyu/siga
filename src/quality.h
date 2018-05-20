@@ -9,6 +9,7 @@
 //
 namespace Quality {
     namespace Phred {
+        static const int DEFAULT_SCORE = 15;
         static const int PHRED64_DIFF = 31;
 
         // Convert the quality character from phred64 to phred33 encoding

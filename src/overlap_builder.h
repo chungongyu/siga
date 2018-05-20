@@ -20,8 +20,8 @@ public:
     OverlapBuilder(const FMIndex* fmi, const FMIndex* rfmi, const std::string& prefix="default", bool irreducible=true, bool rc=true) : _fmi(fmi), _rfmi(rfmi), _prefix(prefix), _irreducible(irreducible), _rc(rc) {
     }
 
-    bool build(DNASeqReader& reader, size_t minOverlap, std::ostream& output, size_t threads=1, size_t* processed=NULL) const;
-    bool build(const std::string& input, size_t minOverlap, const std::string& output, size_t threads=1, size_t* processed=NULL) const;
+    bool build(DNASeqReader& reader, size_t minOverlap, std::ostream& output, size_t threads=1, size_t batch=1000, size_t* processed=NULL) const;
+    bool build(const std::string& input, size_t minOverlap, const std::string& output, size_t threads=1, size_t batch=1000, size_t* processed=NULL) const;
 
     bool rmdup(DNASeqReader& reader, std::ostream& output, std::ostream& duplicates, size_t threads=1, size_t* processed=NULL) const;
     bool rmdup(const std::string& input, const std::string& output, const std::string& duplicates, size_t threads=1, size_t* processed=NULL) const;

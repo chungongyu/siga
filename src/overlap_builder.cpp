@@ -385,7 +385,7 @@ private:
     Hit2OverlapConverter _converter;
 };
 
-bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream& output, size_t threads, size_t* processed) const {
+bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream& output, size_t threads, size_t batch, size_t* processed) const {
     std::vector< std::string > hits;
 
     // Build and write the ASQG header
@@ -451,7 +451,7 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
             OverlapProcess, 
             OverlapPostProcess
             > worker;
-        size_t num = worker.run(reader, &proclist, &postproc);
+        size_t num = worker.run(reader, &proclist, &postproc, batch);
         if (processed != NULL) {
             *processed = num;
         }
@@ -485,7 +485,7 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
     return true;
 }
 
-bool OverlapBuilder::build(const std::string& input, size_t minOverlap, const std::string& output, size_t threads, size_t* processed) const {
+bool OverlapBuilder::build(const std::string& input, size_t minOverlap, const std::string& output, size_t threads, size_t batch, size_t* processed) const {
     // DNASeqReader
     std::ifstream reads(input);
     std::shared_ptr< DNASeqReader > reader(DNASeqReaderFactory::create(reads, &input));
@@ -503,7 +503,7 @@ bool OverlapBuilder::build(const std::string& input, size_t minOverlap, const st
     std::ostream asqg(buf.get());
 
     // Build
-    return build(*reader, minOverlap, asqg, threads, processed);
+    return build(*reader, minOverlap, asqg, threads, batch, processed);
 }
 
 //

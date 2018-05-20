@@ -40,7 +40,7 @@ public:
         FMIndex fmi, rfmi;
         if (FMIndex::load(output + BWT_EXT, fmi) && FMIndex::load(output + RBWT_EXT, rfmi)) {
             OverlapBuilder builder(&fmi, &rfmi, output, options.find("exhaustive") == options.not_found(), options.find("no-opposite-strand") == options.not_found());
-            if (!builder.build(input, options.get< size_t >("min-overlap", 10), output + ASQG_EXT + GZIP_EXT, options.get< size_t >("threads", 1))) {
+            if (!builder.build(input, options.get< size_t >("min-overlap", 10), output + ASQG_EXT + GZIP_EXT, options.get< size_t >("threads", 1), options.get< size_t >("batch", 1000))) {
                 LOG4CXX_ERROR(logger, boost::format("Failed to build overlaps from reads %s") % input);
                 r = -1;
             }
@@ -70,6 +70,7 @@ private:
                 "      -h, --help                       display this help and exit\n"
                 "\n"
                 "      -t, --threads=NUM                use NUM threads to construct the index (default: 1)\n"
+                "          --batch-size=NUM             use NUM batches for each thread (default: 1000)\n"
                 "      -m, --min-overlap=LEN            minimum overlap required between two reads (default: 45)\n"
                 "      -p, --prefix=PREFIX              write index to file using PREFIX instead of prefix of READSFILE\n"
                 "      -x, --exhaustive                 output all overlaps, including transitive edges\n"
@@ -83,10 +84,11 @@ private:
 };
 
 static const std::string shortopts = "c:s:t:p:m:xh";
-enum { OPT_HELP = 1, OPT_NO_RC };
+enum { OPT_HELP = 1, OPT_BATCH_SIZE, OPT_NO_RC };
 static const option longopts[] = {
     {"prefix",              required_argument,  NULL, 'p'}, 
     {"threads",             required_argument,  NULL, 't'}, 
+    {"batch-size",          required_argument,  NULL, OPT_BATCH_SIZE}, 
     {"min-overlap",         required_argument,  NULL, 'm'}, 
     {"exhaustive",          no_argument,        NULL, 'x'}, 
     {"no-opposite-strand",  no_argument,        NULL, OPT_NO_RC}, 

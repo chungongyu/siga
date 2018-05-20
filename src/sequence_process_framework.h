@@ -104,7 +104,7 @@ namespace SequenceProcessFramework {
     template< class Input, class Output, class Generator, class Processor, class PostProcessor >
     class ParallelWorker {
     public:
-        size_t run(Generator& generator, std::vector< Processor* >* proclist, PostProcessor* postproc, size_t n = -1) {
+        size_t run(Generator& generator, std::vector< Processor* >* proclist, PostProcessor* postproc, size_t batch=1000, size_t n=-1) {
             size_t threads = proclist->size();
             omp_set_num_threads(threads);
 
@@ -119,7 +119,7 @@ namespace SequenceProcessFramework {
                 }
 
                 // Once all buffers are full or the input is finished, dispatch the work to the threads
-                if (inputs.size() == threads * 1000 || done) { 
+                if (inputs.size() == threads * batch || done) { 
                     std::vector< Output > outputs(inputs.size());
 
                     #pragma omp parallel for schedule(dynamic, 256)
@@ -134,6 +134,8 @@ namespace SequenceProcessFramework {
                         }
                     }
                     inputs.clear();
+
+                    LOG4CXX_INFO(logger, boost::format("processed %d sequences") % generator.consumed());
                 }
             }
             
@@ -142,21 +144,21 @@ namespace SequenceProcessFramework {
             return generator.consumed();
         }
 
-        size_t run(DNASeqReader& reader, std::vector< Processor* >* proclist, PostProcessor* postproc, size_t n = -1) {
+        size_t run(DNASeqReader& reader, std::vector< Processor* >* proclist, PostProcessor* postproc, size_t batch=1000, size_t n=-1) {
             WorkItemGenerator< Input > generator(reader);
-            return run(generator, proclist, postproc, n);
+            return run(generator, proclist, postproc, batch, n);
         }
 
-        size_t run(std::istream& stream, std::vector< Processor* >* proclist, PostProcessor* postproc, size_t n = -1) {
+        size_t run(std::istream& stream, std::vector< Processor* >* proclist, PostProcessor* postproc, size_t batch=1000, size_t n=-1) {
             std::shared_ptr< DNASeqReader > reader(DNASeqReaderFactory::create(stream));
             if (reader) {
-                return run(*reader, proclist, postproc, n);
+                return run(*reader, proclist, postproc, batch, n);
             }
             return 0;
         }
-        size_t run(const std::string& filename, std::vector< Processor* >* proclist, PostProcessor* postproc, size_t n = -1) {
+        size_t run(const std::string& filename, std::vector< Processor* >* proclist, PostProcessor* postproc, size_t  batch=1000, size_t n=-1) {
             std::ofstream stream(filename.c_str());
-            return run(stream, proclist, postproc, n);
+            return run(stream, proclist, postproc, batch, n);
         }
     private:
         static log4cxx::LoggerPtr logger;

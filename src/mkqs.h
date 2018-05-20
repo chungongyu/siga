@@ -372,7 +372,7 @@ void mkqs_parallel(T* pData, int n, int numThreads, const PrimarySorter& primary
     bool done = false;
     while(!done)
     {
-        sleep(1);
+        usleep(1);
 
         // Check if the queue is empty
         // If it is and all threads are finished working (all have posted to

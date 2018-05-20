@@ -36,7 +36,7 @@ public:
         FMIndex fmi;
         if (FMIndex::load(prefix + BWT_EXT, fmi)) {
             // Prepare parameters
-            CorrectProcessor::Options parms;
+            CorrectProcessor::Options parms(options);
 
             CorrectProcessor processor(parms);
             if (!processor.process(input, prefix, options.get< size_t >("threads", 1))) {

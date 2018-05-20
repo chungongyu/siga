@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "quality.h"
+
 char make_complement_dna(char c);
 void make_complement_dna(std::string& dna);
 std::string make_complement_dna_copy(const std::string& dna);
@@ -26,6 +28,14 @@ public:
     std::string name;
     std::string seq;
     std::string quality;
+
+    int score(size_t i) const {
+        if (!quality.empty()) {
+            assert(i < quality.length());
+            return Quality::Phred::fromchar(quality[i]);
+        }
+        return Quality::Phred::DEFAULT_SCORE;
+    }
 
     void make_complement();
     void make_reverse();
