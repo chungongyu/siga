@@ -72,7 +72,7 @@ private:
 // Visit each paired node via zigzag, sweep false positive edges.
 class PairedReadVisitor : public BigraphVisitor {
 public:
-    PairedReadVisitor(size_t minOverlap, size_t maxDistance, size_t maxNodes, size_t threads=1) : _minOverlap(minOverlap), _maxDistance(maxDistance), _maxNodes(maxNodes), _threads(threads) {
+    PairedReadVisitor(size_t minOverlap, size_t maxDistance, size_t maxNodes, size_t threads=1, size_t batch=1000) : _minOverlap(minOverlap), _maxDistance(maxDistance), _maxNodes(maxNodes), _threads(threads), _batch(batch) {
     }
     void previsit(Bigraph* graph);
     bool visit(Bigraph* graph, Vertex* vertex);
@@ -126,6 +126,7 @@ private:
     size_t _maxDistance;
     size_t _maxNodes;
     size_t _threads;
+    size_t _batch;
 
     void addEdge(const Vertex::Id& v1, const Vertex::Id& v2, int distance, Bigraph* graph);
 

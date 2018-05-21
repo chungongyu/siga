@@ -62,7 +62,7 @@ public:
             g.visit(&statsVisit);
 
             if (peMode == 1) {
-                PairedReadVisitor prVisit(options.get< size_t >("min-overlap2", 50), options.get< size_t >("insert-size-delta", 100), options.get< size_t >("max-search-nodes", 100), options.get< size_t >("threads", 1));
+                PairedReadVisitor prVisit(options.get< size_t >("min-overlap2", 50), options.get< size_t >("insert-size-delta", 100), options.get< size_t >("max-search-nodes", 100), options.get< size_t >("threads", 1), options.get< size_t >("batch-size", 1000));
                 g.visit(&prVisit);
             } else {
                 LOG4CXX_INFO(logger, "Removing contained vertices from graph");
@@ -167,6 +167,7 @@ private:
                 "          --insert-size=INT            treat reads as paired with insert size INT (default 0)\n"
                 "          --insert-size-delta=INT      treat reads as paired with insert size delta INT (default 0)\n"
                 "      -t, --threads=NUM                use NUM threads to construct the paired graph (default: 1)\n"
+                "          --batch-size=NUM             use NUM batches for each thread (default: 1000)\n"
                 "\n"
                 "Bubble/Variation removal parameters:\n"
                 "      -b, --bubble=N                   perform N bubble removal steps (default: 3)\n"
@@ -190,11 +191,12 @@ private:
 };
 
 static const std::string shortopts = "c:s:p:t:m:x:n:l:a:b:d:h";
-enum { OPT_HELP = 1, OPT_PEMODE, OPT_MINOVERLAP2, OPT_INSERTSIZE, OPT_INSERTSIZE_DELTA, OPT_MAXEDGES };
+enum { OPT_HELP = 1, OPT_BATCH_SIZE, OPT_PEMODE, OPT_MINOVERLAP2, OPT_INSERTSIZE, OPT_INSERTSIZE_DELTA, OPT_MAXEDGES };
 static const option longopts[] = {
     {"prefix",              required_argument,  NULL, 'p'}, 
     {"min-overlap",         required_argument,  NULL, 'm'}, 
     {"threads",             required_argument,  NULL, 't'}, 
+    {"batch-size",          required_argument,  NULL, OPT_BATCH_SIZE}, 
     {"pe-mode",             required_argument,  NULL, OPT_PEMODE}, 
     {"min-overlap2",        required_argument,  NULL, OPT_MINOVERLAP2}, 
     {"insert-size",         required_argument,  NULL, OPT_INSERTSIZE}, 

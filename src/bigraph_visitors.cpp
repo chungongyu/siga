@@ -454,7 +454,7 @@ void PairedReadVisitor::postvisit(Bigraph* graph) {
             VertexProcess, 
             VertexPostProcess
             > worker;
-        size_t num = worker.run(generator, &proclist, &postproc);
+        size_t num = worker.run(generator, &proclist, &postproc, _batch);
     } else { // single thread
 #endif // _OPENMP
         SequenceProcessFramework::SerialWorker<

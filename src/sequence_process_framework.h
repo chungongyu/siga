@@ -139,8 +139,6 @@ namespace SequenceProcessFramework {
                 }
             }
             
-            LOG4CXX_INFO(logger, boost::format("processed %d sequences") % generator.consumed());
-
             return generator.consumed();
         }
 
