@@ -23,6 +23,7 @@ arcs_SOURCES=assembler.cpp \
 			 kmerdistr.h \
 			 kseq.cpp \
 			 kseq.h \
+			 match.cpp \
 			 mkqs.h \
 			 overlap.cpp \
 			 overlap_builder.cpp \
@@ -44,9 +45,11 @@ arcs_SOURCES=assembler.cpp \
 			 utils.h \
 			 main.cpp
 arcs_CXXFLAGS=${LOG4CXX_CFLAGS} \
-			  ${OPENMP_CFLAGS}
+			  ${OPENMP_CFLAGS} \
+			 ${TCMALLOC_CFLAGS}
 arcs_LDFLAGS=${LOG4CXX_LIBS} \
 			 ${OPENMP_LIBS} \
+			 ${TCMALLOC_LIBS} \
 			 -lboost_filesystem \
 			 -lboost_iostreams \
 			 -lboost_system

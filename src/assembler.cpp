@@ -37,14 +37,11 @@ public:
         if (options.find("min-overlap2") != options.not_found()) {
             LOG4CXX_INFO(logger, boost::format("min-overlap2: %d") % options.get< size_t >("min-overlap2"));
         }
-        if (options.find("insert-size") != options.not_found()) {
-            LOG4CXX_INFO(logger, boost::format("insert-size: %d") % options.get< size_t >("insert-size"));
-        }
         if (options.find("insert-size-delta") != options.not_found()) {
             LOG4CXX_INFO(logger, boost::format("insert-size-delta: %d") % options.get< size_t >("insert-size-delta"));
         }
 
-        Bigraph g;
+        Bigraph g(options.get< size_t >("init-vertex-capacity", 0));
         if (Bigraph::load(input, minOverlap, true, options.get< size_t >("max-edges", 128), &g)) {
             g.validate();
             LOG4CXX_INFO(logger, "load ok");
@@ -62,7 +59,14 @@ public:
             g.visit(&statsVisit);
 
             if (peMode == 1) {
-                PairedReadVisitor prVisit(options.get< size_t >("min-overlap2", 50), options.get< size_t >("insert-size-delta", 100), options.get< size_t >("max-search-nodes", 100), options.get< size_t >("threads", 1), options.get< size_t >("batch-size", 1000));
+                size_t delta = options.get("insert-size-delta", 100);
+                if (options.find("insert-size-delta") == options.not_found()) {
+                    size_t average = 100;
+                    InsertSizeEstimateVisitor iseVisit(average, delta);
+                    g.visit(&iseVisit);
+                    delta *= 4;
+                }
+                PairedReadVisitor prVisit(options.get< size_t >("min-overlap2", 50), delta, options.get< size_t >("max-search-nodes", 100), options.get< size_t >("threads", 1), options.get< size_t >("batch-size", 1000));
                 g.visit(&prVisit);
             } else {
                 LOG4CXX_INFO(logger, "Removing contained vertices from graph");
@@ -159,16 +163,17 @@ private:
                 "      -h, --help                       display this help and exit\n"
                 "\n"
                 "      -p, --prefix=NAME                use NAME as the prefix of the output files (output files will be NAME-contigs.fa, etc)\n"
+                "          --pe-mode=INT                treat reads as paired (default: 0)\n"
                 "      -m, --min-overlap=LEN            only use overlaps of at least LEN. This can be used to filter\n"
                 "          --max-edges=N                limit each vertex to a maximum of N edges. For highly repetitive regions\n"
                 "                                       this helps save memory by culling excessive edges around unresolvable repeats (default: 128)\n"
-                "          --pe-mode=INT                treat reads as paired with insert size INT (default 0)\n"
-                "          --min-overlap2=INT           treat reads as paired with insert size INT (default 0)\n"
-                "          --insert-size=INT            treat reads as paired with insert size INT (default 0)\n"
-                "          --insert-size-delta=INT      treat reads as paired with insert size delta INT (default 0)\n"
+                "          --init-vertex-capacity=INT   the initail capacity for veritices in bigraph INT (default 0)\n"
                 "      -t, --threads=NUM                use NUM threads to construct the paired graph (default: 1)\n"
                 "          --batch-size=NUM             use NUM batches for each thread (default: 1000)\n"
                 "\n"
+                "Paired reads parameters:\n"
+                "          --min-overlap2=INT           treat reads as connected whose overlap is large than INT (default: 50)\n"
+                "          --insert-size-delta=INT      treat reads as paired with insert size delta INT (default: learned from paired reads)\n"
                 "Bubble/Variation removal parameters:\n"
                 "      -b, --bubble=N                   perform N bubble removal steps (default: 3)\n"
                 "\n"
@@ -191,17 +196,18 @@ private:
 };
 
 static const std::string shortopts = "c:s:p:t:m:x:n:l:a:b:d:h";
-enum { OPT_HELP = 1, OPT_BATCH_SIZE, OPT_PEMODE, OPT_MINOVERLAP2, OPT_INSERTSIZE, OPT_INSERTSIZE_DELTA, OPT_MAXEDGES };
+enum { OPT_HELP = 1, OPT_BATCH_SIZE, OPT_PEMODE, OPT_MINOVERLAP2, OPT_INSERTSIZE, OPT_INSERTSIZE_DELTA, OPT_MAXEDGES, OPT_INIT_VERTEX_CAPACITY };
 static const option longopts[] = {
     {"prefix",              required_argument,  NULL, 'p'}, 
     {"min-overlap",         required_argument,  NULL, 'm'}, 
+    {"max-edges",           required_argument,  NULL, OPT_MAXEDGES}, 
+    {"init-vertex-capacity",required_argument,  NULL, OPT_INIT_VERTEX_CAPACITY}, 
     {"threads",             required_argument,  NULL, 't'}, 
     {"batch-size",          required_argument,  NULL, OPT_BATCH_SIZE}, 
     {"pe-mode",             required_argument,  NULL, OPT_PEMODE}, 
     {"min-overlap2",        required_argument,  NULL, OPT_MINOVERLAP2}, 
     {"insert-size",         required_argument,  NULL, OPT_INSERTSIZE}, 
     {"insert-size-delta",   required_argument,  NULL, OPT_INSERTSIZE_DELTA}, 
-    {"max-edges",           required_argument,  NULL, OPT_MAXEDGES}, 
     {"bubble",              required_argument,  NULL, 'b'}, 
     {"min-branch-length",   required_argument,  NULL, 'n'}, 
     {"max-overlap-delta",   required_argument,  NULL, 'd'}, 

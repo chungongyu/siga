@@ -407,7 +407,7 @@ bool EdgeCreator::create(const Overlap& overlap) {
     // misassembly.
     {
         size_t degrees0 = verts[0]->degrees(), degrees1 = verts[1]->degrees();
-        if (degrees0 >= _maxEdges || degrees1 >= _maxEdges) {
+        if ((degrees0 >= _maxEdges && degrees1 > 0) || (degrees0 > 0 && degrees1 >= _maxEdges)) {
             LOG4CXX_WARN(logger, boost::format("Edge limit reached for vertex: %s(%d) and %s(%d)") % verts[0]->id() % degrees0 % verts[1]->id() % degrees1);
             return true;
         }

@@ -24,6 +24,7 @@ enum {
     kSubgraph, 
     kRmDup, 
     kPreQC, 
+    kMatch, 
     kUnkown = 1000
 };
 

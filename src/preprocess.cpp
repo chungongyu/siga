@@ -255,11 +255,15 @@ private:
         // Validate the quality string (if present) and
         // perform any necessary transformations
         if (!record.quality.empty()) {
+            bool phred64 = options.find("phred64") != options.not_found();
 
             // Calculate the range of phred scores for validation
             bool allValid = true;
-            BOOST_FOREACH(char q, record.quality) {
-                allValid = Quality::Phred::isValid(q) && allValid;
+            for (size_t i = 0; i < record.quality.length(); ++i) {
+                if (phred64) {
+                    record.quality[i] = Quality::Phred::_64to33(record.quality[i]);
+                }
+                allValid = Quality::Phred::isValid(record.quality[i]) && allValid;
             }
 
             if (!allValid) {
@@ -392,6 +396,7 @@ private:
                 "                                       2 - reads are paired and the records are interleaved within a single file.\n"
                 "\n"
                 "Conversions/Filtering:\n"
+                "          --phred64                    convert quality values from phred-64 to phred-33.\n"
                 "      -q, --quality-trim=INT           perform Heng Li's BWA quality trim algorithm. \n"
                 "                                       Reads are trimmed according to the formula:\n"
                 "                                       argmax_x{\\sum_{i=x+1}^l(INT-q_i)} if q_l<INT\n"
@@ -417,10 +422,11 @@ private:
 };
 
 static const std::string shortopts = "c:s:o:p:q:f:m:h";
-enum { OPT_HELP = 1, OPT_HARD_CLIP, OPT_NO_PRIMER_CHECK };
+enum { OPT_HELP = 1, OPT_PHRED64, OPT_HARD_CLIP, OPT_NO_PRIMER_CHECK };
 static const option longopts[] = {
     {"out",                 required_argument,  NULL, 'o'}, 
     {"pe-mode",             required_argument,  NULL, 'p'}, 
+    {"phred64",             no_argument,        NULL, OPT_PHRED64}, 
     {"quality-trim",        required_argument,  NULL, 'q'}, 
     {"quality-filter",      required_argument,  NULL, 'f'}, 
     {"min-length",          required_argument,  NULL, 'm'}, 

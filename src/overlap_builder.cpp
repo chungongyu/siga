@@ -487,7 +487,7 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
 
 bool OverlapBuilder::build(const std::string& input, size_t minOverlap, const std::string& output, size_t threads, size_t batch, size_t* processed) const {
     // DNASeqReader
-    std::ifstream reads(input);
+    std::ifstream reads(input.c_str());
     std::shared_ptr< DNASeqReader > reader(DNASeqReaderFactory::create(reads, &input));
     if (!reader) {
         LOG4CXX_ERROR(logger, boost::format("Failed to create DNASeqReader %s") % input);

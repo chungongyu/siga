@@ -7,6 +7,8 @@
 #include <functional>
 #include <unordered_set>
 
+#include <boost/accumulators/accumulators.hpp>
+#include <boost/accumulators/statistics.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/assign.hpp>
 #include <boost/foreach.hpp>
@@ -92,10 +94,10 @@ bool ContainRemoveVisitor::visit(Bigraph* graph, Vertex* vertex) {
     if (vertex->contained()) {
         // Add any new irreducible edges that exist when pToRemove is deleted
         // from the graph
-        EdgePtrList edges = vertex->edges();
+        const EdgePtrList& edges = vertex->edges();
 
         // Delete the edges from the graph
-        for (EdgePtrList::iterator i = edges.begin(); i != edges.end(); ++i) {
+        for (EdgePtrList::const_iterator i = edges.begin(); i != edges.end(); ++i) {
            Edge* edge = *i;
            Edge* twin = edge->twin();
            Vertex* end = edge->end();
@@ -213,6 +215,104 @@ bool MaximalOverlapVisitor::isAntiSenseEdge(const Edge* edge) {
 }
 
 // 
+// InsertSizeEstimateVisitor
+//
+void InsertSizeEstimateVisitor::previsit(Bigraph* graph) {
+    graph->color(GC_GREEN);
+
+    _samples.clear();
+}
+
+bool InsertSizeEstimateVisitor::visit(Bigraph* graph, Vertex* vertex) {
+    if (vertex->color() == GC_GREEN) {
+
+        std::unordered_map< Vertex::Id, int > distancelist = boost::assign::map_list_of(vertex->id(), 0);
+        vertex->color(GC_RED);
+
+        // search forward and backword
+        for (size_t idx = 0; idx < Edge::ED_COUNT; idx++) {
+            Edge::Dir dir = Edge::EDGE_DIRECTIONS[idx];
+
+            int distance = 0;
+            Vertex* p = vertex;
+
+            while (true) {
+                EdgePtrList x = edges(p, dir), y = edges(p, Edge::EDGE_DIRECTIONS[Edge::ED_COUNT - idx - 1]); // forward & backword edges
+
+                if (x.size() != 1 | y.size() != 1 || x[0]->end() == p || x[0]->end()->color() == GC_RED) {
+                    break;
+                }
+                p = x[0]->end();
+                if (dir == Edge::ED_SENSE) {    // forward
+                    distance += x[0]->coord().interval.start;
+                } else {                        // backward
+                    distance -= x[0]->twin()->coord().interval.start;
+                }
+                distancelist[p->id()] = distance;
+                LOG4CXX_DEBUG(logger, boost::format("InsertSizeEstimateVisitor::visit addVertex(%s,%s,%d)") % vertex->id() % p->id() % distance);
+
+                p->color(GC_RED);
+            }
+        }
+
+        for (std::unordered_map< Vertex::Id, int >::const_iterator i = distancelist.begin(); i != distancelist.end(); ++i) {
+            Vertex::Id  pairId = PairEnd::id(i->first);
+            if (i->first < pairId) {
+                std::unordered_map< Vertex::Id, int >::const_iterator j = distancelist.find(pairId);
+                if (j != distancelist.end()) {
+                    size_t distance = abs(j->second - i->second);
+                    _samples.push_back(distance);
+                    LOG4CXX_DEBUG(logger, boost::format("InsertSizeEstimateVisitor::visit addLink(%s,%s,%d)") % i->first % j->first % distance);
+                }
+            }
+        }
+    }
+    return false;
+}
+
+void InsertSizeEstimateVisitor::postvisit(Bigraph* graph) {
+    LOG4CXX_INFO(logger, boost::format("InsertSizeEstimateVisitor::samples=%d") % _samples.size());
+
+    typedef boost::accumulators::accumulator_set< double, boost::accumulators::stats< boost::accumulators::tag::count, boost::accumulators::tag::mean, boost::accumulators::tag::moment< 2 > > > Accumulator;
+    Accumulator acc;
+    std::for_each(_samples.begin(), _samples.end(), std::ref(acc));
+    if (boost::accumulators::count(acc) > 0) {
+        _average = (size_t)boost::accumulators::mean(acc);
+        _delta = std::sqrt(
+                boost::accumulators::moment< 2 >(acc) - std::pow(boost::accumulators::mean(acc), 2)
+                );
+
+        LOG4CXX_INFO(logger, boost::format("InsertSizeEstimateVisitor::average=%d, delta=%d") % _average % _delta);
+    }
+}
+
+EdgePtrList InsertSizeEstimateVisitor::edges(const Vertex* vertex, Edge::Dir dir) { // reduced edges
+    EdgePtrList edges = vertex->edges(dir);
+    std::sort(edges.begin(), edges.end(), OverlapCmp());
+    {
+        size_t k = 0;
+        for (size_t i = 0; i < edges.size(); ++i) {
+            if (edges[i]->coord().length() != edges[i]->coord().seqlen) {
+                edges[k++] = edges[i];
+            }
+        }
+        edges.resize(k);
+    }
+    {
+        size_t k = 0;
+        for (size_t i = 1; i < edges.size(); ++i) {
+            if (edges[i]->coord().length() != edges[k]->coord().length() || edges[i]->label() != edges[k]->label()) {
+                edges[++k] = edges[i];
+            }
+        }
+        if (!edges.empty()) {
+            edges.resize(k + 1);
+        }
+    }
+    return edges;
+}
+
+// 
 // BigraphSearchTree
 //
 class BigraphSearchTree {
@@ -271,7 +371,7 @@ public:
                     leaves->push_back(curr);
                 }
 
-                EdgePtrList edges = curr->vertex->edges(Edge::ED_SENSE);
+                const EdgePtrList& edges = curr->vertex->edges(Edge::ED_SENSE);
                 for (EdgePtrList::const_iterator i = edges.begin(); i != edges.end(); ++i) {
                     Edge* edge = *i;
                     int distance = curr->distance + edge->coord().interval.start;
@@ -307,17 +407,19 @@ public:
                     return;
                 }
 
-                EdgePtrList edges = curr->vertex->edges(searchDir);
+                const EdgePtrList& edges = curr->vertex->edges();
                 for (EdgePtrList::const_iterator i = edges.begin(); i != edges.end(); ++i) {
                     Edge* edge = *i;
-                    int distance = curr->distance;
-                    if (searchDir == Edge::ED_SENSE) {
-                        distance += edge->coord().interval.start;
-                    } else {
-                        distance -= edge->twin()->coord().interval.start;
+                    if (edge->dir() == searchDir) {
+                        int distance = curr->distance;
+                        if (searchDir == Edge::ED_SENSE) {
+                            distance += edge->coord().interval.start;
+                        } else {
+                            distance -= edge->twin()->coord().interval.start;
+                        }
+                        NodePtr child(new Node(edge->end(),  distance));
+                        Q.push_back(child);
                     }
-                    NodePtr child(new Node(edge->end(),  distance));
-                    Q.push_back(child);
                 }
             }
         }
@@ -425,7 +527,7 @@ public:
     void previsit(Bigraph* graph) {
     }
     bool visit(Bigraph* graph, Vertex* vertex) {
-        EdgePtrList edges = vertex->edges();
+        const EdgePtrList& edges = vertex->edges();
         BOOST_FOREACH(Edge* edge, edges) {
             edge->color(_color);
         }
@@ -524,9 +626,9 @@ void PairedReadVisitor::addEdge(const Vertex::Id& v1, const Vertex::Id& v2, int 
     Vertex* vertex2 = graph->getVertex(v2);
 
     bool found = false;
-    EdgePtrList edges = vertex1->edges(Edge::ED_SENSE);
+    const EdgePtrList& edges = vertex1->edges();
     BOOST_FOREACH(Edge* edge, edges) {
-        if (edge->end() == vertex2) {
+        if (edge->dir() == Edge::ED_SENSE && edge->end() == vertex2) {
             if (edge->coord().interval.start == distance) {
                 edge->color(GC_WHITE);
                 edge->twin()->color(GC_WHITE);

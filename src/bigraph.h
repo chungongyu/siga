@@ -134,7 +134,7 @@ public:
     void deleteEdges();
     size_t sweepEdges(GraphColor c);
 
-    EdgePtrList edges() const {
+    const EdgePtrList& edges() const {
         return _edges;
     }
     EdgePtrList edges(Edge::Dir dir) const {
@@ -185,7 +185,10 @@ typedef std::unordered_map< Vertex::Id, Vertex* > VertexTable;
 //
 class Bigraph {
 public:
-    Bigraph() : _containment(false) {
+    Bigraph(size_t n = 0) : _containment(false) {
+        if (n > 0) {
+            _vertices.reserve(n);
+        }
     }
     ~Bigraph();
 

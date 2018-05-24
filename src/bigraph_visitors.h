@@ -69,6 +69,22 @@ private:
     size_t _dummys;
 };
 
+// Visit each paired node to estimate insert size variant under normal distribution assumption.
+class InsertSizeEstimateVisitor : public BigraphVisitor {
+public:
+    InsertSizeEstimateVisitor(size_t& average, size_t& delta) : _average(average), _delta(delta) {
+    }
+    void previsit(Bigraph* graph);
+    bool visit(Bigraph* graph, Vertex* vertex);
+    void postvisit(Bigraph* graph);
+public:
+    EdgePtrList edges(const Vertex* vertex, Edge::Dir dir);
+    std::vector< size_t > _samples;
+
+    size_t& _average;
+    size_t& _delta;
+};
+
 // Visit each paired node via zigzag, sweep false positive edges.
 class PairedReadVisitor : public BigraphVisitor {
 public:
