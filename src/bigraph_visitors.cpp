@@ -284,6 +284,8 @@ void InsertSizeEstimateVisitor::postvisit(Bigraph* graph) {
 
         LOG4CXX_INFO(logger, boost::format("InsertSizeEstimateVisitor::average=%d, delta=%d") % _average % _delta);
     }
+
+    graph->color(GC_GREEN);
 }
 
 EdgePtrList InsertSizeEstimateVisitor::edges(const Vertex* vertex, Edge::Dir dir) { // reduced edges
