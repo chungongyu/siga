@@ -49,6 +49,7 @@ public:
             // Visitors
             ChimericVisitor chVisit(options.get< size_t >("min-chimeric-length", 0), options.get< size_t >("max-chimeric-delta", -1));
             ContainRemoveVisitor containVisit;
+            LoopRemoveVisitor loopVisit;
             MaximalOverlapVisitor moVisit(options.get< size_t >("max-overlap-delta", 0));
             SmoothingVisitor smoothVisit;
             StatisticsVisitor statsVisit;
@@ -85,8 +86,30 @@ public:
                 g.visit(&statsVisit);
 
                 // Trimming
+                size_t trimRound = 0, numTrimRounds = options.get< size_t >("cut-terminal", 10);
+                while (trimRound < numTrimRounds) {
+                    LOG4CXX_INFO(logger, boost::format("[Trim] Trim round: %d") % (trimRound + 1))
+                    bool modified = false;
+                    if (g.visit(&loopVisit)) {
+                        modified = true;
+                        g.simplify();
+                    }
+
+                    if (g.visit(&moVisit)) {
+                        modified = true;
+                        g.simplify();
+                    }
+                    if (!modified) {
+                        break;
+                    }
+
+                    LOG4CXX_INFO(logger, "[Stats] After trimming:");
+                    g.visit(&statsVisit);
+
+                    ++trimRound;
+                }
+
                 /*
-                size_t numTrimRounds = options.get< size_t >("cut-terminal", 10);
                 for (size_t numTrim = 0; numTrim < numTrimRounds; ++numTrim) {
                     LOG4CXX_INFO(logger, "Trimming tips");
                     if (g.visit(&trimVisit)) {

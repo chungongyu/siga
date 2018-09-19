@@ -34,6 +34,9 @@ public:
         // parameters
         LOG4CXX_INFO(logger, "Parameters:");
         LOG4CXX_INFO(logger, boost::format("PE Mode: %d") % options.get< int >("pe-mode", 0));
+        if (options.find("pe-orientation") != options.not_found()) {
+            LOG4CXX_INFO(logger, boost::format("PE Orientation: %d") % options.get< std::string >("pe-orientation", "fr"));
+        }
         if (options.find("min-length") != options.not_found()) {
             LOG4CXX_INFO(logger, boost::format("Min length: %d") % options.get< int >("min-length"));
         }
@@ -207,6 +210,8 @@ private:
 
     int processPairEnds(const Properties& options, DNASeqReader* reader1, DNASeqReader* reader2, std::ostream& output, Statistics& stats) {
         if (reader1 != NULL && reader2 != NULL) {
+            std::string orientation = options.get("pe-orientation", "fr");
+
             DNASeq read1, read2;
             while (reader1->read(read1) && reader2->read(read2)) {
                 // If the names of the records are the same, append a /1 and /2 to them
@@ -230,6 +235,11 @@ private:
                 bool passed1 = processRead(options, read1, stats);
                 bool passed2 = processRead(options, read2, stats);
                 if (passed1 && passed2) {
+                    if (boost::algorithm::iequals(orientation, "fr")) {
+                        read2.make_reverse_complement();
+                    } else if (boost::algorithm::iequals(orientation, "rf")) {
+                        read1.make_reverse_complement();
+                    }
                     output << read1 << read2;
                     // Statistics
                     stats.numReadsKept += 2;
@@ -375,7 +385,10 @@ private:
     }
 
     int checkOptions(const Properties& options, const Arguments& arguments) const {
-        if (options.find("help") != options.not_found() || arguments.empty()) {
+        std::set< std::string > orientations = boost::assign::list_of("fr")("ff")("rf");
+        if (options.find("help") != options.not_found() 
+                || orientations.find(options.get< std::string >("pe-orientation", "fr")) == orientations.end() 
+                || arguments.empty()) {
             return printHelps();
         }
         return 0;
@@ -394,6 +407,7 @@ private:
                 "                                       1 - reads are paired with the first read in READS1 and the second\n"
                 "                                       read in READS2. The paired reads will be interleaved in the output file\n"
                 "                                       2 - reads are paired and the records are interleaved within a single file.\n"
+                "          --pe-orientation=STR         orientation of reads for paired-end reads. orientation = fr(default), rf, ff.\n"
                 "\n"
                 "Conversions/Filtering:\n"
                 "          --phred64                    convert quality values from phred-64 to phred-33.\n"
@@ -422,10 +436,11 @@ private:
 };
 
 static const std::string shortopts = "c:s:o:p:q:f:m:h";
-enum { OPT_HELP = 1, OPT_PHRED64, OPT_HARD_CLIP, OPT_NO_PRIMER_CHECK };
+enum { OPT_HELP = 1, OPT_PE_ORIENTATION, OPT_PHRED64, OPT_HARD_CLIP, OPT_NO_PRIMER_CHECK };
 static const option longopts[] = {
     {"out",                 required_argument,  NULL, 'o'}, 
     {"pe-mode",             required_argument,  NULL, 'p'}, 
+    {"pe-orientation",      required_argument,  NULL, OPT_PE_ORIENTATION}, 
     {"phred64",             no_argument,        NULL, OPT_PHRED64}, 
     {"quality-trim",        required_argument,  NULL, 'q'}, 
     {"quality-filter",      required_argument,  NULL, 'f'}, 

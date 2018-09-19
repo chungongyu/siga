@@ -53,6 +53,18 @@ private:
     std::ostream& _stream;
 };
 
+// Reomve loops from the graph
+class LoopRemoveVisitor : public BigraphVisitor {
+public:
+    LoopRemoveVisitor() {
+    }
+    void previsit(Bigraph* graph);
+    bool visit(Bigraph* graph, Vertex* vertex);
+    void postvisit(Bigraph* graph);
+private:
+    std::vector< Vertex* > _loops;
+};
+
 // Run the YU LIN's maximal overlap algorithm on each node
 class MaximalOverlapVisitor : public BigraphVisitor {
 public:
@@ -62,9 +74,6 @@ public:
     bool visit(Bigraph* graph, Vertex* vertex);
     void postvisit(Bigraph* graph);
 private:
-    static bool isSenseEdge(const Edge* edge);
-    static bool isAntiSenseEdge(const Edge* edge);
-
     size_t _delta;
     size_t _dummys;
 };

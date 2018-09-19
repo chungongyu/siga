@@ -19,6 +19,29 @@
 static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.BigraphVisitor"));
 
 //
+// EdgeColorVisitor
+//
+class EdgeColorVisitor : public BigraphVisitor {
+public:
+    EdgeColorVisitor(GraphColor c) : _color(c) {
+    }
+
+    void previsit(Bigraph* graph) {
+    }
+    bool visit(Bigraph* graph, Vertex* vertex) {
+        const EdgePtrList& edges = vertex->edges();
+        BOOST_FOREACH(Edge* edge, edges) {
+            edge->color(_color);
+        }
+        return true;
+    }
+    void postvisit(Bigraph* graph) {
+    }
+private:
+    GraphColor _color;
+};
+
+//
 // ChimericVisitor
 //
 void ChimericVisitor::previsit(Bigraph* graph) {
@@ -132,14 +155,70 @@ bool FastaVisitor::visit(Bigraph* graph, Vertex* vertex) {
 }
 
 //
+// LoopRemoveVisitor
+//
+void LoopRemoveVisitor::previsit(Bigraph* graph) {
+    _loops.clear();
+}
+
+bool LoopRemoveVisitor::visit(Bigraph* graph, Vertex* vertex) {
+    bool modified = false;
+    if (vertex->degrees(Edge::ED_SENSE) == 1 && vertex->degrees(Edge::ED_ANTISENSE) == 1) {
+        Edge* prevEdge = vertex->edges(Edge::ED_ANTISENSE)[0];
+        Edge* nextEdge = vertex->edges(Edge::ED_SENSE)[0];
+        Vertex* prevVert = prevEdge->end();
+        Vertex* nextVert = nextEdge->end();
+        if (prevVert == nextVert) {
+            //vertex->color(GC_BLACK);
+            _loops.push_back(vertex);
+            modified = true;
+        }
+    }
+    return modified;
+}
+
+void LoopRemoveVisitor::postvisit(Bigraph* graph) {
+    LOG4CXX_INFO(logger, boost::format("[LoopRemoveVisitor] Removed %lu loop vertices") % _loops.size());
+    BOOST_FOREACH(Vertex* vertex, _loops) {
+        assert(vertex->degrees(Edge::ED_SENSE) == 1 && vertex->degrees(Edge::ED_ANTISENSE) == 1);
+        Edge* prevEdge = vertex->edges(Edge::ED_ANTISENSE)[0];
+        Edge* nextEdge = vertex->edges(Edge::ED_SENSE)[0];
+        Vertex* prevVert = prevEdge->end();
+        Vertex* nextVert = nextEdge->end();
+        assert(prevVert == nextVert);
+
+        LOG4CXX_INFO(logger, boost::format("[LoopRemoveVisitor] Remove loop vertex: id=%s, coverage=%d, prev vertex: id=%s, coverage=%d") % vertex->id() % vertex->coverage() % prevVert->id() % prevVert->coverage());
+
+
+        Edge* nextTwin = nextEdge->twin();
+        vertex->merge(nextEdge);
+        vertex->removeEdge(nextEdge);
+        SAFE_DELETE(nextEdge);
+        nextVert->removeEdge(nextTwin);
+        SAFE_DELETE(nextTwin);
+
+        Edge* prevTwin = prevEdge->twin();
+        prevVert->merge(prevTwin);
+        prevVert->removeEdge(prevTwin);
+        SAFE_DELETE(prevTwin);
+        vertex->removeEdge(prevEdge);
+        SAFE_DELETE(prevEdge);
+
+        graph->removeVertex(vertex);
+        SAFE_DELETE(vertex);
+    }
+}
+
+//
 // MaximalOverlapVisitor
 //
 void MaximalOverlapVisitor::previsit(Bigraph* graph) {
     // The graph must not have containments
     assert(!graph->containment());
 
-    // Set all the vertices in the graph to "vacant"
-    graph->color(GC_WHITE);
+    // Set all the edges in the graph to "vacant"
+    EdgeColorVisitor ecVisit(GC_WHITE);
+    graph->visit(&ecVisit);
 
     _dummys = 0;
 }
@@ -151,48 +230,59 @@ public:
     }
 };
 
+class EdgeDirCmp {
+public:
+    EdgeDirCmp(const Edge* edge) : _edge(edge) {
+    }
+    bool operator()(const Edge* edge) const {
+        return _edge->twin()->dir() == (edge->dir() + 1) % Edge::ED_COUNT;
+    }
+private:
+    const Edge* _edge;
+};
+
 bool MaximalOverlapVisitor::visit(Bigraph* graph, Vertex* vertex) {
     bool modified = false;
 
-    typedef bool(*PredicateEdge)(const Edge*);
-    static PredicateEdge PredicateEdgeArray[Edge::ED_COUNT] = {
-        MaximalOverlapVisitor::isSenseEdge, 
-        MaximalOverlapVisitor::isAntiSenseEdge
-    };
-
     for (size_t i = 0; i < Edge::ED_COUNT; ++i) {
         Edge::Dir dir = Edge::EDGE_DIRECTIONS[i];
-        EdgePtrList edges = vertex->edges(dir);
+        EdgePtrList fwdlist = vertex->edges(dir);
 
-        std::sort(edges.begin(), edges.end(), OverlapCmp());
+        std::sort(fwdlist.begin(), fwdlist.end(), OverlapCmp());
 
-        for (size_t j = 1; j < edges.size(); ++j) {
-            if (edges[j]->color() == GC_BLACK) {
+        for (size_t j = 1; j < fwdlist.size(); ++j) {
+            if (fwdlist[j]->color() == GC_BLACK) {
                 continue;
             }
 
-            if (edges[0]->coord().length() - edges[j]->coord().length() <= _delta) {
+            if (fwdlist[0]->coord().length() - fwdlist[j]->coord().length() < _delta) {
                 continue;
             }
 
-            EdgePtrList redges = edges[j]->end()->edges();
-            EdgePtrList::iterator last = std::remove_if(redges.begin(), redges.end(), PredicateEdgeArray[i]);
-            redges.resize(std::distance(redges.begin(), last));
-            assert(!redges.empty());
+            EdgePtrList revlist = fwdlist[j]->end()->edges();
+            EdgePtrList::iterator last = std::remove_if(revlist.begin(), revlist.end(), EdgeDirCmp(fwdlist[j]));
+            if (last != revlist.end()) {
+                revlist.resize(std::distance(revlist.begin(), last));
+            }
+            assert(!revlist.empty());
 
-            EdgePtrList::const_iterator largest = std::min_element(redges.begin(), redges.end(), OverlapCmp());
+            std::sort(revlist.begin(), revlist.end(), OverlapCmp());
 
-            if ((*largest)->coord().length() - edges[j]->coord().length() <= _delta) {
+            bool largest = revlist[0]->end() == vertex;
+            for (size_t k = 1; k < revlist.size() && revlist[k]->coord().length() - revlist[0]->coord().length() < _delta && !largest; ++k) {
+                largest = revlist[k]->end() == vertex; 
+            }
+            if (largest) {
                 continue;
             }
 
             if (dir == Edge::ED_SENSE) {
-                LOG4CXX_INFO(logger, boost::format("[MaximalOverlapVisitor] remove edge %s->%s (%d)") % edges[j]->start()->id() % edges[j]->end()->id() % edges[j]->coord().length());
+                LOG4CXX_INFO(logger, boost::format("[MaximalOverlapVisitor] remove edge %s->%s (%d)") % fwdlist[j]->start()->id() % fwdlist[j]->end()->id() % fwdlist[j]->coord().length());
             } else {
-                LOG4CXX_INFO(logger, boost::format("[MaximalOverlapVisitor] remove edge %s->%s (%d)") % edges[j]->end()->id() % edges[j]->start()->id() % edges[j]->coord().length());
+                LOG4CXX_INFO(logger, boost::format("[MaximalOverlapVisitor] remove edge %s->%s (%d)") % fwdlist[j]->end()->id() % fwdlist[j]->start()->id() % fwdlist[j]->coord().length());
             }
-            edges[j]->color(GC_BLACK);
-            edges[j]->twin()->color(GC_BLACK);
+            fwdlist[j]->color(GC_BLACK);
+            fwdlist[j]->twin()->color(GC_BLACK);
             ++_dummys;
             modified = true;
         }
@@ -204,14 +294,6 @@ bool MaximalOverlapVisitor::visit(Bigraph* graph, Vertex* vertex) {
 void MaximalOverlapVisitor::postvisit(Bigraph* graph) {
     graph->sweepEdges(GC_BLACK);
     LOG4CXX_INFO(logger, boost::format("[MaximalOverlapVisitor] Removed %d dummy edges") % _dummys);
-}
-
-bool MaximalOverlapVisitor::isSenseEdge(const Edge* edge) {
-    return (!edge->match().isRC && edge->dir() == Edge::ED_SENSE) || (edge->match().isRC && edge->dir() == Edge::ED_ANTISENSE);
-}
-
-bool MaximalOverlapVisitor::isAntiSenseEdge(const Edge* edge) {
-    return !isSenseEdge(edge);
 }
 
 // 
@@ -229,24 +311,69 @@ bool InsertSizeEstimateVisitor::visit(Bigraph* graph, Vertex* vertex) {
         std::unordered_map< Vertex::Id, int > distancelist = boost::assign::map_list_of(vertex->id(), 0);
         vertex->color(GC_RED);
 
-        // search forward and backword
-        for (size_t idx = 0; idx < Edge::ED_COUNT; idx++) {
-            Edge::Dir dir = Edge::EDGE_DIRECTIONS[idx];
+        ////////////////////////////////////////
+        // search forward & backward
+        //
+        // cases:
+        //              c
+        //      f    fc | rc   f
+        //    R1-->R2-->R3-->R4-->R5
+        //    ^    |^   |^   |^   |
+        //     \__/ \__/ \__/ \__/
+        //      r    fc   rc   r
 
-            int distance = 0;
+        //              c    c
+        //      f    fc | r  | rc   f
+        //    R1-->R2-->R3-->R4-->R5-->R6
+        //    ^    |^   |^   |^   |^   |
+        //     \__/ \__/ \__/ \__/ \__/
+        //      r    fc   f    rc   r
+        //
+        // the state machine:
+        //                     ---------    
+        //                    |         |
+        //                    V         | f
+        //    -----  f/rc  ---------    |
+        //   |start| ---> | forward | --
+        //    -----        ---------   
+        //      |          ^     |fc   
+        //      |          |rc   V       
+        //       \  fc/r  ----------   
+        //         ----> | backword | --
+        //                ----------    |
+        //                    ^         | r
+        //                    |         |
+        //                     ---------
+        //
+        ////////////////////////////////////////
+        for (size_t idx = 0; idx < Edge::ED_COUNT; idx++) {
+            Edge::Dir searchDir = Edge::EDGE_DIRECTIONS[idx];
+            int distance = 0, flag = (searchDir == Edge::ED_SENSE ? 1 : -1);
             Vertex* p = vertex;
 
             while (true) {
-                EdgePtrList x = edges(p, dir), y = edges(p, Edge::EDGE_DIRECTIONS[Edge::ED_COUNT - idx - 1]); // forward & backword edges
+                EdgePtrList straight = this->edges(p, searchDir); // forward & backword edges
 
-                if (x.size() != 1 | y.size() != 1 || x[0]->end() == p || x[0]->end()->color() == GC_RED) {
+                // Don't walk thru singular self edges
+                if (straight.size() != 1 || straight[0]->isSelf() || straight[0]->end()->color() == GC_RED) {
                     break;
                 }
-                p = x[0]->end();
-                if (dir == Edge::ED_SENSE) {    // forward
-                    distance += x[0]->coord().interval.start;
-                } else {                        // backward
-                    distance -= x[0]->twin()->coord().interval.start;
+                Edge* single = straight[0];
+                Edge* twin = single->twin();
+                Vertex* end = single->end();
+                EdgePtrList opposite = this->edges(end, twin->dir());
+                if (opposite.size() != 1) {
+                    break;
+                }
+
+                p = end;
+                if (searchDir == Edge::ED_SENSE) {      // forward
+                    distance += flag * single->coord().complement().length();
+                } else {                                // backward
+                    distance += flag * twin->coord().complement().length();
+                }
+                if (single->comp() == Edge::EC_REVERSE) {
+                    searchDir = Edge::EDGE_DIRECTIONS[Edge::EC_COUNT - searchDir - 1];
                 }
                 distancelist[p->id()] = distance;
                 LOG4CXX_DEBUG(logger, boost::format("InsertSizeEstimateVisitor::visit addVertex(%s,%s,%d)") % vertex->id() % p->id() % distance);
@@ -521,25 +648,6 @@ bool PairedReadVisitor::visit(Bigraph* graph, Vertex* vertex1) {
     return false;
 }
 
-class EdgeColorVisitor : public BigraphVisitor {
-public:
-    EdgeColorVisitor(GraphColor c) : _color(c) {
-    }
-
-    void previsit(Bigraph* graph) {
-    }
-    bool visit(Bigraph* graph, Vertex* vertex) {
-        const EdgePtrList& edges = vertex->edges();
-        BOOST_FOREACH(Edge* edge, edges) {
-            edge->color(_color);
-        }
-        return true;
-    }
-    void postvisit(Bigraph* graph) {
-    }
-private:
-    GraphColor _color;
-};
 void PairedReadVisitor::postvisit(Bigraph* graph) {
     LinkList links;
 
