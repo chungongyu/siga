@@ -178,6 +178,18 @@ bool LoopRemoveVisitor::visit(Bigraph* graph, Vertex* vertex) {
 }
 
 void LoopRemoveVisitor::postvisit(Bigraph* graph) {
+    /////////////////////////////////////////
+    // R4 is a Loop node
+    //
+    //   R1-->R2-->R3
+    //      /  \
+    //      \  /
+    //       R4
+    //
+    // We change it to:
+    //   R1-->R2-->R4-->R2-->R3
+    //
+    /////////////////////////////////////////
     LOG4CXX_INFO(logger, boost::format("[LoopRemoveVisitor] Removed %lu loop vertices") % _loops.size());
     BOOST_FOREACH(Vertex* vertex, _loops) {
         assert(vertex->degrees(Edge::ED_SENSE) == 1 && vertex->degrees(Edge::ED_ANTISENSE) == 1);
@@ -352,7 +364,7 @@ bool InsertSizeEstimateVisitor::visit(Bigraph* graph, Vertex* vertex) {
             Vertex* p = vertex;
 
             while (true) {
-                EdgePtrList straight = this->edges(p, searchDir); // forward & backword edges
+                const EdgePtrList& straight = this->edges(p, searchDir); // forward & backword edges
 
                 // Don't walk thru singular self edges
                 if (straight.size() != 1 || straight[0]->isSelf() || straight[0]->end()->color() == GC_RED) {
@@ -361,7 +373,7 @@ bool InsertSizeEstimateVisitor::visit(Bigraph* graph, Vertex* vertex) {
                 Edge* single = straight[0];
                 Edge* twin = single->twin();
                 Vertex* end = single->end();
-                EdgePtrList opposite = this->edges(end, twin->dir());
+                const EdgePtrList& opposite = this->edges(end, twin->dir());
                 if (opposite.size() != 1) {
                     break;
                 }
@@ -418,15 +430,17 @@ void InsertSizeEstimateVisitor::postvisit(Bigraph* graph) {
 EdgePtrList InsertSizeEstimateVisitor::edges(const Vertex* vertex, Edge::Dir dir) { // reduced edges
     EdgePtrList edges = vertex->edges(dir);
     std::sort(edges.begin(), edges.end(), OverlapCmp());
+    // remove if the edge links to the same seq with `vertex` or it's subseq
     {
         size_t k = 0;
         for (size_t i = 0; i < edges.size(); ++i) {
-            if (edges[i]->coord().length() != edges[i]->coord().seqlen) {
+            if (!edges[i]->coord().isContained() || !edges[i]->coord().isExtreme()) { // containment
                 edges[k++] = edges[i];
             }
         }
         edges.resize(k);
     }
+    // remove the other edges if they links to the same seq
     {
         size_t k = 0;
         for (size_t i = 1; i < edges.size(); ++i) {
@@ -450,14 +464,30 @@ public:
     public:
         Node(const Vertex* vertex, int distance) : vertex(vertex), distance(distance) {
         }
+        Node(const Vertex* vertex, int distance, Edge::Dir dir, Edge::Comp comp) : vertex(vertex), distance(distance), dir(dir), comp(comp) {
+        }
         ~Node() {
         }
 
         const Vertex* vertex;
         int distance;
+        Edge::Dir dir;
+        Edge::Comp comp;
     };
     typedef std::shared_ptr< Node > NodePtr;
     typedef std::vector< NodePtr > NodePtrList;
+
+    struct NodeDistanceSorter {
+        NodeDistanceSorter(bool absolute=false) : absolute_(absolute) {
+        }
+        bool operator()(const NodePtr& x, const NodePtr& y) const {
+            if (absolute_) {
+                return std::abs(x->distance) < abs(y->distance);
+            }
+            return x->distance < y->distance;
+        }
+        bool absolute_;
+    };
 
     struct NodePtrCmp {
         bool operator()(const NodePtr& x, const NodePtr& y) const {
@@ -473,85 +503,90 @@ public:
         }
     };
 
-    static void buildNew(Bigraph* graph, const Vertex* start, size_t maxDistance, size_t maxNodes, NodePtrList* leaves) {
-        const Vertex* paired_v1 = graph->getVertex(PairEnd::id(start->id()));
-        assert(paired_v1 != NULL);
+    typedef std::deque< std::pair< NodePtr, int > > NodePtrQueue;
 
-        typedef std::deque< NodePtr > NodePtrQueue;
-
+    static size_t build(NodePtrQueue& Q, const Vertex* end, size_t minDistance, size_t maxDistance, size_t maxNodes, NodePtrList* leaves) {
+        size_t num = 0;
         std::unordered_set< NodePtr, NodePtrHash< NodePtr >, NodePtrCmp > visited;
-
-        NodePtrQueue Q = boost::assign::list_of(NodePtr(new Node(start, 0)));
-        while (!Q.empty() && leaves->size() < maxNodes && Q.size() < 1000*maxNodes) {
-            NodePtr curr = Q.front();
+        while (!Q.empty() && leaves->size() < maxNodes && Q.size() < 5*maxDistance) {
+            std::pair<NodePtr, int> curr = Q.front();
             Q.pop_front();
 
-            if (visited.find(curr) != visited.end()) {
+            if (visited.find(curr.first) != visited.end()) {
                 continue;
             }
-            visited.insert(curr);
+            visited.insert(curr.first);
 
-            if (abs(curr->distance) < maxDistance) {
-                if (curr->distance != 0 && curr->vertex != start) {
-                    const Vertex* paired_v2 = graph->getVertex(PairEnd::id(curr->vertex->id()));
-                    assert(paired_v2 != NULL);
-                    LOG4CXX_DEBUG(logger, boost::format("vertex1: %s<->%s, vertex2: %s<->%s\n") % start->id() % paired_v1->id() % curr->vertex->id() % paired_v2->id());
-
-                    leaves->push_back(curr);
+            if (abs(curr.first->distance) < maxDistance) {
+                if (abs(curr.first->distance) >= minDistance) {
+                    if (end == NULL) {
+                        if (curr.first->distance != 0) {
+                            ++num;
+                            if (leaves != NULL) {
+                                leaves->push_back(curr.first);
+                            }
+                        }
+                    } else if (end->id() == curr.first->vertex->id()) {
+                        ++num;
+                        if (leaves != NULL) {
+                            leaves->push_back(curr.first);
+                        }
+                        break;
+                    }
                 }
 
-                const EdgePtrList& edges = curr->vertex->edges(Edge::ED_SENSE);
-                for (EdgePtrList::const_iterator i = edges.begin(); i != edges.end(); ++i) {
-                    Edge* edge = *i;
-                    int distance = curr->distance + edge->coord().interval.start;
-                    NodePtr child(new Node(edge->end(), distance));
-                    Q.push_back(child);
+                Edge::Dir dir = curr.first->dir;
+                if (curr.first->comp == Edge::EC_REVERSE) {
+                    dir = Edge::EDGE_DIRECTIONS[Edge::EC_COUNT - dir - 1];
+                }
+                const EdgePtrList& edges = curr.first->vertex->edges();
+                BOOST_FOREACH(const Edge* edge, edges) {
+                    if (edge->dir() == dir) {
+                        //int distance = curr.first->distance;
+                        int distance = 0;
+                        if (dir == Edge::ED_SENSE) {
+                            const SeqCoord& coord = edge->coord();
+                            distance = coord.seqlen - coord.length();
+                            //distance += curr.second * edge->coord().complement().length();
+                        } else {
+                            const SeqCoord& coord = edge->twin()->coord();
+                            distance = coord.seqlen - coord.length();
+                            //distance += curr.second * edge->twin()->coord().complement().length();
+                        }
+                        distance = curr.first->distance + curr.second * distance;
+                        NodePtr child(new Node(edge->end(), distance, dir, edge->comp()));
+                        Q.push_back(std::make_pair(child, curr.second));
+                    }
                 }
             }
         }
+
+        return num;
     }
 
-    static void build(const Vertex* start, const Vertex* end, Edge::Dir searchDir, size_t maxDistance, size_t maxNodes, NodePtrList* leaves) {
-        typedef std::deque< NodePtr > NodePtrQueue;
+    static size_t build(const Vertex* start, std::function< bool(const Edge* edge) > filter, const Vertex* end, size_t minDistance, size_t maxDistance, size_t maxNodes, NodePtrList* leaves) {
+        const EdgePtrList& edges = start->edges();
 
-        std::unordered_set< NodePtr, NodePtrHash< NodePtr >, NodePtrCmp > visited;
-
-        NodePtrQueue Q = boost::assign::list_of(NodePtr(new Node(start, 0)));
-        while (!Q.empty() && leaves->size() < maxNodes && Q.size() < 5*maxDistance) {
-            NodePtr curr = Q.front();
-            Q.pop_front();
-
-            if (visited.find(curr) != visited.end()) {
-                continue;
+        BigraphSearchTree::NodePtrQueue Q;
+        BOOST_FOREACH(const Edge* edge, edges) {
+            int flag = 1, distance = 0;
+            if (edge->dir() == Edge::ED_SENSE) {
+                const SeqCoord& coord = edge->coord();
+                distance = coord.seqlen - coord.length();
+                //distance += curr.second * edge->coord().complement().length();
+            } else {
+                const SeqCoord& coord = edge->twin()->coord();
+                distance = coord.seqlen - coord.length();
+                //distance += curr.second * edge->twin()->coord().complement().length();
+                flag = -1;
             }
-            visited.insert(curr);
-
-            if (abs(curr->distance) < maxDistance) {
-                if (end == NULL) {
-                    if (curr->distance != 0 && curr->vertex != start) {
-                        leaves->push_back(curr);
-                    }
-                } else if (end->id() == curr->vertex->id()) {
-                    leaves->push_back(curr);
-                    return;
-                }
-
-                const EdgePtrList& edges = curr->vertex->edges();
-                for (EdgePtrList::const_iterator i = edges.begin(); i != edges.end(); ++i) {
-                    Edge* edge = *i;
-                    if (edge->dir() == searchDir) {
-                        int distance = curr->distance;
-                        if (searchDir == Edge::ED_SENSE) {
-                            distance += edge->coord().interval.start;
-                        } else {
-                            distance -= edge->twin()->coord().interval.start;
-                        }
-                        NodePtr child(new Node(edge->end(),  distance));
-                        Q.push_back(child);
-                    }
-                }
+            if (!filter || filter(edge)) {
+                NodePtr child(new Node(edge->end(), flag * distance, edge->dir(), edge->comp()));
+                Q.push_back(std::make_pair(child, flag));
             }
         }
+
+        return build(Q, end, minDistance, maxDistance, maxNodes, leaves);
     }
 };
 
@@ -566,6 +601,16 @@ struct DistanceListCmp {
     }
 };
 
+struct EdgeDirSelector {
+    EdgeDirSelector(Edge::Dir dir) : _dir(dir) {
+    }
+    bool operator()(const Edge* edge) const {
+        return edge->dir() == _dir;
+    }
+private:
+    Edge::Dir _dir;
+};
+
 PairedReadVisitor::DistanceList PairedReadVisitor::VertexProcess::process(const Vertex* vertex1) {
     PairedReadVisitor::DistanceList linklist;
 
@@ -573,8 +618,15 @@ PairedReadVisitor::DistanceList PairedReadVisitor::VertexProcess::process(const 
     assert(paired_v1 != NULL);
 
     BigraphSearchTree::NodePtrList adjacents;
-    BigraphSearchTree::build(vertex1, NULL, Edge::ED_SENSE, vertex1->seq().length() - _visitor->_minOverlap, _visitor->_maxNodes, &adjacents);
-    //BigraphSearchTree::build(vertex1, NULL, Edge::ED_SENSE, _visitor->_maxDistance, _visitor->_maxNodes, &adjacents);
+    if (vertex1->seq().length() > _visitor->_minOverlap) {
+        std::function< bool(const Edge* edge) > filter = [](const Edge* edge)->bool {
+                return (edge->dir() == Edge::ED_SENSE || edge->comp() == Edge::EC_REVERSE) && (
+                            (edge->dir() == Edge::ED_SENSE && edge->coord().complement().length() > 0) || 
+                            (edge->dir() == Edge::ED_ANTISENSE && edge->twin()->coord().complement().length() > 0)
+                       );
+            };
+        BigraphSearchTree::build(vertex1, filter, NULL, 0, vertex1->seq().length() - _visitor->_minOverlap, _visitor->_maxNodes, &adjacents);
+    }
 
     size_t numNodes = 0;
     BOOST_FOREACH(const BigraphSearchTree::NodePtr& node1, adjacents) {
@@ -584,8 +636,14 @@ PairedReadVisitor::DistanceList PairedReadVisitor::VertexProcess::process(const 
         LOG4CXX_DEBUG(logger, boost::format("vertex1: %s<->%s, vertex2: %s<->%s") % vertex1->id() % paired_v1->id() % node1->vertex->id() % paired_v2->id());
 
         BigraphSearchTree::NodePtrList faraways;
-        BigraphSearchTree::build(paired_v1, paired_v2, Edge::ED_SENSE, _visitor->_maxDistance, 1, &faraways);
-        BigraphSearchTree::build(paired_v1, paired_v2, Edge::ED_ANTISENSE, _visitor->_maxDistance, 2, &faraways);
+        {
+            BigraphSearchTree::build(paired_v1, [](const Edge* edge)->bool {
+                        return edge->dir() == Edge::ED_SENSE;
+                    }, paired_v2, 0, _visitor->_maxDistance, 1, &faraways);
+            BigraphSearchTree::build(paired_v1, [](const Edge* edge)->bool {
+                        return edge->dir() == Edge::ED_ANTISENSE;
+                    }, paired_v2, 0, _visitor->_maxDistance, 2, &faraways);
+        }
         BOOST_FOREACH(const BigraphSearchTree::NodePtr& node2, faraways) {
             if (numNodes >= 3) break;
             linklist.push_back(std::make_pair(node1->vertex, node1->distance));
