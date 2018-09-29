@@ -6,6 +6,8 @@ arcs_SOURCES=assembler.cpp \
 			 asqg.h \
 			 bigraph.cpp \
 			 bigraph.h \
+			 bigraph_search.cpp \
+			 bigraph_search.h \
 			 bigraph_visitors.cpp \
 			 bigraph_visitors.h \
 			 bwt.cpp \
