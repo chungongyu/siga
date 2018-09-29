@@ -414,7 +414,7 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
         SequenceProcessFramework::SerialWorker<
             SequenceProcessFramework::SequenceWorkItem, 
             OverlapResult, 
-            SequenceProcessFramework::WorkItemGenerator< SequenceProcessFramework::SequenceWorkItem >, 
+            SequenceProcessFramework::SequenceWorkItemGenerator< SequenceProcessFramework::SequenceWorkItem >, 
             OverlapProcess, 
             OverlapPostProcess
             > worker;
@@ -447,7 +447,7 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
         SequenceProcessFramework::ParallelWorker<
             SequenceProcessFramework::SequenceWorkItem, 
             OverlapResult, 
-            SequenceProcessFramework::WorkItemGenerator< SequenceProcessFramework::SequenceWorkItem >, 
+            SequenceProcessFramework::SequenceWorkItemGenerator< SequenceProcessFramework::SequenceWorkItem >, 
             OverlapProcess, 
             OverlapPostProcess
             > worker;
@@ -619,7 +619,7 @@ bool OverlapBuilder::rmdup(DNASeqReader& reader, std::ostream& output, std::ostr
         SequenceProcessFramework::SerialWorker<
             SequenceProcessFramework::SequenceWorkItem, 
             OverlapResult, 
-            SequenceProcessFramework::WorkItemGenerator< SequenceProcessFramework::SequenceWorkItem >, 
+            SequenceProcessFramework::SequenceWorkItemGenerator< SequenceProcessFramework::SequenceWorkItem >, 
             DuplicateRemoveProcess, 
             DuplicateRemovePostProcess
             > worker;

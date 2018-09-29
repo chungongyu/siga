@@ -173,7 +173,7 @@ bool CorrectProcessor::process(DNASeqReader& reader, std::ostream& output, size_
         SequenceProcessFramework::SerialWorker<
             SequenceProcessFramework::SequenceWorkItem, 
             CorrectResult, 
-            SequenceProcessFramework::WorkItemGenerator< SequenceProcessFramework::SequenceWorkItem >, 
+            SequenceProcessFramework::SequenceWorkItemGenerator< SequenceProcessFramework::SequenceWorkItem >, 
             AbstractCorrector, 
             PostCorrector
             > worker;
@@ -196,7 +196,7 @@ bool CorrectProcessor::process(DNASeqReader& reader, std::ostream& output, size_
         SequenceProcessFramework::ParallelWorker<
             SequenceProcessFramework::SequenceWorkItem, 
             CorrectResult, 
-            SequenceProcessFramework::WorkItemGenerator< SequenceProcessFramework::SequenceWorkItem >, 
+            SequenceProcessFramework::SequenceWorkItemGenerator< SequenceProcessFramework::SequenceWorkItem >, 
             AbstractCorrector, 
             PostCorrector
             > worker;

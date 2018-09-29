@@ -53,7 +53,19 @@ private:
     std::ostream& _stream;
 };
 
-// Reomve loops from the graph
+// Remove identical vertices from the graph
+class IdenticalRemoveVisitor : public BigraphVisitor {
+public:
+    IdenticalRemoveVisitor() : _count(0) {
+    }
+    void previsit(Bigraph* graph);
+    bool visit(Bigraph* graph, Vertex* vertex);
+    void postvisit(Bigraph* graph);
+private:
+    size_t _count;
+};
+
+// Remove loops from the graph
 class LoopRemoveVisitor : public BigraphVisitor {
 public:
     LoopRemoveVisitor() {
@@ -103,49 +115,7 @@ public:
     bool visit(Bigraph* graph, Vertex* vertex);
     void postvisit(Bigraph* graph);
 private:
-    typedef std::vector< std::pair< const Vertex*, int > > DistanceList;
-    typedef std::unordered_map< Vertex::Id, int > DistanceMap;
-    typedef std::unordered_map< Vertex::Id, DistanceMap > LinkList;
-
-    class VertexGenerator {
-    public:
-        VertexGenerator(const std::vector< const Vertex* >& vertices) : _vertices(vertices), _consumed(0) {
-        }
-
-        bool generate(const Vertex*& item) {
-            if (_consumed < _vertices.size()) {
-                item = _vertices[_consumed];
-                ++_consumed;
-                return true;
-            }
-            return false;
-        }
-        size_t consumed() const {
-            return _consumed;
-        }
-    private:
-        const std::vector< const Vertex* >& _vertices;
-        size_t _consumed;
-    };
-    class VertexProcess {
-    public:
-        VertexProcess(Bigraph* graph, PairedReadVisitor* vistor) : _graph(graph), _visitor(vistor) {
-        }
-        DistanceList process(const Vertex* vertex);
-    private:
-        Bigraph* _graph;
-        PairedReadVisitor* _visitor;
-    };
-    class VertexPostProcess {
-    public:
-        VertexPostProcess(LinkList* links) : _links(links) {
-        }
-        void process(const Vertex* vertex, DistanceList& links);
-    private:
-        void addLink(const Vertex::Id& v1, const Vertex::Id& v2, int distance, LinkList* links);
-
-        LinkList* _links;
-    };
+    void addEdge(const Vertex::Id& v1, const Vertex::Id& v2, int distance, Edge::Dir dir, Edge::Comp comp, Bigraph* graph);
 
     size_t _minOverlap;
     size_t _maxDistance;
@@ -153,10 +123,9 @@ private:
     size_t _threads;
     size_t _batch;
 
-    void addEdge(const Vertex::Id& v1, const Vertex::Id& v2, int distance, Bigraph* graph);
-
     std::vector< const Vertex* > _vertices;
-    friend class VertexProcess;
+    friend class PairedVertexProcess;
+    friend class PairedVertexPostProcess;
 };
 
 
@@ -189,6 +158,17 @@ private:
     size_t _simple;
     size_t _edges;
     size_t _vertics;
+};
+
+// Run the Myers transitive reduction algorithm on each node
+class TransitiveReductionVisitor : public BigraphVisitor {
+public:
+    TransitiveReductionVisitor() {
+    }
+    void previsit(Bigraph* graph);
+    bool visit(Bigraph* graph, Vertex* vertex);
+    void postvisit(Bigraph* graph);
+private:
 };
 
 // Detects and removes small "tip" vertices from the graph

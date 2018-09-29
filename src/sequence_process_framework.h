@@ -33,9 +33,9 @@ namespace SequenceProcessFramework {
 
     // Genereic class to generate work items using a seq reader
     template< class Input >
-    class WorkItemGenerator {
+    class SequenceWorkItemGenerator {
     public:
-        WorkItemGenerator(DNASeqReader& reader) : _reader(reader), _consumed(0) {
+        SequenceWorkItemGenerator(DNASeqReader& reader) : _reader(reader), _consumed(0) {
         }
 
         bool generate(SequenceWorkItem& item) {
@@ -52,6 +52,30 @@ namespace SequenceProcessFramework {
         }
     private:
         DNASeqReader& _reader;
+        size_t _consumed;
+    };
+
+    // Genereic class to generate work items from a vector
+    template< class Input >
+    class VectorWorkItemGenerator {
+    public:
+        VectorWorkItemGenerator(const std::vector< Input >& datum) : _datum(datum), _consumed(0) {
+        }
+
+        bool generate(Input& item) {
+            if (_consumed < _datum.size()) {
+                item = _datum[_consumed];
+                ++_consumed;
+                return true;
+            }
+            return false;
+        }
+    
+        size_t consumed() const {
+            return _consumed;
+        }
+    private:
+        const std::vector< Input >& _datum;
         size_t _consumed;
     };
 
@@ -77,7 +101,7 @@ namespace SequenceProcessFramework {
         }
 
         size_t run(DNASeqReader& reader, Processor* proc, PostProcessor* postproc, size_t n = -1) {
-            WorkItemGenerator< Input > generator(reader);
+            SequenceWorkItemGenerator< Input > generator(reader);
             return run(generator, proc, postproc, n);
         }
 
@@ -122,7 +146,7 @@ namespace SequenceProcessFramework {
                 if (inputs.size() == threads * batch || done) { 
                     std::vector< Output > outputs(inputs.size());
 
-                    #pragma omp parallel for schedule(dynamic, 256)
+                    #pragma omp parallel for schedule(dynamic)
                     for (size_t i = 0; i < inputs.size(); ++i) {
                         size_t tid = omp_get_thread_num();
                         outputs[i] = (*proclist)[tid]->process(inputs[i]);
@@ -143,7 +167,7 @@ namespace SequenceProcessFramework {
         }
 
         size_t run(DNASeqReader& reader, std::vector< Processor* >* proclist, PostProcessor* postproc, size_t batch=1000, size_t n=-1) {
-            WorkItemGenerator< Input > generator(reader);
+            SequenceWorkItemGenerator< Input > generator(reader);
             return run(generator, proclist, postproc, batch, n);
         }
 
