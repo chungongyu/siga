@@ -65,7 +65,7 @@ public:
                     size_t average = 100;
                     InsertSizeEstimateVisitor iseVisit(average, delta);
                     g.visit(&iseVisit);
-                    delta *= 4;
+                    delta *= 3;
                 }
                 PairedReadVisitor prVisit(options.get< size_t >("min-overlap2", 50), delta, options.get< size_t >("max-search-nodes", 100), options.get< size_t >("threads", 1), options.get< size_t >("batch-size", 1000));
                 g.visit(&prVisit);

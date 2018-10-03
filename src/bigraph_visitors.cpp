@@ -593,29 +593,26 @@ public:
 
             BigraphWalk::DistanceAttr e = BigraphWalk::attrLink(xi->attr);
             addLink(vertex1->id(), xi->vertex->id(), e, _links);
-//#if 0
+
             for (size_t j = i + 1; j < linklist.size(); ++j) {
                 const BigraphWalk::NodePtr& xj = linklist[j];
-                if ((xi->attr.distance < 0 || xj->attr.distance < 0) && (xi->attr.distance >= 0 || xj->attr.distance >= 0)) {
+                if (BigraphWalk::diffDir(xi->attr, xj->attr) || xi->attr.distance == xj->attr.distance) { // different search dir or equal
                     continue;
                 }
-                const std::string& seqi = xi->vertex->seq();
-                const std::string& seqj = xj->vertex->seq();
 
-                assert(std::abs(xi->attr.distance) <= std::abs(xj->attr.distance));
+                assert(std::abs(xi->attr.distance) < std::abs(xj->attr.distance));
                 BigraphWalk::DistanceAttr e = BigraphWalk::attrLink(xi->attr, xj->attr);
-
                 if (BigraphWalk::hasLink(xi->vertex, xj->vertex, e)) {
                     addLink(xi->vertex->id(), xj->vertex->id(), e, _links);
                 } else {
                     LOG4CXX_DEBUG(logger, boost::format("paired_read_branch\t%s\t%s\t%d\t%s\t%d") % vertex1->id() % xi->vertex->id() % xi->attr.distance % xj->vertex->id() % xj->attr.distance);
                 }
             }
-//#endif
         }
     }
 private:
     void addLink(const Vertex::Id& v1, const Vertex::Id& v2, const BigraphWalk::DistanceAttr& e, PairedLinkList* links) {
+        //LOG4CXX_TRACE(logger, boost::format("PairedLinkList::addLink\t%s\t%s\t%d\t%d\t%d") % v1 % v2 % e.distance % e.dir % e.comp);
         if (e.distance < 0) {
             BigraphWalk::DistanceAttr t = e.twin();
             t.distance = -t.distance;

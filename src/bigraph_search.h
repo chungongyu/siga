@@ -120,26 +120,21 @@ public:
         DistanceAttr e; attrLink(e1, &e); return e;
     }
 
+    static bool diffDir(const DistanceAttr& e1, const DistanceAttr& e2) {
+        return (e1.distance < 0 || e2.distance < 0) && (e1.distance >= 0 || e2.distance >= 0);
+    }
+
     static bool hasLink(const Vertex* v1, const Vertex* v2, const DistanceAttr& e) {
         return hasLink(v1, v2, e.distance, e.dir, e.comp);
     }
 
     static bool hasLink(const Vertex* v1, const DistanceAttr& e1, const Vertex* v2, const DistanceAttr& e2) {
-        if (e1.distance > e2.distance) {
+        assert(!diffDir(e1, e2));
+        if (std::abs(e1.distance) > std::abs(e2.distance)) {
             return hasLink(v2, e2, v1, e1);
         }
 
-        DistanceAttr e;
-        assert(e1.distance <= e2.distance);
-        if (e1.distance < 0) {
-            if (e2.distance < 0) {
-                attrLink(e1.twin(), e2.twin(), &e);
-            } else {
-                attrLink(e1.twin(), e2, &e);
-            }
-        } else {
-            attrLink(e1, e2, &e);
-        }
+        DistanceAttr e = attrLink(e1, e2);
         return hasLink(v1, v2, e);
     }
 
