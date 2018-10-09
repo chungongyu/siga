@@ -90,15 +90,23 @@ public:
                 while (trimRound < numTrimRounds) {
                     LOG4CXX_INFO(logger, boost::format("[Trim] Trim round: %d") % (trimRound + 1))
                     bool modified = false;
+
+                    LOG4CXX_INFO(logger, "Removing loops");
                     if (g.visit(&loopVisit)) {
                         modified = true;
                         g.simplify();
                     }
-
+                    LOG4CXX_INFO(logger, "Removing non-maximal overlap edges from graph");
                     if (g.visit(&moVisit)) {
                         modified = true;
                         g.simplify();
                     }
+                    LOG4CXX_INFO(logger, "Trimming tips");
+                    if (g.visit(&trimVisit)) {
+                        modified = true;
+                        g.simplify();
+                    }
+
                     if (!modified) {
                         break;
                     }

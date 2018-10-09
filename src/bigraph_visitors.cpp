@@ -236,7 +236,7 @@ void LoopRemoveVisitor::postvisit(Bigraph* graph) {
         Vertex* nextVert = nextEdge->end();
         assert(prevVert == nextVert);
 
-        LOG4CXX_INFO(logger, boost::format("[LoopRemoveVisitor] Remove loop vertex: id=%s, coverage=%d, prev vertex: id=%s, coverage=%d") % vertex->id() % vertex->coverage() % prevVert->id() % prevVert->coverage());
+        LOG4CXX_INFO(logger, boost::format("[LoopRemoveVisitor] Remove loop vertex: id=%s, coverage=%d, seq=%d, prev vertex: id=%s, coverage=%d, seq=%d") % vertex->id() % vertex->coverage() % vertex->seq().length() % prevVert->id() % prevVert->coverage() % prevVert->seq().length());
 
         Edge* nextTwin = nextEdge->twin();
         vertex->merge(nextEdge);
@@ -246,7 +246,18 @@ void LoopRemoveVisitor::postvisit(Bigraph* graph) {
         SAFE_DELETE(nextTwin);
 
         Edge* prevTwin = prevEdge->twin();
+        std::string label = prevTwin->label();
         prevVert->merge(prevTwin);
+        {
+            EdgePtrList transEdges = prevVert->edges(Edge::EDGE_DIRECTIONS[Edge::ED_COUNT - prevEdge->dir() - 1]);
+            BOOST_FOREACH(Edge* transEdge, transEdges) {
+                if (transEdge != prevTwin) {
+                    assert(transEdge->dir() == prevTwin->dir());
+                    SeqCoord& coord = transEdge->coord();
+                    coord.interval.offset(label.length());
+                }
+            }
+        }
         prevVert->removeEdge(prevTwin);
         SAFE_DELETE(prevTwin);
         vertex->removeEdge(prevEdge);
