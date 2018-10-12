@@ -247,12 +247,15 @@ void LoopRemoveVisitor::postvisit(Bigraph* graph) {
 
         Edge* prevTwin = prevEdge->twin();
         std::string label = prevTwin->label();
+        bool prepend = false;
+        if (prevTwin->dir() == Edge::ED_ANTISENSE) {
+            prepend = true;
+        }
         prevVert->merge(prevTwin);
         {
             EdgePtrList transEdges = prevVert->edges(Edge::EDGE_DIRECTIONS[Edge::ED_COUNT - prevEdge->dir() - 1]);
             BOOST_FOREACH(Edge* transEdge, transEdges) {
-                if (transEdge != prevTwin) {
-                    assert(transEdge->dir() == prevTwin->dir());
+                if (transEdge != prevTwin && !prepend) {
                     SeqCoord& coord = transEdge->coord();
                     coord.interval.offset(label.length());
                 }
@@ -864,7 +867,7 @@ bool TrimVisitor::visit(Bigraph* graph, Vertex* vertex) {
     const std::string& seq = vertex->seq();
     if (vertex->degrees() == 0) {
         // Is an island, remove if the sequence length is less than the threshold
-        if (seq.length() < _minLength) {
+        if (seq.length() <= _minLength) {
             LOG4CXX_TRACE(logger, boost::format("[TrimVisitor] island %s %d") % vertex->id() % seq.length());
             vertex->color(GC_BLACK);
             ++_island;
@@ -874,7 +877,7 @@ bool TrimVisitor::visit(Bigraph* graph, Vertex* vertex) {
         // Check if this node is a dead-end
         for (size_t idx = 0; idx < Edge::ED_COUNT; idx++) {
             Edge::Dir dir = Edge::EDGE_DIRECTIONS[idx];
-            if (vertex->degrees(dir) == 0 && seq.length() < _minLength) {
+            if (vertex->degrees(dir) == 0 && seq.length() <= _minLength) {
                 LOG4CXX_TRACE(logger, boost::format("[TrimVisitor] terminal %s %d") % vertex->id() % seq.length());
                 vertex->color(GC_BLACK);
                 ++_terminal;
