@@ -238,6 +238,13 @@ void LoopRemoveVisitor::postvisit(Bigraph* graph) {
 
         LOG4CXX_INFO(logger, boost::format("[LoopRemoveVisitor] Remove loop vertex: id=%s, coverage=%d, seq=%d, prev vertex: id=%s, coverage=%d, seq=%d") % vertex->id() % vertex->coverage() % vertex->seq().length() % prevVert->id() % prevVert->coverage() % prevVert->seq().length());
 
+        /////////////////////////////////////////
+        //
+        // R1-->R2-->R3
+        //       \
+        //        R4-->R2
+        //
+        ////////////////////////////////////////
         Edge* nextTwin = nextEdge->twin();
         vertex->merge(nextEdge);
         vertex->removeEdge(nextEdge);
@@ -245,6 +252,11 @@ void LoopRemoveVisitor::postvisit(Bigraph* graph) {
         nextVert->removeEdge(nextTwin);
         SAFE_DELETE(nextTwin);
 
+        /////////////////////////////////////////
+        //
+        //   R1-->R2-->R4-->R2-->R3
+        //
+        /////////////////////////////////////////
         Edge* prevTwin = prevEdge->twin();
         std::string label = prevTwin->label();
         bool prepend = false;
@@ -708,6 +720,7 @@ void PairedReadVisitor::postvisit(Bigraph* graph) {
             bool hasLink = false;
             for (size_t k = 0; k < j; ++k) {
                 const std::pair< Vertex::Id, BigraphWalk::DistanceAttr >& xk = nodelist[k];
+                //fixme: check correctness
                 if (xk.second.dir == xj.second.dir && BigraphWalk::hasLink(graph->getVertex(xk.first), xk.second, graph->getVertex(xj.first), xj.second)) {
                     hasLink = true;
                     break;
