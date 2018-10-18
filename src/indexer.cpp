@@ -122,11 +122,6 @@ private:
                 "          --no-reverse                 suppress construction of the reverse BWT. Use this option when building the index\n"
                 "                                       for reads that will be error corrected using the k-mer corrector, which only needs the forward index\n"
                 "          --no-forward                 suppress construction of the forward BWT. Use this option when building the forward and reverse index separately\n"
-                "      -g, --gap-array=N                use N bits of storage for each element of the gap array. Acceptable values are 4,8,16 or 32. Lower\n"
-                "                                       values can substantially reduce the amount of memory required at the cost of less predictable memory usage.\n"
-                "                                       When this value is set to 32, the memory requirement is essentially deterministic and requires ~5N bytes where\n"
-                "                                       N is the size of the FM-index of READS2.\n"
-                "                                       The default value is 8.\n"
                 "\n"
                 ) % PACKAGE_NAME << std::endl;
         return 256;
@@ -143,7 +138,6 @@ static const option longopts[] = {
     {"algorithm",           required_argument,  NULL, 'a'}, 
     {"no-reverse",          no_argument,        NULL, OPT_NO_REVERSE}, 
     {"no-forward",          no_argument,        NULL, OPT_NO_FORWARD}, 
-    {"gap-array",           required_argument,  NULL, 'g'}, 
     {"help",                no_argument,        NULL, 'h'}, 
     {NULL, 0, NULL, 0}, 
 };

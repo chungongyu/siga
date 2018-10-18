@@ -1,7 +1,7 @@
-bin_PROGRAMS=arcs
-arcs_CPPFLAGS=-I$(top_srcdir)/3rdparty
-arcs_LDADD=${top_builddir}/3rdparty/lib3rdparty.a
-arcs_SOURCES=assembler.cpp \
+bin_PROGRAMS=siga
+siga_CPPFLAGS=-I$(top_srcdir)/3rdparty
+siga_LDADD=${top_builddir}/3rdparty/lib3rdparty.a
+siga_SOURCES=assembler.cpp \
 			 asqg.cpp \
 			 asqg.h \
 			 bigraph.cpp \
@@ -46,10 +46,10 @@ arcs_SOURCES=assembler.cpp \
 			 suffix_array_builder.h \
 			 utils.h \
 			 main.cpp
-arcs_CXXFLAGS=${LOG4CXX_CFLAGS} \
+siga_CXXFLAGS=${LOG4CXX_CFLAGS} \
 			  ${OPENMP_CFLAGS} \
 			 ${TCMALLOC_CFLAGS}
-arcs_LDFLAGS=${LOG4CXX_LIBS} \
+siga_LDFLAGS=${LOG4CXX_LIBS} \
 			 ${OPENMP_LIBS} \
 			 ${TCMALLOC_LIBS} \
 			 -lboost_filesystem \

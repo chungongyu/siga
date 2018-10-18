@@ -403,7 +403,7 @@ private:
                 "\n"
                 "Input/Output options:\n"
                 "      -o, --out=FILE                   write the reads to FILE (default: stdout)\n"
-                "      -p, --pe-mode=INT                0 - do not treat reads as paired (default)\n"
+                "          --pe-mode=INT                0 - do not treat reads as paired (default)\n"
                 "                                       1 - reads are paired with the first read in READS1 and the second\n"
                 "                                       read in READS2. The paired reads will be interleaved in the output file\n"
                 "                                       2 - reads are paired and the records are interleaved within a single file.\n"
@@ -436,10 +436,10 @@ private:
 };
 
 static const std::string shortopts = "c:s:o:p:q:f:m:h";
-enum { OPT_HELP = 1, OPT_PE_ORIENTATION, OPT_PHRED64, OPT_HARD_CLIP, OPT_NO_PRIMER_CHECK };
+enum { OPT_HELP = 1, OPT_PE_MODE, OPT_PE_ORIENTATION, OPT_PHRED64, OPT_HARD_CLIP, OPT_NO_PRIMER_CHECK };
 static const option longopts[] = {
     {"out",                 required_argument,  NULL, 'o'}, 
-    {"pe-mode",             required_argument,  NULL, 'p'}, 
+    {"pe-mode",             required_argument,  NULL, OPT_PE_MODE}, 
     {"pe-orientation",      required_argument,  NULL, OPT_PE_ORIENTATION}, 
     {"phred64",             no_argument,        NULL, OPT_PHRED64}, 
     {"quality-trim",        required_argument,  NULL, 'q'}, 

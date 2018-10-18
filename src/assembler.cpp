@@ -34,8 +34,8 @@ public:
 
         LOG4CXX_INFO(logger, "parameters:");
         LOG4CXX_INFO(logger, boost::format("min-overlap: %d") % minOverlap);
-        if (options.find("min-overlap2") != options.not_found()) {
-            LOG4CXX_INFO(logger, boost::format("min-overlap2: %d") % options.get< size_t >("min-overlap2"));
+        if (options.find("max-distance") != options.not_found()) {
+            LOG4CXX_INFO(logger, boost::format("max-distance: %d") % options.get< size_t >("max-distance"));
         }
         if (options.find("insert-size-delta") != options.not_found()) {
             LOG4CXX_INFO(logger, boost::format("insert-size-delta: %d") % options.get< size_t >("insert-size-delta"));
@@ -67,7 +67,7 @@ public:
                     g.visit(&iseVisit);
                     delta *= 4;
                 }
-                PairedReadVisitor prVisit(options.get< size_t >("min-overlap2", 50), delta, options.get< size_t >("max-search-nodes", 100), options.get< size_t >("threads", 1), options.get< size_t >("batch-size", 1000));
+                PairedReadVisitor prVisit(options.get< size_t >("max-distance", 100), delta, options.get< size_t >("max-search-nodes", 100), options.get< size_t >("threads", 1), options.get< size_t >("batch-size", 1000));
                 g.visit(&prVisit);
             } else {
                 LOG4CXX_INFO(logger, "Removing contained vertices from graph");
@@ -194,8 +194,8 @@ private:
                 "      -h, --help                       display this help and exit\n"
                 "\n"
                 "      -p, --prefix=NAME                use NAME as the prefix of the output files (output files will be NAME-contigs.fa, etc)\n"
-                "          --pe-mode=INT                treat reads as paired (default: 0)\n"
                 "      -m, --min-overlap=LEN            only use overlaps of at least LEN. This can be used to filter\n"
+                "                                       the overlap set so that the overlap step only needs to be run once\n"
                 "          --max-edges=N                limit each vertex to a maximum of N edges. For highly repetitive regions\n"
                 "                                       this helps save memory by culling excessive edges around unresolvable repeats (default: 128)\n"
                 "          --init-vertex-capacity=INT   the initail capacity for veritices in bigraph INT (default 0)\n"
@@ -203,21 +203,17 @@ private:
                 "          --batch-size=NUM             use NUM batches for each thread (default: 1000)\n"
                 "\n"
                 "Paired reads parameters:\n"
-                "          --min-overlap2=INT           treat reads as connected whose overlap is large than INT (default: 50)\n"
+                "          --pe-mode=INT                0 - do not treat reads as paired (default)\n"
+                "                                       1 - treat reads as paired\n"
+                "          --max-distance=INT           treat reads as connected whose distance is less than INT (default: 100)\n"
                 "          --insert-size-delta=INT      treat reads as paired with insert size delta INT (default: learned from paired reads)\n"
-                "Bubble/Variation removal parameters:\n"
-                "      -b, --bubble=N                   perform N bubble removal steps (default: 3)\n"
-                "\n"
-                "MaximalOverlap parameters:\n"
-                "      -d, --max-overlap-delta=LEN      remove branches only if they are less than LEN bases in length (default: 0)\n"
                 "\n"
                 "Trimming parameters:\n"
                 "      -x, --cut-terminal=N             cut off terminal branches in N rounds (default: 10)\n"
                 "      -n, --min-branch-length=LEN      remove terminal branches only if they are less than LEN bases in length (default: 150)\n"
                 "\n"
-                "Chimeric parameters:\n"
-                "      -l, --min-chimeric-length=LEN    remove chimerics only if they are less than LEN bases in length (default: 0)\n"
-                "      -a, --max-chimeric-delta=LEN     remove chimerics only if they are less than LEN bases in length (default: 0)\n"
+                "Maximal overlap parameters:\n"
+                "      -d, --max-overlap-delta=LEN      remove branches only if they are less than LEN bases in length (default: 0)\n"
                 "\n"
                 ) % PACKAGE_NAME << std::endl;
         return 256;
@@ -227,7 +223,7 @@ private:
 };
 
 static const std::string shortopts = "c:s:p:t:m:x:n:l:a:b:d:h";
-enum { OPT_HELP = 1, OPT_BATCH_SIZE, OPT_PEMODE, OPT_MINOVERLAP2, OPT_INSERTSIZE, OPT_INSERTSIZE_DELTA, OPT_MAXEDGES, OPT_INIT_VERTEX_CAPACITY };
+enum { OPT_HELP = 1, OPT_BATCH_SIZE, OPT_PEMODE, OPT_MAXDIST, OPT_INSERTSIZE, OPT_INSERTSIZE_DELTA, OPT_MAXEDGES, OPT_INIT_VERTEX_CAPACITY };
 static const option longopts[] = {
     {"prefix",              required_argument,  NULL, 'p'}, 
     {"min-overlap",         required_argument,  NULL, 'm'}, 
@@ -236,7 +232,7 @@ static const option longopts[] = {
     {"threads",             required_argument,  NULL, 't'}, 
     {"batch-size",          required_argument,  NULL, OPT_BATCH_SIZE}, 
     {"pe-mode",             required_argument,  NULL, OPT_PEMODE}, 
-    {"min-overlap2",        required_argument,  NULL, OPT_MINOVERLAP2}, 
+    {"max-distance",        required_argument,  NULL, OPT_MAXDIST}, 
     {"insert-size",         required_argument,  NULL, OPT_INSERTSIZE}, 
     {"insert-size-delta",   required_argument,  NULL, OPT_INSERTSIZE_DELTA}, 
     {"bubble",              required_argument,  NULL, 'b'}, 
