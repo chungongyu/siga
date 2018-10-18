@@ -1,0 +1,142 @@
+SIGA - Sensitive and Intelligent Gnome Assembler
+============================
+
+
+SIGA - similar to [SGA] - is a de novo assembler for DNA sequence reads. It is based on 
+Gene Myers' string graph formulation of assembly and uses the FM-index/Burrows-Wheeler 
+transform to efficiently find overlaps between sequence reads. The core algorithms are 
+described in this paper:
+
+http://bioinformatics.oxfordjournals.org/cgi/content/abstract/26/12/i367
+
+-------------
+Compiling SIGA
+
+SIGA dependencies:
+    -boost (https://www.boost.org/)
+    -log4cxx (https://logging.apache.org/log4cxx)
+    -boost (https://www.boost.org/)
+    -rapidjson (https://github.com/Tencent/rapidjson)
+    -(optional but suggested)gperftools (https://github.com/gperftools/gperftools)
+
+If you cloned the repository from github, run autogen.sh from the src directory 
+to generate the configure file:
+
+./autogen.sh
+
+If the dependencies have been installed in standard locations (like /usr/local) you
+can run configure without any parameters then run make:
+
+./configure
+make
+
+--------------
+Installing SIGA
+
+Running make install will install siga into /usr/local/bin/ by default. To specify the install
+location use the --prefix option to configure:
+
+./configure --prefix=/home/siga/ && make && make install
+
+This command will copy siga to /home/siga/bin/siga
+
+-----------
+Running SIGA
+
+SIGA consists of a number of subprograms, together which form the assembly pipeline. The subprograms
+can also be used to perform other interesting tasks, like read error correction or removing PCR duplicates.
+Each program and subprogram will print a brief description and its usage instructions if the -h or --help 
+flag is used.
+
+To get a listing of all subprograms, run siga --help.
+
+Examples of an SIGA assembly are provided in the examples directory. It is suggested to look at
+these examples to become familar with the flow of data through the program.
+
+The major subprograms are:
+
+* siga preprocess 
+
+Prepare reads for assembly. It can perform optional quality filtering/trimming. By default
+it will discard reads that have uncalled bases ('N' or '.'). It is mandatory to run this command 
+on real data. 
+
+If your reads are paired, the --pe-mode option should be specified. The paired reads can be input in two 
+files (siga preprocess READS1 READS2) where the first read in READS1 is paired with the first read on READS2 
+and so on. Alternatively, they can be specified in a single file where the two reads are expected to appear 
+in consecutive records. By default, output is written to stdout.
+
+* siga index READS
+
+Build the FM-index for READS, which is a fasta or fastq file. 
+This program is threaded (-t N).
+
+* siga correct READS
+
+Perform error correction on READS file. Overlap and kmer-based correction algorithms
+are implemented. By default, a k-mer based correction is performed. 
+
+Many options exist for this program, see --help. 
+
+* siga overlap -m N READS
+
+Find overlaps between reads to construct the string graph. The -m parameter specifies
+the minimum length of the overlaps to find. By default only non-transitive (irreducible) edges are output and edges
+between identical sequences. If all overlaps between reads are desired, the --exhaustive option can be specified.
+This program is threaded. The output file is READS.asqg.gz by default.
+
+* siga assemble READS.asqg.gz
+
+Assemble takes the output of the overlap step and constructs contigs. The output is in contigs.fa by default. Options
+exist for cleaning the graph before assembly which will substantially increase assembly continuity. 
+See the --cut-terminal, --bubble, --resolve-small options.
+
+-------------------
+Data quality issues
+
+Sequence assembly requires high quality data. It is worth assessing the quality of your reads
+using tools like FastQC (http://www.bioinformatics.bbsrc.ac.uk/projects/fastqc/) to help guide the choice
+of assembly parameters. Low-quality data should be filtered or trimmed.
+
+Very highly-represented sequences (>1000X) can cause problems for SIGA. This can happen when sequencing a small genome
+or when mitochondria or other contamination is present in the sequencing run. In these cases, it is worth considering
+pre-filtering the data or running an initial 'rmdup' step before error correction.
+
+-------
+History 
+
+The first SIGA code check-in was August, 2009. The algorithms for directly constructing the string graph from
+the FM-index were developed and implemented in the fall of 2009. The initial public release was October 2010.
+
+-------
+License
+
+SIGA is licensed under GPLv3. See the COPYING file in the root directory.
+
+----------------
+Third party code
+
+SIGA uses Bentley and Sedgwick's multikey quicksort code that can be found here: http://www.cs.princeton.edu/~rs/strings/demo.c
+It also uses zlib, the google sparse hash and gzstream by Deepak Bandyopadhyay and Lutz Kettner (see Thirdparty/README).
+SIGA also uses the stdaln dynamic programming functions written by Heng Li. The ropebwt implementation is by Heng Li
+(https://raw.github.com/lh3/ropebwt).
+
+SIGA also uses the rapidjson library by Milo Yip (http://code.google.com/p/rapidjson/).
+
+This Software includes an implementation of the algorithm published by Bauer et al. 
+[Markus J. Bauer, Anthony J. Cox and Giovanna Rosone: Lightweight BWT Construction 
+for Very Large String Collections. Lecture Notes in Computer Science 6661 
+(Proceedings of the 22nd Annual Conference on Combinatorial Pattern Matching), 
+2011, pp.219-231]. Intellectual property rights in the algorithm are owned and 
+protected by Illumina Cambridge Ltd. and/or its affiliates (“Illumina”). 
+Illumina is not a contributor or licensor under this GPL license and 
+retains all rights, title and interest in the algorithm and intellectual 
+property associated therewith. No rights or licenses to Illumina intellectual 
+property, including patents, are granted to you under this license.
+
+-------
+Credits
+
+Written by Chauncey Yu.
+The algorithms were developed by Chauncey Yu, Yu Lin, Bing Wang, Guozheng Wei
+and Dongbo Bu.
