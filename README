@@ -15,7 +15,6 @@ Compiling SIGA
 SIGA dependencies:
     -boost (https://www.boost.org/)
     -log4cxx (https://logging.apache.org/log4cxx)
-    -boost (https://www.boost.org/)
     -rapidjson (https://github.com/Tencent/rapidjson)
     -(optional but suggested)gperftools (https://github.com/gperftools/gperftools)
 
@@ -36,9 +35,9 @@ Installing SIGA
 Running make install will install siga into /usr/local/bin/ by default. To specify the install
 location use the --prefix option to configure:
 
-./configure --prefix=/home/siga/ && make && make install
+./configure --prefix=/home/chaunceyyu/ && make && make install
 
-This command will copy siga to /home/siga/bin/siga
+This command will copy siga to /home/chaunceyyu/bin/siga
 
 -----------
 Running SIGA
@@ -138,5 +137,5 @@ property, including patents, are granted to you under this license.
 Credits
 
 Written by Chauncey Yu.
-The algorithms were developed by Chauncey Yu, Yu Lin, Bing Wang, Guozheng Wei
-and Dongbo Bu.
+The algorithms were developed by Chauncey Yu, Yu Lin, Guozheng Wei, Bing Wang,
+Yanbo Li and Dongbo Bu.
