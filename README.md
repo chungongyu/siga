@@ -1,2 +1,2 @@
 # SIGA
-a **S**ensitive and **I**ntelligent denovo **G**enome **A**ssembler
+SIGA - St. **S**ensitive and **I**ntelligent **G**enome **A**ssembler - is an assembly toolkit containing various assemble pipelines. 
