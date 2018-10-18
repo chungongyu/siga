@@ -1,2 +1,2 @@
 # SIGA
-a **S**ensitive and **I**nteligent denovo **G**enome **A**ssembler
+a **S**ensitive and **I**ntelligent denovo **G**enome **A**ssembler
