@@ -1,7 +1,7 @@
 ![](docs/logo_with_text.png)
 
 ## What is SIGA?
-SIGA - St. **S**ensitive and **I**ntelligent **G**enome **A**ssembler - is a *de* novo  assembly toolkit containing various assembly pipelines. 
+SIGA - St. **S**ensitive and **I**ntelligent **G**enome **A**ssembler - is an open-source *de* novo  assembly toolkit containing various assembly pipelines. 
 
 ## Quick start
 For installation and usage instructions see [README](README)<br>
