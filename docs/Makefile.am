@@ -1,0 +1,1 @@
+EXTRA_DIST=logo_with_text.png

@@ -40,6 +40,7 @@ AC_CHECK_FUNCS([memset pow sqrt])
 AC_CONFIG_FILES([Makefile
                  3rdparty/Makefile
                  benchmark/Makefile
+                 docs/Makefile
                  examples/Makefile
                  m4/Makefile
                  src/Makefile])
