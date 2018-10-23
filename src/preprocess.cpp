@@ -43,12 +43,17 @@ public:
         if (options.find("hard-clip") != options.not_found()) {
             LOG4CXX_INFO(logger, boost::format("hard clip: %d") % options.get< int >("hard-clip"));
         }
+        if (options.find("sample-rate") != options.not_found()) {
+            LOG4CXX_INFO(logger, boost::format("sample rate: %f") % options.get< float >("sample-rate"));
+        }
         if (options.find("quality-trim") != options.not_found()) {
             LOG4CXX_INFO(logger, boost::format("Quality Trim: %d") % options.get< int >("quality-trim"));
         }
         if (options.find("quality-filter") != options.not_found()) {
             LOG4CXX_INFO(logger, boost::format("Quality Filter: %d") % options.get< int >("quality-filter"));
         }
+
+        srand(time(NULL));
 
         // input
         std::vector< std::string > filelist;
@@ -103,6 +108,14 @@ private:
         size_t numInvalidPE;
     };
 
+    bool samplePass(const Properties& options) const {
+        if (options.find("sample-rate") == options.not_found()) {
+            return true;
+        }
+        float sampleRate = options.get< float >("sample-rate");
+        return rand() / (RAND_MAX + 1.0f) < sampleRate;
+    }
+
     int processReads(const Properties& options, const std::vector< std::string >& inputs, std::ostream& output, Statistics& stats) {
         int peMode = options.get< int >("pe-mode", 0);
 
@@ -146,7 +159,7 @@ private:
         if (reader) {
             DNASeq read;
             while (reader->read(read)) {
-                if (processRead(options, read, stats)) {
+                if (processRead(options, read, stats) && samplePass(options)) {
                     output << read;
                     // Statistics
                     ++stats.numReadsKept;
@@ -234,7 +247,7 @@ private:
 
                 bool passed1 = processRead(options, read1, stats);
                 bool passed2 = processRead(options, read2, stats);
-                if (passed1 && passed2) {
+                if (passed1 && passed2 && samplePass(options)) {
                     if (boost::algorithm::iequals(orientation, "fr")) {
                         read2.make_reverse_complement();
                     } else if (boost::algorithm::iequals(orientation, "rf")) {
@@ -423,6 +436,7 @@ private:
                 "                                       this is most useful when used in conjunction with --quality-trim. Default: 40\n"
                 "          --hard-clip=INT              clip all reads to be length INT. In most cases it is better to use\n"
                 "                                       the soft clip (quality-trim) option.\n"
+                "          --sample-rate=FLOAT          randomly sample reads or pairs with acceptance probability FLOAT.\n"
                 "\n"
                 "Adapter/Primer checks:\n"
                 "          --no-primer-check            disable the default check for primer sequences\n"
@@ -436,7 +450,7 @@ private:
 };
 
 static const std::string shortopts = "c:s:o:p:q:f:m:h";
-enum { OPT_HELP = 1, OPT_PE_MODE, OPT_PE_ORIENTATION, OPT_PHRED64, OPT_HARD_CLIP, OPT_NO_PRIMER_CHECK };
+enum { OPT_HELP = 1, OPT_PE_MODE, OPT_PE_ORIENTATION, OPT_PHRED64, OPT_HARD_CLIP, OPT_SAMPLE_RATE, OPT_NO_PRIMER_CHECK };
 static const option longopts[] = {
     {"out",                 required_argument,  NULL, 'o'}, 
     {"pe-mode",             required_argument,  NULL, OPT_PE_MODE}, 
@@ -446,6 +460,7 @@ static const option longopts[] = {
     {"quality-filter",      required_argument,  NULL, 'f'}, 
     {"min-length",          required_argument,  NULL, 'm'}, 
     {"hard-clip",           required_argument,  NULL, OPT_HARD_CLIP}, 
+    {"sample-rate",         required_argument,  NULL, OPT_SAMPLE_RATE}, 
     {"no-primer-check",     no_argument,        NULL, OPT_NO_PRIMER_CHECK}, 
     {"help",                no_argument,        NULL, 'h'}, 
     {NULL, 0, NULL, 0}, 

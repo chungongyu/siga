@@ -55,6 +55,8 @@ public:
     DNASeqReader(std::istream& stream, const void* extra=NULL) : _stream(stream), _extra(extra) {
         _pos = stream.tellg();
     }
+    virtual ~DNASeqReader() {
+    }
 
     virtual void reset() {
         _stream.clear();

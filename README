@@ -2,7 +2,7 @@ SIGA - Sensitive and Intelligent Gnome Assembler
 ============================
 
 
-SIGA - similar to [SGA] - is a de novo assembler for DNA sequence reads. It is based on 
+SIGA is a de novo assembler for DNA sequence reads. Similar to SGA, It is based on 
 Gene Myers' string graph formulation of assembly and uses the FM-index/Burrows-Wheeler 
 transform to efficiently find overlaps between sequence reads. The core algorithms are 
 described in this paper:
@@ -104,8 +104,8 @@ pre-filtering the data or running an initial 'rmdup' step before error correctio
 -------
 History 
 
-The first SIGA code check-in was August, 2009. The algorithms for directly constructing the string graph from
-the FM-index were developed and implemented in the fall of 2009. The initial public release was October 2010.
+The first SIGA code check-in was August, 2018. The algorithms for directly constructing the string graph from
+the FM-index were developed and implemented in the fall of 2018. The initial public release was October 2018.
 
 -------
 License
