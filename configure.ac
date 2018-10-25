@@ -18,7 +18,9 @@ AC_OPENMP
 AX_CXX_COMPILE_STDCXX_11([noext],[mandatory])
 
 PKG_CHECK_MODULES([LOG4CXX], [liblog4cxx >= 0.10.0])
-PKG_CHECK_MODULES([TCMALLOC], [tcmalloc >= 0.10.0])
+AS_IF([test "x$with_tcmalloc" = "xyes"], [
+    PKG_CHECK_MODULES([TCMALLOC], [tcmalloc >= 0.10.0])
+])
 
 # Checks for libraries.
 # FIXME: Replace `main' with a function in `-lpthread':

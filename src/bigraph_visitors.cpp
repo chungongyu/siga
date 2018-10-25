@@ -23,22 +23,33 @@ static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.BigraphVisitor
 //
 class EdgeColorVisitor : public BigraphVisitor {
 public:
-    EdgeColorVisitor(GraphColor c) : _color(c) {
+    EdgeColorVisitor(GraphColor c, bool twin=false) : _color(c), _twin(twin) {
+    }
+    EdgeColorVisitor(GraphColor c, std::function< bool(const Vertex*, const Edge* edge) > filter, bool twin=false) : _color(c), _filter(filter), _twin(twin) {
     }
 
     void previsit(Bigraph* graph) {
     }
     bool visit(Bigraph* graph, Vertex* vertex) {
+        bool modified = false;
         const EdgePtrList& edges = vertex->edges();
         BOOST_FOREACH(Edge* edge, edges) {
-            edge->color(_color);
+            if (!_filter || _filter(vertex, edge)) {
+                edge->color(_color);
+                if (_twin) {
+                    edge->twin()->color(_color);
+                }
+                modified = true;
+            }
         }
-        return true;
+        return modified;
     }
     void postvisit(Bigraph* graph) {
     }
 private:
     GraphColor _color;
+    bool _twin;
+    std::function< bool(const Vertex*, const Edge*) > _filter;
 };
 
 //
@@ -555,7 +566,7 @@ public:
 
         // BFS the adjacents of vertex1
         BigraphWalk::NodePtrList adjacents;
-        if (vertex1->seq().length() > _visitor->_minOverlap) {
+        if (vertex1->seq().length() > _visitor->_maxDistance) {
             std::function< bool(const Edge* edge) > filter = [](const Edge* edge)->bool {
                     if (edge->dir() == Edge::ED_SENSE || edge->comp() == Edge::EC_REVERSE) {
                         const Edge* e = NULL;
@@ -569,7 +580,7 @@ public:
                     }
                     return false;
                 };
-            BigraphWalk::build(vertex1, filter, NULL, 0, vertex1->seq().length() - _visitor->_minOverlap, _visitor->_maxNodes, &adjacents);
+            BigraphWalk::build(vertex1, filter, NULL, 0, _visitor->_maxDistance, _visitor->_maxNodes, &adjacents);
         }
         std::sort(adjacents.begin(), adjacents.end(), [](const BigraphWalk::NodePtr& x, const BigraphWalk::NodePtr& y) {
                     return std::abs(x->attr.distance) < std::abs(y->attr.distance);
@@ -589,7 +600,7 @@ public:
                 Edge::Dir dir = Edge::EDGE_DIRECTIONS[i];
                 BigraphWalk::build(paired_v1, [dir](const Edge* edge)->bool {
                             return edge->dir() == dir;
-                        }, paired_v2, 0, std::abs(node1->attr.distance) + _visitor->_maxDistance, 1, &faraways);
+                        }, paired_v2, 0, std::abs(node1->attr.distance) + _visitor->_maxDelta, 1, &faraways);
             }
             BOOST_FOREACH(const BigraphWalk::NodePtr& node2, faraways) {
                 linklist.push_back(node1);
@@ -663,6 +674,97 @@ private:
     PairedLinkList* _links;
 };
 
+class PairedEdgeCreator {
+public:
+    PairedEdgeCreator(Bigraph* graph) : _graph(graph) {
+    }
+    void create(const Vertex::Id& v1, const Vertex::Id& v2, const BigraphWalk::DistanceAttr& attr, GraphColor color) {
+        assert(attr.distance > 0);
+
+        Vertex* vertex[2] = {
+            _graph->getVertex(v1), 
+            _graph->getVertex(v2), 
+        };
+
+        bool found = false;
+        const EdgePtrList& edges = vertex[0]->edges();
+        BOOST_FOREACH(Edge* edge, edges) {
+            //if (edge->dir() == attr.dir && edge->comp() == attr.comp && edge->end() == vertex[1]) {
+            if (edge->dir() == attr.dir && edge->end() == vertex[1]) {
+                if (edge->comp() == attr.comp && edge->coord().complement().length() == attr.distance) {
+                    edge->color(color);
+                    edge->twin()->color(color);
+                    found = true;
+                    break;
+                }
+                LOG4CXX_WARN(logger, boost::format("PairedReadVisitor::addEdge(%s, %s, %d) != %d") % v1 % v2 % attr.distance % edge->coord().interval.start);
+            }
+        }
+        if (!found) {
+            // sequnces
+            const std::string& seq1 = vertex[0]->seq();
+            const std::string& seq2 = vertex[1]->seq();
+
+            // coordinates
+            SeqCoord coord[2] = {
+                SeqCoord(attr.distance, seq1.length() - 1, seq1.length()),
+                SeqCoord(0, seq1.length() - attr.distance - 1, seq2.length())
+            };
+            if (attr.dir == Edge::ED_ANTISENSE) {
+                coord[0] = SeqCoord(0, seq2.length() - attr.distance - 1, seq1.length());
+                coord[1] = SeqCoord(attr.distance, seq2.length() - 1, seq2.length());
+            }
+            if (attr.comp == Edge::EC_REVERSE) {
+                coord[1].flip();
+            }
+
+            // edges
+            Edge* edges[2] = {0};
+            for (size_t i = 0; i < 2; ++i) {
+                edges[i] = new Edge(vertex[1 - i], coord[i].isLeftExtreme() ? Edge::ED_ANTISENSE : Edge::ED_SENSE, attr.comp, coord[i]);
+                edges[i]->color(color);
+            }
+            edges[0]->twin(edges[1]);
+            edges[1]->twin(edges[0]);
+
+            for (size_t i = 0; i < 2; ++i) {
+                _graph->addEdge(vertex[i], edges[i]);
+            }
+        }
+    }
+private:
+    Bigraph* _graph;
+};
+
+struct PairedEdgeFilter {
+    PairedEdgeFilter(GraphColor c) : _color(c), _vertex(NULL) {
+        for (size_t i = 0; i < Edge::ED_COUNT; ++i) {
+            _hasColor[i] = false;
+        }
+    }
+    bool operator()(const Vertex* vertex, const Edge* edge) {
+        //return edge->color() != _color;
+        assert(vertex != NULL);
+        if (vertex != _vertex) {
+            _vertex = vertex;
+            for (size_t i = 0; i < Edge::ED_COUNT; ++i) {
+                _hasColor[i] = false;
+            }
+            const EdgePtrList& edges = vertex->edges();
+            BOOST_FOREACH(const Edge* e, edges) {
+                if (e->color() == _color) {
+                    _hasColor[e->dir()] = true;
+                }
+            }
+        }
+
+        return (_hasColor[edge->dir()] && edge->color() != _color) || edge->coord().isFull();
+    }
+private:
+    GraphColor _color;
+    const Vertex* _vertex;
+    bool _hasColor[Edge::ED_COUNT];
+};
 
 void PairedReadVisitor::postvisit(Bigraph* graph) {
     PairedLinkList links;
@@ -700,11 +802,23 @@ void PairedReadVisitor::postvisit(Bigraph* graph) {
         delete proclist[i];
     }
 
-    EdgeColorVisitor ecVist(GC_BLACK);
-    graph->visit(&ecVist);
-    //graph->color(GC_BLACK);
-
+    ///////////////////////////////////////////
     // simplify
+    //
+    // NOTE that all the distance>=0
+    //
+    // GC_GRAY  => unkown
+    // GC_WHITE => true positives
+    // GC_BLACK => false positives
+    //
+    //////////////////////////////////////////
+    {
+        EdgeColorVisitor ecVist(GC_GRAY);
+        graph->visit(&ecVist);
+    }
+
+    // create true positive edges.
+    PairedEdgeCreator creator(graph);
     for (PairedLinkList::const_iterator i = links.begin(); i != links.end(); ++i) {
         std::vector< std::pair< Vertex::Id, BigraphWalk::DistanceAttr > > nodelist;
 
@@ -727,67 +841,20 @@ void PairedReadVisitor::postvisit(Bigraph* graph) {
                 }
             }
             if (!hasLink) {
-                addEdge(i->first, xj.first, xj.second.distance, xj.second.dir, xj.second.comp, graph);
+                creator.create(i->first, xj.first, xj.second, GC_WHITE);
                 LOG4CXX_DEBUG(logger, boost::format("paired_read_simplify\t%s\t%s\t%d") % i->first % xj.first % xj.second.distance);
             }
         }
     }
 
+    // cleanup false positive edges.
+    {
+        PairedEdgeFilter peFilter(GC_WHITE);
+        EdgeColorVisitor ecVisit(GC_BLACK, peFilter, true);
+        graph->visit(&ecVisit);
+    }
+
     graph->sweepEdges(GC_BLACK);
-}
-
-void PairedReadVisitor::addEdge(const Vertex::Id& v1, const Vertex::Id& v2, int distance, Edge::Dir dir, Edge::Comp comp, Bigraph* graph) {
-    assert(distance > 0);
-
-    Vertex* vertex[2] = {
-        graph->getVertex(v1), 
-        graph->getVertex(v2), 
-    };
-
-    bool found = false;
-    const EdgePtrList& edges = vertex[0]->edges();
-    BOOST_FOREACH(Edge* edge, edges) {
-        if (edge->dir() == dir && edge->comp() == comp && edge->end() == vertex[1]) {
-            if (edge->coord().complement().length() == distance) {
-                edge->color(GC_WHITE);
-                edge->twin()->color(GC_WHITE);
-                found = true;
-                break;
-            }
-            LOG4CXX_WARN(logger, boost::format("PairedReadVisitor::addEdge(%s, %s, %d) != %d") % v1 % v2 % distance % edge->coord().interval.start);
-        }
-    }
-    if (!found) {
-        // sequnces
-        const std::string& seq1 = vertex[0]->seq();
-        const std::string& seq2 = vertex[1]->seq();
-
-        // coordinates
-        SeqCoord coord[2] = {
-            SeqCoord(distance, seq1.length() - 1, seq1.length()),
-            SeqCoord(0, seq1.length() - distance - 1, seq2.length())
-        };
-        if (dir == Edge::ED_ANTISENSE) {
-            coord[0] = SeqCoord(0, seq2.length() - distance - 1, seq1.length());
-            coord[1] = SeqCoord(distance, seq2.length() - 1, seq2.length());
-        }
-        if (comp == Edge::EC_REVERSE) {
-            coord[1].flip();
-        }
-
-        // edges
-        Edge* edges[2] = {0};
-        for (size_t i = 0; i < 2; ++i) {
-            edges[i] = new Edge(vertex[1 - i], coord[i].isLeftExtreme() ? Edge::ED_ANTISENSE : Edge::ED_SENSE, comp, coord[i]);
-            edges[i]->color(GC_WHITE);
-        }
-        edges[0]->twin(edges[1]);
-        edges[1]->twin(edges[0]);
-
-        for (size_t i = 0; i < 2; ++i) {
-            graph->addEdge(vertex[i], edges[i]);
-        }
-    }
 }
 
 //

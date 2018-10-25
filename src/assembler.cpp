@@ -80,6 +80,27 @@ public:
             g.simplify();
 
             if (peMode == 1) {
+                // Trimming
+                size_t trimRound = 0, numTrimRounds = options.get< size_t >("cut-terminal", 10);
+                while (trimRound < numTrimRounds) {
+                    LOG4CXX_INFO(logger, boost::format("[Trim] Trim round: %d") % (trimRound + 1))
+                    bool modified = false;
+
+                    LOG4CXX_INFO(logger, "Trimming tips");
+                    if (g.visit(&trimVisit)) {
+                        modified = true;
+                        g.simplify();
+                    }
+
+                    if (!modified) {
+                        break;
+                    }
+
+                    LOG4CXX_INFO(logger, "[Stats] After trimming:");
+                    g.visit(&statsVisit);
+
+                    ++trimRound;
+                }
             } else {
                 // Pre-assembly graph stats
                 LOG4CXX_INFO(logger, "[Stats] After removing contained vertices:");
