@@ -128,6 +128,7 @@ public:
 
         std::cout << std::endl;
         std::cout << boost::format("See '%s <command> -h' to read about a specific subcommand.") % PACKAGE_NAME << std::endl;
+        std::cout << boost::format("Further help: %s") % PACKAGE_URL << std::endl;
         return 256;
     }
 private:

@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([siga], [0.10], [siga@ict.ac.cn])
+AC_INIT([siga], [0.10], [siga@ict.ac.cn], [siga], [http://bioinfo.ict.ac.cn/siga])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([config.h.in])
 AC_CONFIG_HEADERS([config.h])
@@ -17,9 +17,10 @@ AC_OPENMP
 
 AX_CXX_COMPILE_STDCXX_11([noext],[mandatory])
 
+PKG_CHECK_MODULES([RAPIDJSON], [RapidJSON >= 1.0.0])
 PKG_CHECK_MODULES([LOG4CXX], [liblog4cxx >= 0.10.0])
 AS_IF([test "x$with_tcmalloc" = "xyes"], [
-    PKG_CHECK_MODULES([TCMALLOC], [tcmalloc >= 0.10.0])
+    PKG_CHECK_MODULES([TCMALLOC], [libtcmalloc >= 2.1])
 ])
 
 # Checks for libraries.

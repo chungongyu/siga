@@ -48,9 +48,11 @@ siga_SOURCES=assembler.cpp \
 			 main.cpp
 siga_CXXFLAGS=${LOG4CXX_CFLAGS} \
 			  ${OPENMP_CFLAGS} \
-			 ${TCMALLOC_CFLAGS}
+			  ${RAPIDJSON_CFLAGS} \
+			  ${TCMALLOC_CFLAGS}
 siga_LDFLAGS=${LOG4CXX_LIBS} \
 			 ${OPENMP_LIBS} \
+			 ${RAPIDJSON_LIBS} \
 			 ${TCMALLOC_LIBS} \
 			 -lboost_filesystem \
 			 -lboost_iostreams \
