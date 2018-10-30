@@ -11,6 +11,9 @@ namespace DNAAlphabet {
     const size_t ALL_SIZE = 5;
     const char DNA_ALL[ALL_SIZE] = {'$', 'A', 'C', 'G', 'T'};
 
+    static const size_t size = 4;
+    static const char DNA[size] = {'A', 'C', 'G', 'T'};
+
     inline int torank(char c) {
         static int RANK_ALL[256] = {
             0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,

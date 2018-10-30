@@ -14,7 +14,7 @@
 #define EC_EXT    ".ec"
 #define FA_EXT    ".fa"
 
-// comand sorting
+// command sorting
 enum {
     kPreprocess, 
     kIndex, 

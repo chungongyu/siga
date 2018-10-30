@@ -39,7 +39,7 @@ public:
             CorrectProcessor::Options parms(options);
 
             CorrectProcessor processor(parms);
-            if (!processor.process(input, prefix, options.get< size_t >("threads", 1))) {
+            if (!processor.process(fmi, input, prefix, options.get< size_t >("threads", kCorrectThreads))) {
                 LOG4CXX_ERROR(logger, boost::format("Failed to do error correction for reads %s") % input);
                 r = -1;
             }
@@ -69,27 +69,31 @@ private:
                 "      -h, --help                       display this help and exit\n"
                 "\n"
                 "      -p, --prefix=PREFIX              use PREFIX instead of prefix of READSFILE for the names of the index files\n"
-                "      -t, --threads=NUM                use NUM threads for the computation (default: 1)\n"
+                "      -t, --threads=NUM                use NUM threads for the computation (default: %d)\n"
+                "      -a, --algorithm=STR              specify the correction algorithm to use. STR must be one of kmer,overlap. (default: %s)\n"
                 "\n"
-                "      -k, --kmer-size=N                the length of the kmer to user (default: 31)\n"
-                "      -x, --kmer-threshold=N           attempt to correct kmers that are seen less than N times (default: 3)\n"
-                "      -i, --kmer-rounds=N              perform up to N rounds of kmer correction (default: 10)\n"
+                "      -k, --kmer-size=N                the length of the kmer to user (default: %d)\n"
+                "      -x, --kmer-threshold=N           attempt to correct kmers that are seen less than N times (default: %d)\n"
+                "      -i, --kmer-rounds=N              perform up to N rounds of kmer correction (default: %d)\n"
+                "      -O, --kmer-count-offset=N        when correcting a kmer, require the count of the new kmer is at least +N higher than the count of the old kmer. (default: %d)\n"
                 "\n"
-                ) % PACKAGE_NAME << std::endl;
+                ) % PACKAGE_NAME % kCorrectThreads % kCorrectAlgorithm % kCorrectKmerSize % kCorrectKmerThreshold % kCorrectKmerRounds % kCorrectKmerCountOffset << std::endl;
         return 256;
     }
 
     static Correct _runner;
 };
 
-static const std::string shortopts = "c:s:p:t:k:x:i:h";
-enum { OPT_HELP = 1 };
+static const std::string shortopts = "c:s:p:t:a:k:x:i:O:h";
+enum { OPT_HELP = 1};
 static const option longopts[] = {
     {"prefix",              required_argument,  NULL, 'p'}, 
     {"threads",             required_argument,  NULL, 't'}, 
+    {"algorithm",           required_argument,  NULL, 'a'}, 
     {"kmer-size",           required_argument,  NULL, 'k'}, 
     {"kmer-threshold",      required_argument,  NULL, 'x'}, 
     {"kmer-rounds",         required_argument,  NULL, 'i'}, 
+    {"kmer-count-offset",   required_argument,  NULL, 'O'}, 
     {"help",                no_argument,        NULL, 'h'}, 
     {NULL, 0, NULL, 0}, 
 };
