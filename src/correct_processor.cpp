@@ -221,10 +221,22 @@ private:
     size_t _countOffset;
 };
 
+class OverlapCorrector : public AbstractCorrector {
+public:
+    OverlapCorrector(const FMIndex& index, const CorrectProcessor::Options& options) : AbstractCorrector(index, options) {
+    }
+    CorrectResult process(const SequenceProcessFramework::SequenceWorkItem& item) const {
+        CorrectResult r;
+        return r;
+    }
+};
+
 AbstractCorrector* AbstractCorrector::create(const FMIndex& index, const CorrectProcessor::Options& options) {
     std::string algorithm = options.get< std::string >("algorithm", kCorrectAlgorithm);
     if (algorithm == "kmer") {
         return new KmerCorrector(index, options);
+    } else if (algorithm == "overlap") {
+        return new OverlapCorrector(index, options);
     }
     return NULL;
 }
