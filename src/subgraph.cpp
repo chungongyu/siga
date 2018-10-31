@@ -21,6 +21,9 @@ public:
     void extract(const Vertex* root, size_t span, Bigraph* sub) {
         assert(root != NULL);
 
+        // copy graph parameters from the main graph
+        sub->containment(_graph->containment());
+
         // add root to the subgraph
         addVertex(root, sub);
 

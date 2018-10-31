@@ -26,6 +26,8 @@
 
 static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.PreQC"));
 
+#define kPreQCThreads   1
+
 class PreQC : public Runner {
 public:
     typedef rapidjson::StringBuffer JSONBuffer;
@@ -210,10 +212,10 @@ private:
                 "\n"
                 "      -h, --help                       display this help and exit\n"
                 "\n"
-                "      -t, --threads=NUM                use NUM threads (default: 1)\n"
+                "      -t, --threads=NUM                use NUM threads (default: %d)\n"
                 "          --simple                     only compute the metrics that do not need the FM-index\n"
                 "\n"
-                ) % PACKAGE_NAME << std::endl;
+                ) % PACKAGE_NAME % kPreQCThreads << std::endl;
 
         return 256;
     }
@@ -221,18 +223,12 @@ private:
     static PreQC _runner;
 };
 
-static const std::string shortopts = "c:s:o:t:m:x:n:l:a:b:h";
-enum { OPT_HELP = 1, OPT_MAXEDGES };
+static const std::string shortopts = "c:s:o:t:h";
+enum { OPT_HELP = 1, OPT_SIMPLE };
 static const option longopts[] = {
     {"prefix",              required_argument,  NULL, 'o'}, 
     {"threads",             required_argument,  NULL, 't'}, 
-    {"min-overlap",         required_argument,  NULL, 'm'}, 
-    {"max-edges",           required_argument,  NULL, OPT_MAXEDGES}, 
-    {"bubble",              required_argument,  NULL, 'b'}, 
-    {"min-branch-length",   required_argument,  NULL, 'n'}, 
-    {"cut-terminal",        required_argument,  NULL, 'x'}, 
-    {"min-chimeric-length", required_argument,  NULL, 'l'}, 
-    {"max-chimeric-delta",  required_argument,  NULL, 'a'}, 
+    {"simple",              required_argument,  NULL, OPT_SIMPLE}, 
     {"help",                no_argument,        NULL, 'h'}, 
     {NULL, 0, NULL, 0}, 
 };
