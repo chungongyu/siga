@@ -10,6 +10,7 @@
 #include <vector>
 
 enum GraphColor {
+    GC_NONE = -1, 
     GC_WHITE = 0, 
     GC_GRAY, 
     GC_BLACK, 
@@ -45,7 +46,7 @@ public:
         EC_COUNT
     };
 
-    Edge(Vertex* end, Dir dir, Comp comp, const SeqCoord& coord) : _end(end), _dir(dir), _comp(comp), _coord(coord) {
+    Edge(Vertex* end, Dir dir, Comp comp, const SeqCoord& coord) : _end(end), _dir(dir), _comp(comp), _coord(coord), _color(GC_NONE) {
     }
 
     Vertex* start() const {
@@ -110,7 +111,7 @@ class Vertex {
 public:
     typedef std::string Id;
 
-    Vertex(const Id& id, const std::string& seq, bool contained = false) : _id(id), _seq(seq), _contained(contained), _color(GC_WHITE), _coverage(1) {
+    Vertex(const Id& id, const std::string& seq, bool contained = false) : _id(id), _seq(seq), _contained(contained), _color(GC_NONE), _coverage(1) {
     }
     ~Vertex();
 

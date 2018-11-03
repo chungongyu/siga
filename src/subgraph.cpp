@@ -79,7 +79,7 @@ public:
             if (root != NULL) {
                 // add root to the subgraph
                 SubgraphExtractor extractor(&g);
-                extractor.extract(root, options.get< size_t >("size"), &sub);
+                extractor.extract(root, options.get< size_t >("size", 5), &sub);
                 if (!Bigraph::save(output, &sub)) {
                     LOG4CXX_ERROR(logger, boost::format("failed to write stream ") % output);
                 }
