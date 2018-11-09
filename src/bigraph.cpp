@@ -273,12 +273,12 @@ size_t Bigraph::sweepEdges(GraphColor c) {
     return num;
 }
 
-void Bigraph::simplify() {
-    simplify(Edge::ED_SENSE);
-    simplify(Edge::ED_ANTISENSE);
+void Bigraph::simplify(SimplifyCallback callback) {
+    simplify(Edge::ED_SENSE, callback);
+    simplify(Edge::ED_ANTISENSE, callback);
 }
 
-void Bigraph::simplify(Edge::Dir dir) {
+void Bigraph::simplify(Edge::Dir dir, SimplifyCallback callback) {
     bool changed = true;
     while (changed) {
         changed = false;
@@ -294,8 +294,10 @@ void Bigraph::simplify(Edge::Dir dir) {
                 Edge* twin = single->twin();
                 Vertex* end = single->end();
                 if (end->degrees(twin->dir()) == 1) {
-                    merge(i->second, single);
-                    changed = true;
+                    if (!callback || callback(i->second, single)) {
+                        merge(i->second, single);
+                        changed = true;
+                    }
                 }
             }
         }
