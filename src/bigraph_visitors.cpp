@@ -757,6 +757,17 @@ private:
     bool _hasColor[Edge::ED_COUNT];
 };
 
+class PairedSimplifyCallback {
+public:
+    PairedSimplifyCallback(std::unordered_map< Vertex::Id, BigraphWalk::NodePtrList >& dict) : _dict(dict) {
+    }
+    bool operator()(const Vertex* vertex, const Edge* edge) {
+        return true;
+    }
+private:
+    std::unordered_map< Vertex::Id, BigraphWalk::NodePtrList >& _dict;
+};
+
 void PairedReadVisitor::postvisit(Bigraph* graph) {
     PairedLinkList links;
 
@@ -846,6 +857,12 @@ void PairedReadVisitor::postvisit(Bigraph* graph) {
     }
 
     graph->sweepEdges(GC_BLACK);
+
+    std::unordered_map< Vertex::Id, BigraphWalk::NodePtrList > dict;
+    {
+        PairedSimplifyCallback callback(dict);
+        graph->simplify(callback);
+    }
 }
 
 //
