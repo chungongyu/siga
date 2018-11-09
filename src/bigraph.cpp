@@ -370,7 +370,7 @@ void Bigraph::color(GraphColor c) {
     }
 }
 
-bool EdgeCreator::create(const Overlap& overlap) {
+bool EdgeCreator::create(const Overlap& overlap, GraphColor color) {
     // Initialize data and perform checks
     Edge::Comp comp = (overlap.match.isRC) ? Edge::EC_REVERSE : Edge::EC_SAME;
     bool isContainment = overlap.match.isContainment();
@@ -419,6 +419,7 @@ bool EdgeCreator::create(const Overlap& overlap) {
             const SeqCoord& coord = overlap.match.coords[i];
             Edge::Dir dir = coord.isLeftExtreme() ? Edge::ED_ANTISENSE : Edge::ED_SENSE;
             edges[i] = new Edge(verts[1 - i], dir, comp, coord);
+            edges[i]->color(color);
         }
 
         edges[0]->twin(edges[1]);
@@ -436,6 +437,8 @@ bool EdgeCreator::create(const Overlap& overlap) {
             const SeqCoord& coord = overlap.match.coords[i];
             edges[i    ] = new Edge(verts[1 - i], Edge::ED_SENSE,     comp, coord);
             edges[i + 2] = new Edge(verts[1 - i], Edge::ED_ANTISENSE, comp, coord);
+            edges[i    ]->color(color);
+            edges[i + 2]->color(color);
         }
 
         // Twin the edges and add them to the graph

@@ -238,7 +238,7 @@ class EdgeCreator {
 public:
     EdgeCreator(Bigraph* g, bool allowContainments, size_t maxEdges) : _graph(g), _allowContainments(allowContainments), _maxEdges(maxEdges) {
     }
-    bool create(const Overlap& overlap);
+    bool create(const Overlap& overlap, GraphColor color=GC_NONE);
 private:
     Bigraph* _graph;
     bool _allowContainments;

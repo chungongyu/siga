@@ -718,18 +718,9 @@ public:
                 coord[1].flip();
             }
 
-            // edges
-            Edge* edges[2] = {0};
-            for (size_t i = 0; i < 2; ++i) {
-                edges[i] = new Edge(vertex[1 - i], coord[i].isLeftExtreme() ? Edge::ED_ANTISENSE : Edge::ED_SENSE, attr.comp, coord[i]);
-                edges[i]->color(color);
-            }
-            edges[0]->twin(edges[1]);
-            edges[1]->twin(edges[0]);
-
-            for (size_t i = 0; i < 2; ++i) {
-                _graph->addEdge(vertex[i], edges[i]);
-            }
+            EdgeCreator creator(_graph, true, -1);
+            Overlap ovr(v1, coord[0], v2, coord[1], attr.comp == Edge::EC_REVERSE, 0);
+            creator.create(ovr, color);
         }
     }
 private:
