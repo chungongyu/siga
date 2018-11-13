@@ -567,7 +567,7 @@ public:
         // BFS the adjacents of vertex1
         BigraphWalk::NodePtrList adjacents;
         if (vertex1->seq().length() > _visitor->_maxDistance) {
-            std::function< bool(const Edge* edge) > filter = [](const Edge* edge)->bool {
+            std::function< bool(const Edge* edge) > filter = [](const Edge* edge) -> bool {
                     if (edge->dir() == Edge::ED_SENSE || edge->comp() == Edge::EC_REVERSE) {
                         const Edge* e = NULL;
                         if (edge->dir() == Edge::ED_SENSE) {
@@ -582,7 +582,7 @@ public:
                 };
             BigraphWalk::build(vertex1, filter, NULL, 0, _visitor->_maxDistance, _visitor->_maxNodes, &adjacents);
         }
-        std::sort(adjacents.begin(), adjacents.end(), [](const BigraphWalk::NodePtr& x, const BigraphWalk::NodePtr& y) {
+        std::sort(adjacents.begin(), adjacents.end(), [](const BigraphWalk::NodePtr& x, const BigraphWalk::NodePtr& y) -> bool {
                     return std::abs(x->attr.distance) < std::abs(y->attr.distance);
                 }); // sort by distance
 
@@ -757,15 +757,67 @@ private:
     bool _hasColor[Edge::ED_COUNT];
 };
 
-class PairedSimplifyCallback {
+class PairedContainmentVisitor : public BigraphVisitor {
 public:
-    PairedSimplifyCallback(std::unordered_map< Vertex::Id, BigraphWalk::NodePtrList >& dict) : _dict(dict) {
+    PairedContainmentVisitor(GraphColor white, GraphColor black, std::unordered_map< Vertex::Id, BigraphWalk::NodePtrList >& dict) : _white(white), _black(black), _dict(dict) {
     }
-    bool operator()(const Vertex* vertex, const Edge* edge) {
-        return true;
+    void previsit(Bigraph* graph) {
+        graph->color(_white);
+    }
+    bool visit(Bigraph* graph, Vertex* vertex) {
+        bool modified = false;
+        if (vertex->color() != _black) {
+            BigraphWalk::NodePtrList containment;
+            while (simplify(graph, vertex, Edge::ED_SENSE, containment)) {
+                modified = true;
+            }
+            while (simplify(graph, vertex, Edge::ED_ANTISENSE, containment)) {
+                modified = true;
+            }
+            if (!containment.empty()) {
+                std::sort(containment.begin(), containment.end(), [](const BigraphWalk::NodePtr& x, const BigraphWalk::NodePtr& y) -> bool {
+                    return x->attr.distance < y->attr.distance;
+                });
+                int distance = containment[0]->attr.distance;
+                if (distance < 0) {
+                    BOOST_FOREACH(BigraphWalk::NodePtr& n, containment) {
+                        n->attr.distance -= distance;
+                    }
+                }
+                assert(_dict.find(vertex->id()) == _dict.end());
+                _dict[vertex->id()] = containment;
+            }
+        }
+        return modified;
+    }
+    void postvisit(Bigraph* graph) {
+        graph->sweepVertices(_black);
     }
 private:
-    std::unordered_map< Vertex::Id, BigraphWalk::NodePtrList >& _dict;
+    bool simplify(Bigraph* graph, Vertex* vertex, Edge::Dir dir, BigraphWalk::NodePtrList& containment) {
+        // Get the edges for this direction
+        EdgePtrList edges = vertex->edges(dir);
+
+        // If there is a single edge in this direction, merge the vertices
+        // Don't merge singular self edges though
+        if (edges.size() == 1 && !edges[0]->isSelf()) {
+            // Check that the edge back is singular as well
+            Edge* single = edges[0];
+            Edge* twin = single->twin();
+            Vertex* end = single->end();
+            if (end->degrees(twin->dir()) == 1) {
+                graph->merge(vertex, single);
+
+                // It is guarenteed to not be connected
+                end->color(_black);
+                return true;
+            }
+        }
+        return false;
+    }
+    std::unordered_map< Vertex::Id, BigraphWalk::NodePtrList>& _dict;
+    GraphColor _white;
+    GraphColor _black;
 };
 
 void PairedReadVisitor::postvisit(Bigraph* graph) {
@@ -860,8 +912,8 @@ void PairedReadVisitor::postvisit(Bigraph* graph) {
 
     std::unordered_map< Vertex::Id, BigraphWalk::NodePtrList > dict;
     {
-        PairedSimplifyCallback callback(dict);
-        graph->simplify(callback);
+        PairedContainmentVisitor pcVisit(GC_WHITE, GC_BLACK, dict);
+        graph->visit(&pcVisit);
     }
 }
 

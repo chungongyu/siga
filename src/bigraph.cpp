@@ -273,12 +273,12 @@ size_t Bigraph::sweepEdges(GraphColor c) {
     return num;
 }
 
-void Bigraph::simplify(SimplifyCallback callback) {
-    simplify(Edge::ED_SENSE, callback);
-    simplify(Edge::ED_ANTISENSE, callback);
+void Bigraph::simplify() {
+    simplify(Edge::ED_SENSE);
+    simplify(Edge::ED_ANTISENSE);
 }
 
-void Bigraph::simplify(Edge::Dir dir, SimplifyCallback callback) {
+void Bigraph::simplify(Edge::Dir dir) {
     bool changed = true;
     while (changed) {
         changed = false;
@@ -294,10 +294,13 @@ void Bigraph::simplify(Edge::Dir dir, SimplifyCallback callback) {
                 Edge* twin = single->twin();
                 Vertex* end = single->end();
                 if (end->degrees(twin->dir()) == 1) {
-                    if (!callback || callback(i->second, single)) {
-                        merge(i->second, single);
-                        changed = true;
-                    }
+                    merge(i->second, single);
+                    // It is guarenteed to not be connected
+                    // Remove V2
+                    removeVertex(end);
+                    SAFE_DELETE(end);
+
+                    changed = true;
                 }
             }
         }
@@ -341,11 +344,6 @@ void Bigraph::merge(Vertex* v1, Edge* edge) {
     // Remove the edge from V2 to V1
     v2->removeEdge(twin);
     SAFE_DELETE(twin);
-
-    // Remove V2
-    // It is guarenteed to not be connected
-    removeVertex(v2);
-    SAFE_DELETE(v2);
 }
 
 void Bigraph::validate() const {

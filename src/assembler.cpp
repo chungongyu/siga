@@ -37,6 +37,9 @@ public:
         if (options.find("max-distance") != options.not_found()) {
             LOG4CXX_INFO(logger, boost::format("max-distance: %d") % options.get< size_t >("max-distance"));
         }
+        if (options.find("insert-size") != options.not_found()) {
+            LOG4CXX_INFO(logger, boost::format("insert-size: %d") % options.get< size_t >("insert-size"));
+        }
         if (options.find("insert-size-delta") != options.not_found()) {
             LOG4CXX_INFO(logger, boost::format("insert-size-delta: %d") % options.get< size_t >("insert-size-delta"));
         }
@@ -60,13 +63,20 @@ public:
             g.visit(&statsVisit);
 
             if (peMode == 1) {
+                size_t average = options.get("insert-size", 500);
                 size_t delta = options.get("insert-size-delta", 100);
-                if (options.find("insert-size-delta") == options.not_found()) {
-                    size_t average = 100;
-                    InsertSizeEstimateVisitor iseVisit(average, delta);
+                if (options.find("insert-size") == options.not_found() || options.find("insert-size-delta") == options.not_found()) {
+                    size_t mu = 500, sigma = 100;
+                    InsertSizeEstimateVisitor iseVisit(mu, sigma);
                     g.visit(&iseVisit);
-                    delta *= 4;
+                    if (options.find("insert-size") == options.not_found()) {
+                        average = mu;
+                    }
+                    if (options.find("insert-size-delta") == options.not_found()) {
+                        delta = sigma;
+                    }
                 }
+                delta *= 4;
                 PairedReadVisitor prVisit(options.get< size_t >("max-distance", 100), delta, options.get< size_t >("max-search-nodes", 100), options.get< size_t >("threads", 1), options.get< size_t >("batch-size", 1000));
                 g.visit(&prVisit);
             } else {
@@ -227,6 +237,7 @@ private:
                 "          --pe-mode=INT                0 - do not treat reads as paired (default)\n"
                 "                                       1 - treat reads as paired\n"
                 "          --max-distance=INT           treat reads as connected whose distance is less than INT (default: 100)\n"
+                "          --insert-size=INT            treat reads as paired with insert size INT (default: learned from paired reads)\n"
                 "          --insert-size-delta=INT      treat reads as paired with insert size delta INT (default: learned from paired reads)\n"
                 "\n"
                 "Trimming parameters:\n"

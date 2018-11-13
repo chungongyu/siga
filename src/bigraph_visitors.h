@@ -109,13 +109,14 @@ public:
 // Visit each paired node via zigzag, sweep false positive edges.
 class PairedReadVisitor : public BigraphVisitor {
 public:
-    PairedReadVisitor(size_t maxDistance, size_t maxDelta, size_t maxNodes, size_t threads=1, size_t batch=1000) : _maxDistance(maxDistance), _maxDelta(maxDelta), _maxNodes(maxNodes), _threads(threads), _batch(batch) {
+    PairedReadVisitor(size_t maxDistance, size_t insertSize, size_t maxDelta, size_t maxNodes, size_t threads=1, size_t batch=1000) : _maxDistance(maxDistance), _insertSize(insertSize), _maxDelta(maxDelta), _maxNodes(maxNodes), _threads(threads), _batch(batch) {
     }
     void previsit(Bigraph* graph);
     bool visit(Bigraph* graph, Vertex* vertex);
     void postvisit(Bigraph* graph);
 private:
     size_t _maxDistance;
+    size_t _insertSize;
     size_t _maxDelta;
     size_t _maxNodes;
     size_t _threads;
@@ -125,7 +126,6 @@ private:
     friend class PairedVertexProcess;
     friend class PairedVertexPostProcess;
 };
-
 
 // Smooth out variation in the graph
 class SmoothingVisitor : public BigraphVisitor {

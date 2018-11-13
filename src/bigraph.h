@@ -4,7 +4,6 @@
 #include "coord.h"
 
 #include <cassert>
-#include <functional>
 #include <iostream>
 #include <string>
 #include <unordered_map>
@@ -207,7 +206,7 @@ public:
     void merge(Vertex* vertex, Edge* edge);
 
     // Simplify the graph by removing transitive edges
-    void simplify(SimplifyCallback callback=NULL);
+    void simplify();
 
     // Validate the graph is sane
     void validate() const;
@@ -229,7 +228,7 @@ public:
     static bool save(const std::string& filename, const Bigraph* g);
 private:
     // Simplify the graph by compacting edges in the given direction
-    void simplify(Edge::Dir dir, SimplifyCallback callback);
+    void simplify(Edge::Dir dir);
 
     VertexTable _vertices;
     bool _containment;
