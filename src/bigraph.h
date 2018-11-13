@@ -179,7 +179,6 @@ private:
     EdgePtrList _edges;
 };
 
-typedef std::function< bool (const Vertex*, const Edge* edge) > SimplifyCallback;
 typedef std::unordered_map< Vertex::Id, Vertex* > VertexTable;
 
 //
