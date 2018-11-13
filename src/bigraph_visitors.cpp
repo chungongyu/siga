@@ -600,7 +600,7 @@ public:
                 Edge::Dir dir = Edge::EDGE_DIRECTIONS[i];
                 BigraphWalk::build(paired_v1, [dir](const Edge* edge)->bool {
                             return edge->dir() == dir;
-                        }, paired_v2, 0, std::abs(node1->attr.distance) + _visitor->_maxDelta, 1, &faraways);
+                        }, paired_v2, 0, std::abs(node1->attr.distance) + _visitor->_insertDelta*4, 1, &faraways);
             }
             BOOST_FOREACH(const BigraphWalk::NodePtr& node2, faraways) {
                 linklist.push_back(node1);

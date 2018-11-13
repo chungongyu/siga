@@ -76,8 +76,7 @@ public:
                         delta = sigma;
                     }
                 }
-                delta *= 4;
-                PairedReadVisitor prVisit(options.get< size_t >("max-distance", 100), delta, options.get< size_t >("max-search-nodes", 100), options.get< size_t >("threads", 1), options.get< size_t >("batch-size", 1000));
+                PairedReadVisitor prVisit(options.get< size_t >("max-distance", 100), average, delta, options.get< size_t >("max-search-nodes", 100), options.get< size_t >("threads", 1), options.get< size_t >("batch-size", 1000));
                 g.visit(&prVisit);
             } else {
                 LOG4CXX_INFO(logger, "Removing contained vertices from graph");
