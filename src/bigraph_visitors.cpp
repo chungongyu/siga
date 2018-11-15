@@ -593,6 +593,20 @@ public:
             if (numNodes[numIdx] >= MAX_STEPS) continue;
             const Vertex* paired_v2 = _graph->getVertex(PairEnd::id(node1->vertex->id()));
             assert(paired_v2 != NULL);
+
+            BigraphWalk::NodePtrList xpairs;
+            {
+                size_t minDistance = _visitor->_insertSize > 3*_visitor->_insertDelta ? _visitor->_insertSize - 3*_visitor->_insertDelta : 0;
+                size_t maxDistance = _visitor->_insertSize + 3*_visitor->_insertDelta;
+                size_t offset = std::abs(node1->attr.distance);
+                minDistance = minDistance > offset ? minDistance - offset : 0;
+                maxDistance = maxDistance > offset ? maxDistance - offset : 0;
+
+                BigraphWalk::NodePtrQueue xqueue = boost::assign::list_of
+                    (std::make_pair(BigraphWalk::NodePtr(new BigraphWalk::Node(node1->vertex, 0, node1->attr.dir, node1->attr.comp)), node1->attr.distance < 0 ? -1 : 1))
+                    ;
+                BigraphWalk::build(xqueue, paired_v1, minDistance, maxDistance, 1, &xpairs);
+            }
             LOG4CXX_DEBUG(logger, boost::format("vertex1: %s<->%s, vertex2: %s<->%s") % vertex1->id() % paired_v1->id() % node1->vertex->id() % paired_v2->id());
 
             BigraphWalk::NodePtrList faraways;
@@ -602,7 +616,21 @@ public:
                             return edge->dir() == dir;
                         }, paired_v2, 0, std::abs(node1->attr.distance) + _visitor->_insertDelta*4, 1, &faraways);
             }
+
+            BigraphWalk::NodePtrList ypairs;
+            {
+                size_t minDistance = _visitor->_insertSize > 3*_visitor->_insertDelta ? _visitor->_insertSize - 3*_visitor->_insertDelta : 0;
+                size_t maxDistance = _visitor->_insertSize + 3*_visitor->_insertDelta;
+
+                BigraphWalk::NodePtrQueue yqueue = boost::assign::list_of
+                    (std::make_pair(BigraphWalk::NodePtr(new BigraphWalk::Node(node1->vertex, 0, node1->attr.dir, node1->attr.comp)), node1->attr.distance < 0 ? -1 : 1))
+                    ;
+                BigraphWalk::build(yqueue, paired_v2, minDistance, maxDistance, 1, &ypairs);
+            }
             BOOST_FOREACH(const BigraphWalk::NodePtr& node2, faraways) {
+                if (xpairs.empty() && ypairs.empty()) {
+                    LOG4CXX_WARN(logger, boost::format("paired_read_all\t%s\t%s\t%d\t%s\t%s\t%d") % vertex1->id() % node1->vertex->id() % node1->attr.distance % paired_v1->id() % node2->vertex->id() % node2->attr.distance);
+                }
                 linklist.push_back(node1);
                 LOG4CXX_DEBUG(logger, boost::format("paired_read_all\t%s\t%s\t%d\t%s\t%s\t%d") % vertex1->id() % node1->vertex->id() % node1->attr.distance % paired_v1->id() % node2->vertex->id() % node2->attr.distance);
                 ++numNodes[numIdx];
