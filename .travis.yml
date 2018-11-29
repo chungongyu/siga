@@ -1,0 +1,27 @@
+language: cpp
+sudo: required
+matrix:
+    include:
+        # works on Precise and Trusty
+        - os: linux
+          addons:
+              apt:
+                  sources:
+                      - ubuntu-toolchain-r-test
+                  packages:
+                      g++-4.8
+before_install:
+    - eval "${MATRIX_EVAL}"
+    - if [ $TRAVIS_OS_NAME == linux ]; then
+    -    sudo apt-get update
+    -    sudo apt-get install -y libboost-all-dev
+    -    sudo apt-get install -y liblog4cxx10-dev
+    -    sudo apt-get install -y rapidjson-dev
+    - fi
+    - if [ $TRAVIS_OS_NAME == osx ]; then
+    -    brew update
+    -    brew install boost
+    -    brew install log4cxx
+    -    brew install rapidjson
+    - fi
+    - sh autogen.sh
