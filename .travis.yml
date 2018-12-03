@@ -7,3 +7,5 @@ before_install:
     - sudo apt-get install -y liblog4cxx10-dev
     - sudo apt-get install -y rapidjson-dev
     - sh autogen.sh
+script:
+    - ./configure && make
