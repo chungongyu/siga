@@ -1,4 +1,7 @@
-# SIGA
+# SIGA 
+
+     
+[![Build Status](https://travis-ci.org/chungongyu/siga.svg?branch=master)](https://travis-ci.org/chungongyu/siga)
 
 SIGA - St. **S**ensitive and **I**ntelligent **G**enome **A**ssembler - is an open-source *de* novo  assembly toolkit containing various assembly pipelines. 
 
