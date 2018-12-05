@@ -1,4 +1,10 @@
 # HOME
+
+[![Build Status](https://travis-ci.org/chungongyu/siga.svg?branch=master)](https://travis-ci.org/chungongyu/siga)
+![GitHub release](https://img.shields.io/github/release/chungongyu/siga.svg)
+[![GitHub license](https://img.shields.io/github/license/chungongyu/siga.svg)](https://github.com/chungongyu/siga)
+[![GitHub issues](https://img.shields.io/github/issues/chungongyu/siga.svg)](https://github.com/chungongyu/siga/issues)
+
 ## Overview
 SIGA is a _de_ novo assembler designed to assemble large genomes from high coverage short read data. It is designed as a [modular set of programs](https://github.com/chungongyu/siga/wiki/SIGA-subprograms), which are used to form an assembly pipeline. A description of the SIGA design is found [here](https://github.com/chungongyu/siga/wiki/SIGA-design). 
 
