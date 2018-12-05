@@ -1,4 +1,4 @@
-# HOME
+# Home
 
 [![Build Status](https://travis-ci.org/chungongyu/siga.svg?branch=master)](https://travis-ci.org/chungongyu/siga)
 ![GitHub release](https://img.shields.io/github/release/chungongyu/siga.svg)
