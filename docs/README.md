@@ -6,7 +6,7 @@
 [![GitHub issues](https://img.shields.io/github/issues/chungongyu/siga.svg)](https://github.com/chungongyu/siga/issues)
 
 ## Overview
-SIGA is a _de_ novo assembler designed to assemble large genomes from high coverage short read data. It is designed as a [modular set of programs](https://github.com/chungongyu/siga/wiki/SIGA-subprograms), which are used to form an assembly pipeline. A description of the SIGA design is found [here](https://github.com/chungongyu/siga/wiki/SIGA-design). 
+SIGA is an open-source _de novo_ assembly toolkit containing various assembly pipelines which are totally compatible with [SGA](https://github.com/jts/sga) file format. Similar to [SGA](https://github.com/jts/sga), it is designed as a [modular set of programs](https://github.com/chungongyu/siga/wiki/SIGA-subprograms), which are used to form an assembly pipeline. A description of the SIGA design is found [here](https://github.com/chungongyu/siga/wiki/SIGA-design). 
 
 ## Data exploration and quality control
 
