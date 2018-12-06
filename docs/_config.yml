@@ -16,9 +16,13 @@
 title: SIGA
 description: An open-source de novo assembly toolkit containing various assembly pipelines.
 show_downloads: true
+# github: [metadata]
+github:
+  repository_url: https://github.com/chungongyu/siga
+  zip_url: https://github.com/chungongyu/siga/archive/master.zip
+  tar_url: https://github.com/chungongyu/siga/archive/master.tar.gz
 
 # Build settings
-github: [metadata]
 theme: jekyll-theme-slate
 
 # Exclude from processing.
