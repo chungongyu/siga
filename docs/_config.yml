@@ -1,1 +1,7 @@
+github: [metadata]
 theme: jekyll-theme-slate
+
+title: SIGA
+description: An open-source de novo assembly toolkit containing various assembly pipelines.
+
+show_downloads: true
