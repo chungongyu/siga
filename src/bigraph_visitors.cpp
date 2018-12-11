@@ -553,10 +553,11 @@ bool PairedReadVisitor::visit(Bigraph* graph, Vertex* vertex1) {
 
 typedef std::unordered_map< Vertex::Id, BigraphWalk::DistanceAttr > PairedDistanceMap;
 typedef std::unordered_map< Vertex::Id, PairedDistanceMap > PairedLinkList;
+typedef std::unordered_map< Vertex::Id, BigraphWalk::NodePtr > VertexContainmentMap;
 
 class PairedVertexProcess {
 public:
-    PairedVertexProcess(Bigraph* graph, PairedReadVisitor* vistor) : _graph(graph), _visitor(vistor) {
+    PairedVertexProcess(Bigraph* graph, PairedReadVisitor* vistor, const VertexContainmentMap* dict = NULL) : _graph(graph), _visitor(vistor), _dict(dict) {
     }
     BigraphWalk::NodePtrList process(const Vertex* vertex1) {
         BigraphWalk::NodePtrList linklist;
@@ -615,6 +616,7 @@ public:
 private:
     Bigraph* _graph;
     PairedReadVisitor* _visitor;
+    const VertexContainmentMap* _dict;
 };
 
 class PairedVertexPostProcess {
@@ -759,7 +761,7 @@ private:
 
 class PairedContainmentVisitor : public BigraphVisitor {
 public:
-    PairedContainmentVisitor(GraphColor white, GraphColor black, std::unordered_map< Vertex::Id, BigraphWalk::NodePtr >& dict) : _white(white), _black(black), _dict(dict) {
+    PairedContainmentVisitor(GraphColor white, GraphColor black, VertexContainmentMap& dict) : _white(white), _black(black), _dict(dict) {
     }
     void previsit(Bigraph* graph) {
         graph->color(_white);
@@ -906,7 +908,8 @@ private:
         } 
         _table.clear();
     }
-    std::unordered_map< Vertex::Id, BigraphWalk::NodePtr>& _dict;
+
+    VertexContainmentMap& _dict;
     GraphColor _white;
     GraphColor _black;
 
@@ -1004,7 +1007,7 @@ void PairedReadVisitor::postvisit(Bigraph* graph) {
     graph->sweepEdges(GC_BLACK);
 
     //
-    std::unordered_map<Vertex::Id, BigraphWalk::NodePtr> dict;
+    VertexContainmentMap dict;
     {
         PairedContainmentVisitor pcVisit(GC_WHITE, GC_BLACK, dict);
         graph->visit(&pcVisit);

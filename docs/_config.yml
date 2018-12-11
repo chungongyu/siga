@@ -15,8 +15,9 @@
 # in the templates via {{ site.myvariable }}.
 title: SIGA
 description: An open-source de novo assembly toolkit containing various assembly pipelines.
+baseurl: "/siga" # the subpath of your site, e.g. /blog
 show_downloads: true
-# github: [metadata]
+#github: [metadata]
 github:
   repository_url: https://github.com/chungongyu/siga
   zip_url: https://github.com/chungongyu/siga/archive/master.zip
