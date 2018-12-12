@@ -22,7 +22,7 @@ Home
 Overview
 ========
 
-SIGA is an open-source _de novo_ assembly toolkit containing various assembly pipelines which are totally compatible with [SGA](https://github.com/jts/sga) file format. Similar to [SGA](https://github.com/jts/sga), it is designed as a [modular set of programs](#running-siga), which are used to form an assembly pipeline.
+SIGA is an open-source _de_ novo assembly toolkit containing various assembly pipelines which are totally compatible with [SGA](https://github.com/jts/sga) file format. Similar to [SGA](https://github.com/jts/sga), it is designed as a [modular set of programs](#running-siga), together which form an assembly pipeline.
 
 Quick Start
 ===========
@@ -134,7 +134,7 @@ siga index --help
 Benchmarks
 ========
 
-Comming soon...
+Comming soon ...
 
 Citation
 ========
@@ -146,14 +146,18 @@ Chungong Yu, Yu Lin, Guozheng Wei, Bing Wang, Yanbo Li and Dongbo Bu. **SIGA** :
 Related Publications
 ====================
 
-None yet! ^_~
+None yet!   ^_~
 
 FAQ
 ====
 
 1. **Where can I get further help or advice?**
 
-   See [Support](#support) or the [siga wiki](https://github.com/chungongyu/siga/wiki).
+	See [Support](#support) or the [siga wiki](https://github.com/chungongyu/siga/wiki).
+
+2. **What parameters should I tune to improve my assembly?**
+    
+	See [here](https://github.com/chungongyu/siga/wiki/SIGA-parameter-tuning)
 
 Support
 =======
