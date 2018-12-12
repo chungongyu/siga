@@ -29,7 +29,7 @@ Quick Start
 
 ### Dependencies
 
-* c++ compiler that supports [OpenMP](http://www.openmp.org) such as [gcc](http://gcc.gnu.org).
+* c++ compiler that supports [OpenMP](http://www.openmp.org) and [c++ 11](https://en.wikipedia.org/wiki/C%2B%2B11) such as [gcc](http://gcc.gnu.org).
 * [autoconf](http://www.gnu.org/software/autoconf)
 * [automake](http://www.gnu.org/software/automake)
 * [boost](https://www.boost.org/)
