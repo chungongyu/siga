@@ -33,25 +33,31 @@ SIGA dependencies:
 * [rapidjson](https://github.com/Tencent/rapidjson)
 * [gperftools](https://github.com/gperftools/gperftools) (optional but suggested)
 
-If you cloned the repository from github, run autogen.sh from the root directory 
+If you cloned the repository from github, run `autogen.sh` from the root directory 
 to generate the configure file:
 
+```
 ./autogen.sh
+```
 
-If the dependencies have been installed in standard locations (like /usr/local) you
-can run configure without any parameters then run make:
+If the dependencies have been installed in standard locations (like `/usr/local`) you
+can run `configure` without any parameters then run make:
 
+```
 ./configure
 make
+```
 
 ### Installing SIGA
 
-Running make install will install siga into /usr/local/bin/ by default. To specify the install
+Running make install will install siga into `/usr/local/bin/` by default. To specify the install
 location use the --prefix option to configure:
 
+```
 ./configure --prefix=/home/chaunceyyu/ && make && make install
+```
 
-This command will copy siga to /home/chaunceyyu/bin/siga
+This command will copy siga to `/home/chaunceyyu/bin/siga`
 
 ### Running SIGA
 
@@ -60,14 +66,16 @@ can also be used to perform other interesting tasks, like read error correction 
 Each program and subprogram will print a brief description and its usage instructions if the -h or --help 
 flag is used.
 
-To get a listing of all subprograms, run siga --help.
+To get a listing of all subprograms, run `siga --help`.
 
 Examples of an SIGA assembly are provided in the examples directory. It is suggested to look at
-these examples to become familar with the flow of data through the program.
+these examples to become familiar with the flow of data through the program.
 
 The major subprograms are:
 
-* siga preprocess
+```
+siga preprocess
+```
 
 Prepare reads for assembly. It can perform optional quality filtering/trimming. By default
 it will discard reads that have uncalled bases ('N' or '.'). It is mandatory to run this command 
@@ -78,26 +86,34 @@ files (siga preprocess READS1 READS2) where the first read in READS1 is paired w
 and so on. Alternatively, they can be specified in a single file where the two reads are expected to appear 
 in consecutive records. By default, output is written to stdout.
 
-* siga index READS
+```
+siga index READS
+```
 
 Build the FM-index for READS, which is a fasta or fastq file. 
 This program is threaded (-t N).
 
-* siga correct READS
+```
+siga correct READS
+```
 
 Perform error correction on READS file. Overlap and kmer-based correction algorithms
 are implemented. By default, a k-mer based correction is performed. 
 
 Many options exist for this program, see --help. 
 
-* siga overlap -m N READS
+```
+siga overlap -m N READS
+```
 
 Find overlaps between reads to construct the string graph. The -m parameter specifies
 the minimum length of the overlaps to find. By default only non-transitive (irreducible) edges are output and edges
 between identical sequences. If all overlaps between reads are desired, the --exhaustive option can be specified.
 This program is threaded. The output file is READS.asqg.gz by default.
 
-* siga assemble READS.asqg.gz
+```
+siga assemble READS.asqg.gz
+```
 
 Assemble takes the output of the overlap step and constructs contigs. The output is in contigs.fa by default. Options
 exist for cleaning the graph before assembly which will substantially increase assembly continuity. 
@@ -106,7 +122,9 @@ See the --cut-terminal, --bubble, --resolve-small options.
 Detail usage information for each command is printed from the --help option. For example, this command will print the 
 options for the index subprogram:
 
-`siga index --help`
+```
+siga index --help
+```
 
 Citation
 ========
@@ -117,6 +135,10 @@ Related Publications
 FAQ
 ====
 
+1. **Where can I get further help or advice?**
+
+   See [Support](#support).
+
 Support
 =======
 
@@ -125,6 +147,6 @@ Contact [siga@ict.ac.cn](mailto:siga@ict.ac.cn)
 Authors
 =======
 
-Written by Chauncey Yu.<br>
-The algorithms were developed by Chauncey Yu, Yu Lin, Guozheng Wei, Bing Wang,
-Yanbo Li and Dongbo Bu.
+Written by **[Chauncey Yu](http://bioinfo.ict.ac.cn/~yuchungong)**.<br>
+The algorithms were developed by **[Chauncey Yu](http://bioinfo.ict.ac.cn/~yuchungong)**, **[Yu Lin](https://cecs.anu.edu.au/people/yu-lin)**, Guozheng Wei, Bing Wang,
+Yanbo Li and **[Dongbo Bu](http://bioinfo.ict.ac.cn/~dbu)**.
