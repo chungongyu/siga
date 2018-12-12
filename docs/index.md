@@ -8,6 +8,7 @@ Home
 
 * [Overview](#overview)
 * [Quick Start](#quick-start)
+	* [Dependencies](#dependencies)
 	* [Compiling SIGA](#compiling-siga)
 	* [Installing SIGA](#installing-siga)
 	* [Running SIGA](#running-siga)
@@ -26,13 +27,17 @@ SIGA is an open-source _de novo_ assembly toolkit containing various assembly pi
 Quick Start
 ===========
 
-### Compiling SIGA
+### Dependencies
 
-SIGA dependencies:
+* c++ compiler that supports [OpenMP](http://www.openmp.org) such as [gcc](http://gcc.gnu.org).
+* [autoconf](http://www.gnu.org/software/autoconf)
+* [automake](http://www.gnu.org/software/automake)
 * [boost](https://www.boost.org/)
 * [log4cxx](https://logging.apache.org/log4cxx)
 * [rapidjson](https://github.com/Tencent/rapidjson)
 * [gperftools](https://github.com/gperftools/gperftools) (optional but suggested)
+
+### Compiling SIGA
 
 If you cloned the repository from github, run `autogen.sh` from the root directory 
 to generate the configure file:
