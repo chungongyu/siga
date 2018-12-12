@@ -159,5 +159,5 @@ Authors
 =======
 
 Written by **[Chungong Yu](http://bioinfo.ict.ac.cn/~yuchungong)**.<br>
-The algorithms were developed by **[Chungong Yu](http://bioinfo.ict.ac.cn/~yuchungong)**, **[Yu Lin](https://cecs.anu.edu.au/people/yu-lin)**, Guozheng Wei, Bing Wang,
+The algorithms were developed by **[Chungong Yu](http://bioinfo.ict.ac.cn/~yuchungong)**, **[Yu Lin](https://cecs.anu.edu.au/people/yu-lin)**, **[Guozheng Wei](http://bioinfo.ict.ac.cn/~weiguozheng)**, **[Bing Wang]**(https://jp.linkedin.com/in/bing-wang-155128151),
 Yanbo Li and **[Dongbo Bu](http://bioinfo.ict.ac.cn/~dbu)**.
