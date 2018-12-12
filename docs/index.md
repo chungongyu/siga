@@ -11,6 +11,7 @@ Home
 	* [Compiling SIGA](#compiling-siga)
 	* [Installing SIGA](#installing-siga)
 	* [Running SIGA](#running-siga)
+* [Benchmarks](#benchmarks)
 * [Citation](#citation)
 * [Related Publications](#related-publications)
 * [FAQ](#faq)
@@ -124,6 +125,11 @@ options for the index subprogram:
 ```
 siga index --help
 ```
+
+Benchmarks
+========
+
+Comming soon...
 
 Citation
 ========
