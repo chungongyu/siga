@@ -41,7 +41,7 @@ to generate the configure file:
 ```
 
 If the dependencies have been installed in standard locations (like `/usr/local`) you
-can run `configure` without any parameters then run make:
+can run `configure` without any parameters then run `make`:
 
 ```
 ./configure
