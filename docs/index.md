@@ -68,8 +68,7 @@ flag is used.
 
 To get a listing of all subprograms, run `siga --help`.
 
-Examples of an SIGA assembly are provided in the examples directory. It is suggested to look at
-these examples to become familiar with the flow of data through the program.
+Examples of an SIGA assembly are provided in the [examples](https://github.com/chungongyu/siga/tree/master/examples) directory. It is suggested to look at these examples to become familiar with the flow of data through the program.
 
 The major subprograms are:
 
@@ -137,7 +136,7 @@ FAQ
 
 1. **Where can I get further help or advice?**
 
-   See [Support](#support).
+   See [Support](#support) or the [siga wiki](https://github.com/chungongyu/siga/wiki).
 
 Support
 =======
