@@ -19,6 +19,7 @@ AX_CXX_COMPILE_STDCXX_11([noext],[mandatory])
 
 PKG_CHECK_MODULES([RAPIDJSON], [RapidJSON >= 1.0.0])
 PKG_CHECK_MODULES([LOG4CXX], [liblog4cxx >= 0.10.0])
+AC_ARG_WITH([tcmalloc], AS_HELP_STRING([--with-tcmalloc], [Build with the `TCMalloc`]))
 AS_IF([test "x$with_tcmalloc" = "xyes"], [
     PKG_CHECK_MODULES([TCMALLOC], [libtcmalloc >= 2.1])
 ])
