@@ -128,6 +128,10 @@ siga index --help
 Citation
 ========
 
+## [SIGA](https://github.com/chungongyu/siga)
+
+Chungong Yu, Yu Lin, Guozheng Wei, Bing Wang, Yanbo Li and Dongbo Bu. **[SIGA]** A Sensitive and Intelligent Genome Assembler.
+
 Related Publications
 ====================
 
