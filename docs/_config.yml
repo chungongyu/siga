@@ -17,6 +17,7 @@ title: SIGA
 description: An open-source de novo assembly toolkit containing various assembly pipelines.
 baseurl: "/siga" # the subpath of your site, e.g. /blog
 show_downloads: true
+google_analytics: "UA-131018484-1"
 #github: [metadata]
 github:
   repository_url: https://github.com/chungongyu/siga
