@@ -19,7 +19,7 @@ baseurl: "/siga" # the subpath of your site, e.g. /blog
 url: "http://bioinfo.ict.ac.cn"
 show_downloads: true
 google_analytics: "UA-131018484-1"
-favicon: "favicon.ico"
+favicon: "favicon.png"
 #github: [metadata]
 github:
   repository_url: https://github.com/chungongyu/siga
