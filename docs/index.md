@@ -165,6 +165,7 @@ Support
 =======
 
 [Create a new issue](https://github.com/chungongyu/siga/issues) on GitHub.
+
 Contact [siga@ict.ac.cn](mailto:siga@ict.ac.cn)
 
 Authors
