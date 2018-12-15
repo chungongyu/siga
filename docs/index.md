@@ -1,4 +1,4 @@
-Home
+Contents
 ====
 
 [![Build Status](https://travis-ci.org/chungongyu/siga.svg?branch=master)](https://travis-ci.org/chungongyu/siga)
