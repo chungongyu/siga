@@ -14,7 +14,7 @@ Contents
 	* [Running SIGA](#running-siga)
 * [Benchmarks](#benchmarks)
 * [Citation](#citation)
-* [Related Publications](#related-publications)
+* [Publications](#publications)
 * [FAQ](#faq)
 * [Support](#support)
 * [Authors](#authors)
@@ -36,6 +36,8 @@ Quick Start
 * [log4cxx](https://logging.apache.org/log4cxx)
 * [rapidjson](https://github.com/Tencent/rapidjson)
 * [gperftools](https://github.com/gperftools/gperftools) (optional but suggested)
+
+Dependencies may be installed using the package manager [Homebrew](https://homebrew.sh) on macOS and [Linxubrew](http://linuxbrew.sh) on Linux and Windows, using [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/).
 
 ### Compiling SIGA
 
@@ -143,8 +145,8 @@ Citation
 
 Chungong Yu, Yu Lin, Guozheng Wei, Bing Wang, Yanbo Li and Dongbo Bu. **SIGA** : A Sensitive and Intelligent *de* novo Genome Assembler.
 
-Related Publications
-====================
+Publications
+============
 
 None yet!   ^_~
 
@@ -162,7 +164,8 @@ FAQ
 Support
 =======
 
-Contact [siga@ict.ac.cn](mailto:siga@ict.ac.cn)
+* [Create a new issue](https://github.com/bcgsc/abyss/issues) on GitHub.
+* Contact [siga@ict.ac.cn](mailto:siga@ict.ac.cn)
 
 Authors
 =======
