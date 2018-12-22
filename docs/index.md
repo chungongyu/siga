@@ -143,7 +143,7 @@ Citation
 
 ## [SIGA](https://github.com/chungongyu/siga)
 
-Chungong Yu, Yu Lin, Guozheng Wei, Bing Wang, Yanbo Li and Dongbo Bu. **SIGA** : A Sensitive and Intelligent *de* novo Genome Assembler.
+Chungong Yu, Yu Lin, Guozheng Wei, Bing Wang, Yanbo Li and Dongbo Bu. **SIGA** : An open-source Sensitive and Intelligent *de* novo Genome Assembler.
 
 Publications
 ============
