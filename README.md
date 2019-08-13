@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/chungongyu/siga.svg?branch=master)](https://travis-ci.org/chungongyu/siga)
 ![GitHub release](https://img.shields.io/github/release/chungongyu/siga.svg)
+[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg)](https://conventionalcommits.org)
 [![GitHub license](https://img.shields.io/github/license/chungongyu/siga.svg)](https://github.com/chungongyu/siga)
 [![GitHub issues](https://img.shields.io/github/issues/chungongyu/siga.svg)](https://github.com/chungongyu/siga/issues)
 
