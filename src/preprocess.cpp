@@ -10,6 +10,7 @@
 #include <fstream>
 #include <memory>
 #include <iostream>
+#include <set>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
