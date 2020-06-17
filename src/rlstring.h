@@ -62,6 +62,6 @@ public:
     uint8_t data;
 };
 
-typedef std::vector< RLUnit > RLString;
+typedef std::vector<RLUnit> RLString;
 
 #endif // rlstring_h_

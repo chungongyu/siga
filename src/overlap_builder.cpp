@@ -41,7 +41,7 @@ private:
     friend std::ostream& operator<<(std::ostream& stream, const AlignFlags& af);
     friend std::istream& operator>>(std::istream& stream, AlignFlags& af);
 
-    std::bitset< 3 > _data;
+    std::bitset<3> _data;
 };
 
 static const AlignFlags kSuffixPrefixAF(false, false, false);
@@ -348,7 +348,7 @@ public:
     }
 
     bool convert(const std::string& hits, std::ostream& asqg) const {
-        std::shared_ptr< std::streambuf > buf(ASQG::ifstreambuf(hits));
+        std::shared_ptr<std::streambuf> buf(ASQG::ifstreambuf(hits));
         if (!buf) {
             LOG4CXX_ERROR(logger, boost::format("failed to read hits %s") % hits);
             return false;
@@ -383,7 +383,7 @@ private:
 };
 
 bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream& output, size_t threads, size_t batch, size_t* processed) const {
-    std::vector< std::string > hits;
+    std::vector<std::string> hits;
 
     // Build and write the ASQG header
     {
@@ -399,7 +399,7 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
 
     if (threads <= 1) { // single thread
         std::string hit = _prefix + HITS_EXT + GZIP_EXT;
-        std::shared_ptr< std::streambuf > buf(ASQG::ofstreambuf(hit));
+        std::shared_ptr<std::streambuf> buf(ASQG::ofstreambuf(hit));
         if (!buf) {
             LOG4CXX_ERROR(logger, boost::format("failed to create hits %s") % hit);
             return false;
@@ -411,7 +411,7 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
         SequenceProcessFramework::SerialWorker<
             SequenceProcessFramework::SequenceWorkItem, 
             OverlapResult, 
-            SequenceProcessFramework::SequenceWorkItemGenerator< SequenceProcessFramework::SequenceWorkItem >, 
+            SequenceProcessFramework::SequenceWorkItemGenerator<SequenceProcessFramework::SequenceWorkItem>, 
             OverlapProcess, 
             OverlapPostProcess
             > worker;
@@ -423,17 +423,17 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
         hits.push_back(hit);
     } else { // multi thread
 #ifdef _OPENMP
-        std::vector< std::shared_ptr< std::streambuf > > buflist(threads);
-        std::vector< std::shared_ptr< std::ostream > > streamlist(threads);
-        std::vector< OverlapProcess* > proclist(threads);
+        std::vector<std::shared_ptr<std::streambuf> > buflist(threads);
+        std::vector<std::shared_ptr<std::ostream> > streamlist(threads);
+        std::vector<OverlapProcess *> proclist(threads);
         for (size_t i = 0; i < threads; ++i) {
             std::string hit = boost::str(boost::format("%s-thread%d%s%s") % _prefix % i % HITS_EXT % GZIP_EXT);
-            std::shared_ptr< std::streambuf > buf(ASQG::ofstreambuf(hit));
+            std::shared_ptr<std::streambuf> buf(ASQG::ofstreambuf(hit));
             if (!buf) {
                 LOG4CXX_ERROR(logger, boost::format("failed to create hits %s") % hit);
                 return false;
             }
-            std::shared_ptr< std::ostream > stream(new std::ostream(buf.get()));
+            std::shared_ptr<std::ostream> stream(new std::ostream(buf.get()));
             proclist[i] = new OverlapProcess(this, minOverlap, *stream);
             streamlist[i] = stream;
             buflist[i] = buf;
@@ -444,7 +444,7 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
         SequenceProcessFramework::ParallelWorker<
             SequenceProcessFramework::SequenceWorkItem, 
             OverlapResult, 
-            SequenceProcessFramework::SequenceWorkItemGenerator< SequenceProcessFramework::SequenceWorkItem >, 
+            SequenceProcessFramework::SequenceWorkItemGenerator<SequenceProcessFramework::SequenceWorkItem>, 
             OverlapProcess, 
             OverlapPostProcess
             > worker;
@@ -463,7 +463,7 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
 
     // Convert hits to ASQG
     {
-        std::shared_ptr< SuffixArray > sa(SuffixArray::load(_prefix + SAI_EXT)), rsa(SuffixArray::load(_prefix + RSAI_EXT));
+        std::shared_ptr<SuffixArray> sa(SuffixArray::load(_prefix + SAI_EXT)), rsa(SuffixArray::load(_prefix + RSAI_EXT));
         if (!sa || !rsa) {
             LOG4CXX_ERROR(logger, boost::format("failed to load suffix array index %s") % _prefix);
             return false;
@@ -485,14 +485,14 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
 bool OverlapBuilder::build(const std::string& input, size_t minOverlap, const std::string& output, size_t threads, size_t batch, size_t* processed) const {
     // DNASeqReader
     std::ifstream reads(input.c_str());
-    std::shared_ptr< DNASeqReader > reader(DNASeqReaderFactory::create(reads, &input));
+    std::shared_ptr<DNASeqReader> reader(DNASeqReaderFactory::create(reads, &input));
     if (!reader) {
         LOG4CXX_ERROR(logger, boost::format("Failed to create DNASeqReader %s") % input);
         return false;
     }
 
     // ASQG
-    std::shared_ptr< std::streambuf > buf(ASQG::ofstreambuf(output));
+    std::shared_ptr<std::streambuf> buf(ASQG::ofstreambuf(output));
     if (!buf) {
         LOG4CXX_ERROR(logger, boost::format("Failed to create ASQG %s") % output);
         return false;
@@ -543,7 +543,7 @@ public:
     }
 
     bool convert(const std::string& hits, std::ostream& fasta, std::ostream& duplicates) const {
-        std::shared_ptr< std::streambuf > buf(ASQG::ifstreambuf(hits));
+        std::shared_ptr<std::streambuf> buf(ASQG::ifstreambuf(hits));
         if (!buf) {
             LOG4CXX_ERROR(logger, boost::format("failed to read hits %s") % hits);
             return false;
@@ -600,11 +600,11 @@ private:
 };
 
 bool OverlapBuilder::rmdup(DNASeqReader& reader, std::ostream& output, std::ostream& duplicates, size_t threads, size_t* processed) const {
-    std::vector< std::string > hits;
+    std::vector<std::string> hits;
 
     if (threads <= 1) { // single thread
         std::string hit = _prefix + RMDUP_EXT + HITS_EXT + GZIP_EXT;
-        std::shared_ptr< std::streambuf > buf(ASQG::ofstreambuf(hit));
+        std::shared_ptr<std::streambuf> buf(ASQG::ofstreambuf(hit));
         if (!buf) {
             LOG4CXX_ERROR(logger, boost::format("failed to create hits %s") % hit);
             return false;
@@ -616,7 +616,7 @@ bool OverlapBuilder::rmdup(DNASeqReader& reader, std::ostream& output, std::ostr
         SequenceProcessFramework::SerialWorker<
             SequenceProcessFramework::SequenceWorkItem, 
             OverlapResult, 
-            SequenceProcessFramework::SequenceWorkItemGenerator< SequenceProcessFramework::SequenceWorkItem >, 
+            SequenceProcessFramework::SequenceWorkItemGenerator<SequenceProcessFramework::SequenceWorkItem>, 
             DuplicateRemoveProcess, 
             DuplicateRemovePostProcess
             > worker;
@@ -632,7 +632,7 @@ bool OverlapBuilder::rmdup(DNASeqReader& reader, std::ostream& output, std::ostr
 
     // Convert hits to fasta
     {
-        std::shared_ptr< SuffixArray > sa(SuffixArray::load(_prefix + SAI_EXT)), rsa(SuffixArray::load(_prefix + RSAI_EXT));
+        std::shared_ptr<SuffixArray> sa(SuffixArray::load(_prefix + SAI_EXT)), rsa(SuffixArray::load(_prefix + RSAI_EXT));
         if (!sa || !rsa) {
             LOG4CXX_ERROR(logger, boost::format("failed to load suffix array index %s") % _prefix);
             return false;
@@ -654,7 +654,7 @@ bool OverlapBuilder::rmdup(DNASeqReader& reader, std::ostream& output, std::ostr
 bool OverlapBuilder::rmdup(const std::string& input, const std::string& output, const std::string& duplicates, size_t threads, size_t* processed) const {
     // DNASeqReader
     std::ifstream reads(input);
-    std::shared_ptr< DNASeqReader > reader(DNASeqReaderFactory::create(reads));
+    std::shared_ptr<DNASeqReader> reader(DNASeqReaderFactory::create(reads));
     if (!reader) {
         LOG4CXX_ERROR(logger, boost::format("Failed to create DNASeqReader %s") % input);
         return false;
@@ -692,7 +692,7 @@ public:
 
         // We store the overlap blocks in groups of blocks that have the same right-extension.
         // When a branch is found, the groups are split based on the extension
-        typedef std::list< OverlapBlockList > BlockGroups;
+        typedef std::list<OverlapBlockList> BlockGroups;
 
         BlockGroups groups = {*inblocks};
         while (!groups.empty()) {
@@ -748,11 +748,11 @@ public:
                     }
 
                     // If only one of the DNA characters has a non-zero count
-                    if (std::count_if(&exts[0], &exts[0] + exts.size(), std::bind2nd(std::greater< uint64_t >(), 0)) == 1) {
+                    if (std::count_if(&exts[0], &exts[0] + exts.size(), std::bind2nd(std::greater<uint64_t>(), 0)) == 1) {
                         // Update all the blocks using the unique extension character
                         // This character is in the canonical representation wrt to the query
                         char c = DNAAlphabet::tochar(
-                                std::find_if(&exts[0], &exts[0] + exts.size(), std::bind2nd(std::greater< uint64_t >(), 0)) - &exts[0]
+                                std::find_if(&exts[0], &exts[0] + exts.size(), std::bind2nd(std::greater<uint64_t>(), 0)) - &exts[0]
                                 );
                         updateR(c, &blocklist);
 
@@ -932,7 +932,7 @@ private:
         IntervalPair ranges;
     };
 
-    typedef std::list< TracingInterval > TracingIntervalList;
+    typedef std::list<TracingInterval> TracingIntervalList;
 
     void resolve(const OverlapBlock& x, const OverlapBlock& y, OverlapBlockList* resolved) {
         const OverlapBlock* higher = &x;
@@ -994,7 +994,7 @@ private:
                 // A better algorithm (that doesn't required so many interval calculations) probably exists
                 // but this case is very rare so simplicity wins here.
                 //
-                std::map< size_t, size_t > usedmappig;
+                std::map<size_t, size_t> usedmappig;
 
                 // Remap every reverse position to a forward position
                 TracingIntervalList tracinglist;

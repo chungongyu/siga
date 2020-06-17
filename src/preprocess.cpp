@@ -31,37 +31,37 @@ public:
 
         // parameters
         LOG4CXX_INFO(logger, "Parameters:");
-        LOG4CXX_INFO(logger, boost::format("PE Mode: %d") % options.get< int >("pe-mode", 0));
+        LOG4CXX_INFO(logger, boost::format("PE Mode: %d") % options.get<int>("pe-mode", 0));
         if (options.find("pe-orientation") != options.not_found()) {
-            LOG4CXX_INFO(logger, boost::format("PE Orientation: %d") % options.get< std::string >("pe-orientation", "fr"));
+            LOG4CXX_INFO(logger, boost::format("PE Orientation: %d") % options.get<std::string>("pe-orientation", "fr"));
         }
         if (options.find("min-length") != options.not_found()) {
-            LOG4CXX_INFO(logger, boost::format("Min length: %d") % options.get< int >("min-length"));
+            LOG4CXX_INFO(logger, boost::format("Min length: %d") % options.get<int>("min-length"));
         }
         if (options.find("hard-clip") != options.not_found()) {
-            LOG4CXX_INFO(logger, boost::format("hard clip: %d") % options.get< int >("hard-clip"));
+            LOG4CXX_INFO(logger, boost::format("hard clip: %d") % options.get<int>("hard-clip"));
         }
         if (options.find("sample-rate") != options.not_found()) {
-            LOG4CXX_INFO(logger, boost::format("sample rate: %f") % options.get< float >("sample-rate"));
+            LOG4CXX_INFO(logger, boost::format("sample rate: %f") % options.get<float>("sample-rate"));
         }
         if (options.find("quality-trim") != options.not_found()) {
-            LOG4CXX_INFO(logger, boost::format("Quality Trim: %d") % options.get< int >("quality-trim"));
+            LOG4CXX_INFO(logger, boost::format("Quality Trim: %d") % options.get<int>("quality-trim"));
         }
         if (options.find("quality-filter") != options.not_found()) {
-            LOG4CXX_INFO(logger, boost::format("Quality Filter: %d") % options.get< int >("quality-filter"));
+            LOG4CXX_INFO(logger, boost::format("Quality Filter: %d") % options.get<int>("quality-filter"));
         }
 
         srand(time(NULL));
 
         // input
-        std::vector< std::string > filelist;
+        std::vector<std::string> filelist;
         std::copy(arguments.begin(), arguments.end(), std::back_inserter(filelist));
         LOG4CXX_INFO(logger, boost::format("input: %s") % boost::algorithm::join(filelist, ":"));
 
         // output
         std::ostream* out = &std::cout;
         if (options.find("out") != options.not_found()) {
-            std::string file = options.get< std::string >("out");
+            std::string file = options.get<std::string>("out");
             out = new std::ofstream(file.c_str());
             LOG4CXX_INFO(logger, boost::format("output: %s") % file);
         }
@@ -110,12 +110,12 @@ private:
         if (options.find("sample-rate") == options.not_found()) {
             return true;
         }
-        float sampleRate = options.get< float >("sample-rate");
+        float sampleRate = options.get<float>("sample-rate");
         return rand() / (RAND_MAX + 1.0f) < sampleRate;
     }
 
-    int processReads(const Properties& options, const std::vector< std::string >& inputs, std::ostream& output, Statistics& stats) {
-        int peMode = options.get< int >("pe-mode", 0);
+    int processReads(const Properties& options, const std::vector<std::string>& inputs, std::ostream& output, Statistics& stats) {
+        int peMode = options.get<int>("pe-mode", 0);
 
         if (peMode == 0) {
             return processSingleEnds(options, inputs, output, stats);
@@ -129,7 +129,7 @@ private:
         return -1;
     }
 
-    int processSingleEnds(const Properties& options, const std::vector< std::string >& inputs, std::ostream& output, Statistics& stats) {
+    int processSingleEnds(const Properties& options, const std::vector<std::string>& inputs, std::ostream& output, Statistics& stats) {
         for (const auto& file : inputs) {
             LOG4CXX_INFO(logger, boost::format("Processing %s") % file);
 
@@ -149,7 +149,7 @@ private:
     }
 
     int processSingleEnds(const Properties& options, std::istream& input, std::ostream& output, Statistics& stats) {
-        std::shared_ptr< DNASeqReader > reader(DNASeqReaderFactory::create(input));
+        std::shared_ptr<DNASeqReader> reader(DNASeqReaderFactory::create(input));
         return processSingleEnds(options, reader.get(), output, stats);
     }
 
@@ -169,7 +169,7 @@ private:
         return -1;
     }
 
-    int processPairEnds1(const Properties& options, const std::vector< std::string >& inputs, std::ostream& output, Statistics& stats) {
+    int processPairEnds1(const Properties& options, const std::vector<std::string>& inputs, std::ostream& output, Statistics& stats) {
         if (inputs.size() % 2 != 0) {
             LOG4CXX_ERROR(logger, boost::format("An even number of files must be given for pe-mode 1"));
             return -1;
@@ -182,8 +182,8 @@ private:
             LOG4CXX_INFO(logger, boost::format("Processing %s,%s") % file1 % file2);
 
             std::ifstream stream1(file1.c_str()), stream2(file2.c_str());
-            std::shared_ptr< DNASeqReader > reader1(DNASeqReaderFactory::create(stream1));
-            std::shared_ptr< DNASeqReader > reader2(DNASeqReaderFactory::create(stream2));
+            std::shared_ptr<DNASeqReader> reader1(DNASeqReaderFactory::create(stream1));
+            std::shared_ptr<DNASeqReader> reader2(DNASeqReaderFactory::create(stream2));
             int r = processPairEnds(options, reader1.get(), reader2.get(), output, stats);
             if (r != 0) {
                 LOG4CXX_ERROR(logger, boost::format("Failed to process pair ends: %s,%s") % file1 % file2);
@@ -194,7 +194,7 @@ private:
         return 0;
     }
 
-    int processPairEnds2(const Properties& options, const std::vector< std::string >& inputs, std::ostream& output, Statistics& stats) {
+    int processPairEnds2(const Properties& options, const std::vector<std::string>& inputs, std::ostream& output, Statistics& stats) {
         for (const auto& file : inputs) {
             LOG4CXX_INFO(logger, boost::format("Processing %s") % file);
 
@@ -214,8 +214,8 @@ private:
     }
 
     int processPairEnds(const Properties& options, std::istream& input1, std::istream& input2, std::ostream& output, Statistics& stats) {
-        std::shared_ptr< DNASeqReader > reader1(DNASeqReaderFactory::create(input1));
-        std::shared_ptr< DNASeqReader > reader2(DNASeqReaderFactory::create(input2));
+        std::shared_ptr<DNASeqReader> reader1(DNASeqReaderFactory::create(input1));
+        std::shared_ptr<DNASeqReader> reader2(DNASeqReaderFactory::create(input2));
         return processPairEnds(options, reader1.get(), reader2.get(), output, stats);
     }
 
@@ -297,7 +297,7 @@ private:
 
         // Hard clip
         {
-            int maxLength = options.get< int >("hard-clip", 0);
+            int maxLength = options.get<int>("hard-clip", 0);
             if (maxLength > 0) {
                 hardClip(maxLength, record);
             }
@@ -305,7 +305,7 @@ private:
 
         // Quality trim
         {
-            int qualityTrim = options.get< int >("quality-trim", 0);
+            int qualityTrim = options.get<int>("quality-trim", 0);
             if (qualityTrim > 0 && !record.quality.empty()) {
                 softClip(qualityTrim, record);
             }
@@ -313,7 +313,7 @@ private:
 
         // Quality filter
         {
-            int qualityFilter = options.get< int >("quality-filter", -1);
+            int qualityFilter = options.get<int>("quality-filter", -1);
             if (qualityFilter >= 0 && !record.quality.empty()) {
                 size_t numLowQuality = countLowQuality(record);
                 if (numLowQuality >= qualityFilter) {
@@ -332,7 +332,7 @@ private:
         }
 
         // Min length
-        if (record.seq.length() < options.get< size_t >("min-length", 40)) {
+        if (record.seq.length() < options.get<size_t>("min-length", 40)) {
             return false;
         }
         return true;
@@ -396,9 +396,9 @@ private:
     }
 
     int checkOptions(const Properties& options, const Arguments& arguments) const {
-        std::set< std::string > orientations = {"fr", "ff", "rf"};
+        std::set<std::string> orientations = {"fr", "ff", "rf"};
         if (options.find("help") != options.not_found() 
-                || orientations.find(options.get< std::string >("pe-orientation", "fr")) == orientations.end() 
+                || orientations.find(options.get<std::string>("pe-orientation", "fr")) == orientations.end() 
                 || arguments.empty()) {
             return printHelps();
         }

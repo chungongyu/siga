@@ -23,7 +23,7 @@ class EdgeColorVisitor : public BigraphVisitor {
 public:
     EdgeColorVisitor(GraphColor c, bool twin=false) : _color(c), _twin(twin) {
     }
-    EdgeColorVisitor(GraphColor c, std::function< bool(const Vertex*, const Edge* edge) > filter, bool twin=false) : _color(c), _filter(filter), _twin(twin) {
+    EdgeColorVisitor(GraphColor c, std::function<bool(const Vertex*, const Edge* edge)> filter, bool twin=false) : _color(c), _filter(filter), _twin(twin) {
     }
 
     void previsit(Bigraph* graph) {
@@ -47,7 +47,7 @@ public:
 private:
     GraphColor _color;
     bool _twin;
-    std::function< bool(const Vertex*, const Edge*) > _filter;
+    std::function<bool(const Vertex*, const Edge*)> _filter;
 };
 
 //
@@ -392,7 +392,7 @@ void InsertSizeEstimateVisitor::previsit(Bigraph* graph) {
 bool InsertSizeEstimateVisitor::visit(Bigraph* graph, Vertex* vertex) {
     if (vertex->color() == GC_GREEN) {
 
-        std::unordered_map< Vertex::Id, int > distancelist = {{vertex->id(), 0}};
+        std::unordered_map<Vertex::Id, int> distancelist = {{vertex->id(), 0}};
         vertex->color(GC_RED);
 
         ////////////////////////////////////////
@@ -488,13 +488,13 @@ bool InsertSizeEstimateVisitor::visit(Bigraph* graph, Vertex* vertex) {
 void InsertSizeEstimateVisitor::postvisit(Bigraph* graph) {
     LOG4CXX_INFO(logger, boost::format("InsertSizeEstimateVisitor::samples=%d") % _samples.size());
 
-    typedef boost::accumulators::accumulator_set< double, boost::accumulators::stats< boost::accumulators::tag::count, boost::accumulators::tag::mean, boost::accumulators::tag::moment< 2 > > > Accumulator;
+    typedef boost::accumulators::accumulator_set<double, boost::accumulators::stats<boost::accumulators::tag::count, boost::accumulators::tag::mean, boost::accumulators::tag::moment<2> > > Accumulator;
     Accumulator acc;
     std::for_each(_samples.begin(), _samples.end(), std::ref(acc));
     if (boost::accumulators::count(acc) > 0) {
         _average = (size_t)boost::accumulators::mean(acc);
         _delta = std::sqrt(
-                boost::accumulators::moment< 2 >(acc) - std::pow(boost::accumulators::mean(acc), 2)
+                boost::accumulators::moment<2>(acc) - std::pow(boost::accumulators::mean(acc), 2)
                 );
 
         LOG4CXX_INFO(logger, boost::format("InsertSizeEstimateVisitor::average=%d, delta=%d") % _average % _delta);
@@ -549,9 +549,9 @@ bool PairedReadVisitor::visit(Bigraph* graph, Vertex* vertex1) {
     return false;
 }
 
-typedef std::unordered_map< Vertex::Id, BigraphWalk::DistanceAttr > PairedDistanceMap;
-typedef std::unordered_map< Vertex::Id, PairedDistanceMap > PairedLinkList;
-typedef std::unordered_map< Vertex::Id, BigraphWalk::NodePtr > VertexContainmentMap;
+typedef std::unordered_map<Vertex::Id, BigraphWalk::DistanceAttr> PairedDistanceMap;
+typedef std::unordered_map<Vertex::Id, PairedDistanceMap> PairedLinkList;
+typedef std::unordered_map<Vertex::Id, BigraphWalk::NodePtr> VertexContainmentMap;
 
 class PairedVertexProcess {
 public:
@@ -566,7 +566,7 @@ public:
         // BFS the adjacents of vertex1
         BigraphWalk::NodePtrList adjacents;
         if (vertex1->seq().length() > _visitor->_maxDistance) {
-            std::function< bool(const Edge* edge) > filter = [](const Edge* edge) -> bool {
+            std::function<bool(const Edge* edge)> filter = [](const Edge* edge) -> bool {
                     if (edge->dir() == Edge::ED_SENSE || edge->comp() == Edge::EC_REVERSE) {
                         const Edge* e = NULL;
                         if (edge->dir() == Edge::ED_SENSE) {
@@ -911,14 +911,14 @@ private:
     GraphColor _white;
     GraphColor _black;
 
-    std::unordered_map< Vertex::Id, BigraphWalk::NodePtrList* > _table;
+    std::unordered_map<Vertex::Id, BigraphWalk::NodePtrList *> _table;
 };
 
 void PairedReadVisitor::postvisit(Bigraph* graph) {
     PairedLinkList links;
 
-    SequenceProcessFramework::VectorWorkItemGenerator< const Vertex* > generator(_vertices);
-    std::vector< PairedVertexProcess* > proclist(_threads);
+    SequenceProcessFramework::VectorWorkItemGenerator<const Vertex *> generator(_vertices);
+    std::vector<PairedVertexProcess *> proclist(_threads);
     PairedVertexPostProcess postproc(&links);
     for (size_t i = 0; i < proclist.size(); ++i) {
         proclist[i] = new PairedVertexProcess(graph, this);
@@ -928,7 +928,7 @@ void PairedReadVisitor::postvisit(Bigraph* graph) {
         SequenceProcessFramework::ParallelWorker<
             const Vertex*, 
             BigraphWalk::NodePtrList, 
-            SequenceProcessFramework::VectorWorkItemGenerator< const Vertex* >, 
+            SequenceProcessFramework::VectorWorkItemGenerator<const Vertex *>, 
             PairedVertexProcess, 
             PairedVertexPostProcess
             > worker;
@@ -938,7 +938,7 @@ void PairedReadVisitor::postvisit(Bigraph* graph) {
         SequenceProcessFramework::SerialWorker<
             const Vertex*, 
             BigraphWalk::NodePtrList, 
-            SequenceProcessFramework::VectorWorkItemGenerator< const Vertex* >, 
+            SequenceProcessFramework::VectorWorkItemGenerator<const Vertex *>, 
             PairedVertexProcess, 
             PairedVertexPostProcess
             > worker;
@@ -968,20 +968,20 @@ void PairedReadVisitor::postvisit(Bigraph* graph) {
     // create true positive edges.
     PairedEdgeCreator creator(graph);
     for (auto i = links.begin(); i != links.end(); ++i) {
-        std::vector< std::pair< Vertex::Id, BigraphWalk::DistanceAttr > > nodelist;
+        std::vector<std::pair<Vertex::Id, BigraphWalk::DistanceAttr> > nodelist;
 
         // sorted by distance
         std::copy(i->second.begin(), i->second.end(), std::back_inserter(nodelist));
-        std::sort(nodelist.begin(), nodelist.end(), [](const std::pair< Vertex::Id, BigraphWalk::DistanceAttr >& x, const std::pair< Vertex::Id, BigraphWalk::DistanceAttr >& y) -> bool {
+        std::sort(nodelist.begin(), nodelist.end(), [](const std::pair<Vertex::Id, BigraphWalk::DistanceAttr>& x, const std::pair<Vertex::Id, BigraphWalk::DistanceAttr>& y) -> bool {
                     return x.second.distance < y.second.distance;
                 });
 
         for (size_t j = 0; j < nodelist.size(); ++j) {
-            const std::pair< Vertex::Id, BigraphWalk::DistanceAttr >& xj = nodelist[j];
+            const std::pair<Vertex::Id, BigraphWalk::DistanceAttr>& xj = nodelist[j];
 
             bool hasLink = false;
             for (size_t k = 0; k < j; ++k) {
-                const std::pair< Vertex::Id, BigraphWalk::DistanceAttr >& xk = nodelist[k];
+                const std::pair<Vertex::Id, BigraphWalk::DistanceAttr>& xk = nodelist[k];
                 //fixme: check correctness
                 if (xk.second.dir == xj.second.dir && BigraphWalk::hasLink(graph->getVertex(xk.first), xk.second, graph->getVertex(xj.first), xj.second)) {
                     hasLink = true;

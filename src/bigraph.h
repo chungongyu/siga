@@ -102,7 +102,7 @@ private:
     GraphColor _color;
 };
 
-typedef std::vector< Edge* > EdgePtrList;
+typedef std::vector<Edge *> EdgePtrList;
 
 //
 // Vertex
@@ -179,7 +179,7 @@ private:
     EdgePtrList _edges;
 };
 
-typedef std::unordered_map< Vertex::Id, Vertex* > VertexTable;
+typedef std::unordered_map<Vertex::Id, Vertex *> VertexTable;
 
 //
 // Bigraph

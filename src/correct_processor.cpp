@@ -66,10 +66,10 @@ protected:
 class KmerCorrector : public AbstractCorrector {
 public:
     KmerCorrector(const FMIndex& index, const CorrectProcessor::Options& options) : AbstractCorrector(index, options) {
-        _kmerSize = options.get< size_t >("kmer-size", kCorrectKmerSize);
-        _maxAttempts = options.get< size_t >("kmer-rounds", kCorrectKmerRounds);
-        _countOffset = options.get< size_t >("kmer-count-offset", kCorrectKmerCountOffset);
-        CorrectThreshold::get()->minSupport(options.get< int >("kmer-threshold", kCorrectKmerThreshold));
+        _kmerSize = options.get<size_t>("kmer-size", kCorrectKmerSize);
+        _maxAttempts = options.get<size_t>("kmer-rounds", kCorrectKmerRounds);
+        _countOffset = options.get<size_t>("kmer-count-offset", kCorrectKmerCountOffset);
+        CorrectThreshold::get()->minSupport(options.get<int>("kmer-threshold", kCorrectKmerThreshold));
     }
 
     CorrectResult process(const SequenceProcessFramework::SequenceWorkItem& item) const {
@@ -87,16 +87,16 @@ public:
         size_t n = seq.length();
         // For each kmer, calculate the minimum phred score seen in the bases
         // of the kmer
-        std::vector< int > minPhredVector(n - k + 1);
+        std::vector<int> minPhredVector(n - k + 1);
         for (size_t i = k; i <= n; ++i) {
-            int ps = std::numeric_limits< int >::max();
+            int ps = std::numeric_limits<int>::max();
             for (size_t j = i - k; j < i; ++j) {
                 ps = std::min(ps, item.read.score(j));
             }
             minPhredVector[i - k] = ps;
         }
 
-        std::unordered_map< std::string, size_t > kmerCache;
+        std::unordered_map<std::string, size_t> kmerCache;
         bool allSolid = false;
         size_t rounds = 0;
         bool done = false;
@@ -104,8 +104,8 @@ public:
             // Compute the kmer counts across the read
             // and determine the positions in the read that are not covered by any solid kmers
             // These are the candidate incorrect bases
-            std::vector< int > countVector(n - k + 1, 0);
-            std::vector< int > solidVector(n, 0);
+            std::vector<int> countVector(n - k + 1, 0);
+            std::vector<int> solidVector(n, 0);
 
             for (size_t i = k; i <= n; ++i) {
                 std::string kmer = seq.substr(i - k, k);
@@ -232,7 +232,7 @@ public:
 };
 
 AbstractCorrector* AbstractCorrector::create(const FMIndex& index, const CorrectProcessor::Options& options) {
-    std::string algorithm = options.get< std::string >("algorithm", kCorrectAlgorithm);
+    std::string algorithm = options.get<std::string>("algorithm", kCorrectAlgorithm);
     if (algorithm == "kmer") {
         return new KmerCorrector(index, options);
     } else if (algorithm == "overlap") {
@@ -260,7 +260,7 @@ private:
 
 bool CorrectProcessor::process(const FMIndex& index, DNASeqReader& reader, std::ostream& output, size_t threads, size_t* processed) const {
     if (threads <= 1) {
-        std::shared_ptr< AbstractCorrector > proc(AbstractCorrector::create(index, _options));
+        std::shared_ptr<AbstractCorrector> proc(AbstractCorrector::create(index, _options));
         if (!proc) {
             return false;
         }
@@ -269,7 +269,7 @@ bool CorrectProcessor::process(const FMIndex& index, DNASeqReader& reader, std::
         SequenceProcessFramework::SerialWorker<
             SequenceProcessFramework::SequenceWorkItem, 
             CorrectResult, 
-            SequenceProcessFramework::SequenceWorkItemGenerator< SequenceProcessFramework::SequenceWorkItem >, 
+            SequenceProcessFramework::SequenceWorkItemGenerator<SequenceProcessFramework::SequenceWorkItem>, 
             AbstractCorrector, 
             PostCorrector
             > worker;
@@ -280,7 +280,7 @@ bool CorrectProcessor::process(const FMIndex& index, DNASeqReader& reader, std::
         return true;
     } else {
 #ifdef _OPENMP
-        std::vector< AbstractCorrector* > proclist(threads);
+        std::vector<AbstractCorrector *> proclist(threads);
         for (size_t i = 0; i < threads; ++i) {
             proclist[i] = AbstractCorrector::create(index, _options);
             if (proclist[i] == NULL) {
@@ -292,7 +292,7 @@ bool CorrectProcessor::process(const FMIndex& index, DNASeqReader& reader, std::
         SequenceProcessFramework::ParallelWorker<
             SequenceProcessFramework::SequenceWorkItem, 
             CorrectResult, 
-            SequenceProcessFramework::SequenceWorkItemGenerator< SequenceProcessFramework::SequenceWorkItem >, 
+            SequenceProcessFramework::SequenceWorkItemGenerator<SequenceProcessFramework::SequenceWorkItem>, 
             AbstractCorrector, 
             PostCorrector
             > worker;
@@ -317,7 +317,7 @@ bool CorrectProcessor::process(const FMIndex& index, const std::string& input, c
 
     // DNASeqReader
     std::ifstream reads(input);
-    std::shared_ptr< DNASeqReader > reader(DNASeqReaderFactory::create(reads, &input));
+    std::shared_ptr<DNASeqReader> reader(DNASeqReaderFactory::create(reads, &input));
     if (!reader) {
         LOG4CXX_ERROR(logger, boost::format("Failed to create DNASeqReader %s") % input);
         return false;

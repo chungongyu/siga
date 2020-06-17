@@ -9,7 +9,7 @@
 
 struct OverlapResult;
 struct OverlapBlock;
-typedef std::list< OverlapBlock > OverlapBlockList;
+typedef std::list<OverlapBlock> OverlapBlockList;
 
 //
 // OverlapBuilder - Implements all the logic for finding

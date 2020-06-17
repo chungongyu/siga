@@ -24,7 +24,7 @@ public:
     }
 private:
     // int -> size_t map of the number of times a kmer with multiplicty N has been seen
-    std::map< int, size_t > _data;
+    std::map<int, size_t> _data;
 };
 
 #endif // kmerdistr_h__

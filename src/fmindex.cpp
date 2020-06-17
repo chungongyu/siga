@@ -13,7 +13,7 @@ static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.FMIndex"));
 //
 // MarkerFill
 //
-template< class MarkerList >
+template <class MarkerList>
 class MarkerFill {
 public:
     MarkerFill(MarkerList& markers, size_t symbols, size_t sampleRate) : _markers(markers), _sampleRate(sampleRate) {
@@ -46,9 +46,9 @@ protected:
     size_t _nextPos;
 };
 
-class LargeMarkerFill : public MarkerFill< LargeMarkerList > {
+class LargeMarkerFill : public MarkerFill<LargeMarkerList> {
 public:
-    LargeMarkerFill(LargeMarkerList& markers, size_t symbols, size_t sampleRate) : MarkerFill< LargeMarkerList >(markers, symbols, sampleRate) {
+    LargeMarkerFill(LargeMarkerList& markers, size_t symbols, size_t sampleRate) : MarkerFill<LargeMarkerList>(markers, symbols, sampleRate) {
     }
 
     void fill(const DNAAlphabet::AlphaCount64& counts, uint64_t total, size_t unitIndex, bool lastOne) {
@@ -71,9 +71,9 @@ public:
     }
 };
 
-class SmallMarkerFill : public MarkerFill< SmallMarkerList > {
+class SmallMarkerFill : public MarkerFill<SmallMarkerList> {
 public:
-    SmallMarkerFill(const LargeMarkerList& lmarkers, SmallMarkerList& smarkers, size_t symbols, size_t sampleRate) : MarkerFill< SmallMarkerList >(smarkers, symbols, sampleRate), _lmarkers(lmarkers) {
+    SmallMarkerFill(const LargeMarkerList& lmarkers, SmallMarkerList& smarkers, size_t symbols, size_t sampleRate) : MarkerFill<SmallMarkerList>(smarkers, symbols, sampleRate), _lmarkers(lmarkers) {
     }
 
     void fill(const DNAAlphabet::AlphaCount64& counts, uint64_t total, size_t unitIndex, bool lastOne) {

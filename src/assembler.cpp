@@ -26,37 +26,37 @@ public:
         std::string input = arguments[0];
         LOG4CXX_INFO(logger, boost::format("input: %s") % input);
 
-        std::string output = options.get< std::string >("prefix", "default");
+        std::string output = options.get<std::string>("prefix", "default");
         LOG4CXX_INFO(logger, boost::format("output: %s") % output);
 
-        size_t minOverlap = options.get< size_t >("min-overlap", 0);
-        int peMode = options.get< int >("pe-mode", 0);
+        size_t minOverlap = options.get<size_t>("min-overlap", 0);
+        int peMode = options.get<int>("pe-mode", 0);
 
         LOG4CXX_INFO(logger, "parameters:");
         LOG4CXX_INFO(logger, boost::format("min-overlap: %d") % minOverlap);
         if (options.find("max-distance") != options.not_found()) {
-            LOG4CXX_INFO(logger, boost::format("max-distance: %d") % options.get< size_t >("max-distance"));
+            LOG4CXX_INFO(logger, boost::format("max-distance: %d") % options.get<size_t>("max-distance"));
         }
         if (options.find("insert-size") != options.not_found()) {
-            LOG4CXX_INFO(logger, boost::format("insert-size: %d") % options.get< size_t >("insert-size"));
+            LOG4CXX_INFO(logger, boost::format("insert-size: %d") % options.get<size_t>("insert-size"));
         }
         if (options.find("insert-size-delta") != options.not_found()) {
-            LOG4CXX_INFO(logger, boost::format("insert-size-delta: %d") % options.get< size_t >("insert-size-delta"));
+            LOG4CXX_INFO(logger, boost::format("insert-size-delta: %d") % options.get<size_t>("insert-size-delta"));
         }
 
-        Bigraph g(options.get< size_t >("init-vertex-capacity", 0));
-        if (Bigraph::load(input, minOverlap, true, options.get< size_t >("max-edges", 128), &g)) {
+        Bigraph g(options.get<size_t>("init-vertex-capacity", 0));
+        if (Bigraph::load(input, minOverlap, true, options.get<size_t>("max-edges", 128), &g)) {
             g.validate();
             LOG4CXX_INFO(logger, "load ok");
 
             // Visitors
-            ChimericVisitor chVisit(options.get< size_t >("min-chimeric-length", 0), options.get< size_t >("max-chimeric-delta", -1));
+            ChimericVisitor chVisit(options.get<size_t>("min-chimeric-length", 0), options.get<size_t>("max-chimeric-delta", -1));
             ContainRemoveVisitor containVisit;
             LoopRemoveVisitor loopVisit;
-            MaximalOverlapVisitor moVisit(options.get< size_t >("max-overlap-delta", 0));
+            MaximalOverlapVisitor moVisit(options.get<size_t>("max-overlap-delta", 0));
             SmoothingVisitor smoothVisit;
             StatisticsVisitor statsVisit;
-            TrimVisitor trimVisit(options.get< size_t >("min-branch-length", 150));
+            TrimVisitor trimVisit(options.get<size_t>("min-branch-length", 150));
 
             // Pre-assembly graph stats
             LOG4CXX_INFO(logger, "[Stats] Input graph:");
@@ -76,7 +76,7 @@ public:
                         delta = sigma;
                     }
                 }
-                PairedReadVisitor prVisit(options.get< size_t >("max-distance", 100), average, delta, options.get< size_t >("max-search-nodes", 100), options.get< size_t >("threads", 1), options.get< size_t >("batch-size", 1000));
+                PairedReadVisitor prVisit(options.get<size_t>("max-distance", 100), average, delta, options.get<size_t>("max-search-nodes", 100), options.get<size_t>("threads", 1), options.get<size_t>("batch-size", 1000));
                 g.visit(&prVisit);
             } else {
                 LOG4CXX_INFO(logger, "Removing contained vertices from graph");
@@ -90,7 +90,7 @@ public:
 
             if (peMode == 1) {
                 // Trimming
-                size_t trimRound = 0, numTrimRounds = options.get< size_t >("cut-terminal", 10);
+                size_t trimRound = 0, numTrimRounds = options.get<size_t>("cut-terminal", 10);
                 while (trimRound < numTrimRounds) {
                     LOG4CXX_INFO(logger, boost::format("[Trim] Trim round: %d") % (trimRound + 1))
                     bool modified = false;
@@ -116,7 +116,7 @@ public:
                 g.visit(&statsVisit);
 
                 // Trimming
-                size_t trimRound = 0, numTrimRounds = options.get< size_t >("cut-terminal", 10);
+                size_t trimRound = 0, numTrimRounds = options.get<size_t>("cut-terminal", 10);
                 while (trimRound < numTrimRounds) {
                     LOG4CXX_INFO(logger, boost::format("[Trim] Trim round: %d") % (trimRound + 1))
                     bool modified = false;
@@ -159,7 +159,7 @@ public:
                         g.simplify();
                     }
 
-                    if (options.get< size_t >("min-chimeric-length", 0) > 0) {
+                    if (options.get<size_t>("min-chimeric-length", 0) > 0) {
                         LOG4CXX_INFO(logger, "removing chimerics:");
                         if (g.visit(&chVisit)) {
                             g.simplify();

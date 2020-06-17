@@ -29,7 +29,7 @@ static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.PreQC"));
 class PreQC : public Runner {
 public:
     typedef rapidjson::StringBuffer JSONBuffer;
-    typedef rapidjson::PrettyWriter< JSONBuffer > JSONWriter;
+    typedef rapidjson::PrettyWriter<JSONBuffer> JSONWriter;
 
     int run(const Properties& options, const Arguments& arguments) {
         int r = 0;
@@ -53,7 +53,7 @@ public:
             writer.StartObject();
 
             // In simple mode we only compute metrics that do not need the FM-index
-            QualityStatistics statistics(options.get< double >("sample-rate", 0.05));
+            QualityStatistics statistics(options.get<double>("sample-rate", 0.05));
             r = statistics.stats(input, &writer);
 
             if (r == 0 && options.find("simple") == options.not_found()) {
@@ -61,7 +61,7 @@ public:
                 // Load the FM-index and compute the rest of the metrics if requested
                 LOG4CXX_INFO(logger, boost::format("Loading FM-index of %s") % prefix);
 
-                GenomeEstimator estimator(options.get< size_t >("kmer", 31), options.find("diploid-reference-mode") != options.not_found());
+                GenomeEstimator estimator(options.get<size_t>("kmer", 31), options.find("diploid-reference-mode") != options.not_found());
                 r = estimator.estimate(prefix, &writer);
             }
 
@@ -105,13 +105,13 @@ private:
         }
 
         int stats(std::istream& stream, JSONWriter* writer) const {
-            std::shared_ptr< DNASeqReader > reader(DNASeqReaderFactory::create(stream));
+            std::shared_ptr<DNASeqReader> reader(DNASeqReaderFactory::create(stream));
             return stats(reader.get(), writer);
         }
 
         int stats(DNASeqReader* reader, JSONWriter* writer) const {
             if (reader) {
-                std::vector< Statistics > bases;
+                std::vector<Statistics> bases;
 
                 DNASeq read;
                 while (reader->read(read)) {

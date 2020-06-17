@@ -14,7 +14,7 @@
 // FMMarkers - Marker classes used in the FM-index implementation
 //
 
-template< class Storage >
+template <class Storage>
 class Marker {
 public:
     Marker() : unitIndex(0) {
@@ -28,7 +28,7 @@ public:
         return counts == m.counts && unitIndex == m.unitIndex;
     }
 
-    DNAAlphabet::AlphaCount< Storage > counts;
+    DNAAlphabet::AlphaCount<Storage> counts;
     Storage unitIndex;
 };
 
@@ -44,11 +44,11 @@ public:
 // the run containing the B[C] is at unitIndex. This is not necessary
 // a valid index if there is a marker after the last symbol in the BWT
 //
-typedef Marker< uint64_t > LargeMarker;
-typedef Marker< uint16_t > SmallMarker;
+typedef Marker<uint64_t> LargeMarker;
+typedef Marker<uint16_t> SmallMarker;
 
-typedef std::vector< LargeMarker > LargeMarkerList;
-typedef std::vector< SmallMarker > SmallMarkerList;
+typedef std::vector<LargeMarker> LargeMarkerList;
+typedef std::vector<SmallMarker> SmallMarkerList;
 
 const size_t DEFAULT_SAMPLE_RATE_SMALL = 128;
 const size_t DEFAULT_SAMPLE_RATE_LARGE = 8192;

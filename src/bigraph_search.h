@@ -39,8 +39,8 @@ public:
         const Vertex* vertex;
         DistanceAttr attr;
     };
-    typedef std::shared_ptr< Node > NodePtr;
-    typedef std::vector< NodePtr > NodePtrList;
+    typedef std::shared_ptr<Node> NodePtr;
+    typedef std::vector<NodePtr> NodePtrList;
 
     struct NodePtrCmp {
         bool operator()(const NodePtr& x, const NodePtr& y) const {
@@ -48,7 +48,7 @@ public:
         }
     };
 
-    template< class T >
+    template <class T>
     struct NodePtrHash {
         size_t operator()(const T& node) const {
             std::hash<std::string> hasher;
@@ -56,10 +56,10 @@ public:
         }
     };
 
-    typedef std::deque< std::pair< NodePtr, int > > NodePtrQueue;
+    typedef std::deque<std::pair<NodePtr, int> > NodePtrQueue;
 
     static size_t build(NodePtrQueue& Q, const Vertex* end, size_t minDistance, size_t maxDistance, size_t maxNodes, NodePtrList* leaves);
-    static size_t build(const Vertex* start, std::function< bool(const Edge* edge) > filter, const Vertex* end, size_t minDistance, size_t maxDistance, size_t maxNodes, NodePtrList* leaves);
+    static size_t build(const Vertex* start, std::function<bool(const Edge* edge)> filter, const Vertex* end, size_t minDistance, size_t maxDistance, size_t maxNodes, NodePtrList* leaves);
 
     static bool hasLink(const Vertex* v1, const Vertex* v2, int distance, Edge::Dir dir, Edge::Comp comp);
     static bool hasLink(const Vertex* v1, const Vertex* v2, int distance) {
