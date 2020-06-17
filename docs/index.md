@@ -1,4 +1,4 @@
-Home
+Contents
 ====
 
 [![Build Status](https://travis-ci.org/chungongyu/siga.svg?branch=master)](https://travis-ci.org/chungongyu/siga)
@@ -14,7 +14,7 @@ Home
 	* [Running SIGA](#running-siga)
 * [Benchmarks](#benchmarks)
 * [Citation](#citation)
-* [Related Publications](#related-publications)
+* [Publications](#publications)
 * [FAQ](#faq)
 * [Support](#support)
 * [Authors](#authors)
@@ -22,7 +22,7 @@ Home
 Overview
 ========
 
-SIGA is an open-source _de novo_ assembly toolkit containing various assembly pipelines which are totally compatible with [SGA](https://github.com/jts/sga) file format. Similar to [SGA](https://github.com/jts/sga), it is designed as a [modular set of programs](#running-siga), which are used to form an assembly pipeline.
+SIGA is an open-source _de_ novo assembly toolkit containing various assembly pipelines which are totally compatible with [SGA](https://github.com/jts/sga) file format. Similar to [SGA](https://github.com/jts/sga), it is designed as a [modular set of programs](#running-siga), together which form an assembly pipeline.
 
 Quick Start
 ===========
@@ -36,6 +36,8 @@ Quick Start
 * [log4cxx](https://logging.apache.org/log4cxx)
 * [rapidjson](https://github.com/Tencent/rapidjson)
 * [gperftools](https://github.com/gperftools/gperftools) (optional but suggested)
+
+Dependencies may be installed using the package manager [Homebrew](https://homebrew.sh) on macOS and [Linxubrew](http://linuxbrew.sh) on Linux and Windows, using [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/).
 
 ### Compiling SIGA
 
@@ -134,29 +136,35 @@ siga index --help
 Benchmarks
 ========
 
-Comming soon...
+Comming soon ...
 
 Citation
 ========
 
 ## [SIGA](https://github.com/chungongyu/siga)
 
-Chungong Yu, Yu Lin, Guozheng Wei, Bing Wang, Yanbo Li and Dongbo Bu. **SIGA** : A Sensitive and Intelligent *de* novo Genome Assembler.
+Chungong Yu, Yu Lin, Guozheng Wei, Bing Wang, Yanbo Li and Dongbo Bu. **SIGA** : An open-source Sensitive and Intelligent *de* novo Genome Assembler.
 
-Related Publications
-====================
+Publications
+============
 
-None yet! ^_~
+None yet!   ^_~
 
 FAQ
 ====
 
 1. **Where can I get further help or advice?**
 
-   See [Support](#support) or the [siga wiki](https://github.com/chungongyu/siga/wiki).
+	See [Support](#support) or the [siga wiki](https://github.com/chungongyu/siga/wiki).
+
+2. **What parameters should I tune to improve my assembly?**
+    
+	See [here](https://github.com/chungongyu/siga/wiki/SIGA-parameter-tuning)
 
 Support
 =======
+
+[Create a new issue](https://github.com/chungongyu/siga/issues) on GitHub.
 
 Contact [siga@ict.ac.cn](mailto:siga@ict.ac.cn)
 
