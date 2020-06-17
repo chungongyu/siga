@@ -8,7 +8,6 @@
 #include <memory>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/assign.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/format.hpp>
@@ -32,7 +31,7 @@ public:
 
         std::string output = boost::filesystem::path(input).stem().string();
         if (options.find("prefix") != options.not_found()) {
-            output = options.get< std::string >("prefix");
+            output = options.get<std::string>("prefix");
         }
         LOG4CXX_INFO(logger, boost::format("output: %s") % output);
 

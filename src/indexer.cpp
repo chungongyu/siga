@@ -12,7 +12,6 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
-#include <boost/foreach.hpp>
 #include <boost/format.hpp>
 
 #include <log4cxx/logger.h>
@@ -33,18 +32,18 @@ public:
 
         std::string output = boost::filesystem::path(input).stem().string();
         if (options.find("prefix") != options.not_found()) {
-            output = options.get< std::string >("prefix");
+            output = options.get<std::string>("prefix");
         }
         LOG4CXX_INFO(logger, boost::format("output: %s.(%s|%s|%s|%s)") % output % SAI_EXT % BWT_EXT % RSAI_EXT % RBWT_EXT);
 
-        std::string algorithm = options.get< std::string >("algorithm", "sais");
+        std::string algorithm = options.get<std::string>("algorithm", "sais");
         LOG4CXX_INFO(logger, boost::format("algorithm: %s") % algorithm);
 
         DNASeqList reads;
         if (ReadDNASequences(input, reads)) {
-            std::shared_ptr< SuffixArrayBuilder > builder(SuffixArrayBuilder::create(algorithm));
+            std::shared_ptr<SuffixArrayBuilder> builder(SuffixArrayBuilder::create(algorithm));
             if (builder) {
-                size_t threads = options.get< size_t >("threads", 1);
+                size_t threads = options.get<size_t>("threads", 1);
                 // forward
                 if (options.find("no-forward") == options.not_found()) {
                     build(builder.get(), reads, threads, output + SAI_EXT, output + BWT_EXT);
@@ -52,7 +51,7 @@ public:
 
                 // reverse
                 if (options.find("no-reverse") == options.not_found()) {
-                    BOOST_FOREACH(DNASeq& read, reads) {
+                    for (auto& read : reads) {
                         read.make_reverse();
                     }
 
@@ -72,7 +71,7 @@ public:
 
 private:
     bool build(SuffixArrayBuilder* builder, const DNASeqList& reads, size_t threads, const std::string& safile, const std::string& bwtfile) {
-        std::shared_ptr< SuffixArray > sa(builder->build(reads, threads));
+        std::shared_ptr<SuffixArray> sa(builder->build(reads, threads));
         if (!sa) {
             return false;
         }

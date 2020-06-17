@@ -74,7 +74,7 @@ public:
     bool visit(Bigraph* graph, Vertex* vertex);
     void postvisit(Bigraph* graph);
 private:
-    std::vector< Vertex* > _loops;
+    std::vector<Vertex *> _loops;
 };
 
 // Run the YU LIN's maximal overlap algorithm on each node
@@ -100,7 +100,7 @@ public:
     void postvisit(Bigraph* graph);
 public:
     EdgePtrList edges(const Vertex* vertex, Edge::Dir dir);
-    std::vector< size_t > _samples;
+    std::vector<size_t> _samples;
 
     size_t& _average;
     size_t& _delta;
@@ -122,7 +122,7 @@ private:
     size_t _threads;
     size_t _batch;
 
-    std::vector< const Vertex* > _vertices;
+    std::vector<const Vertex *> _vertices;
     friend class PairedVertexProcess;
     friend class PairedVertexPostProcess;
 };

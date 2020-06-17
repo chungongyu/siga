@@ -6,7 +6,6 @@
 #include <iostream>
 #include <memory>
 
-#include <boost/foreach.hpp>
 #include <boost/format.hpp>
 
 #include <log4cxx/logger.h>
@@ -31,7 +30,7 @@ public:
             EdgeCreator creator(sub, true, -1);
             // These are the edges in the main graph
             EdgePtrList edges = root->edges();
-            BOOST_FOREACH(Edge* edge, edges) {
+            for (auto& edge : edges) {
                 if (edge->color() != GC_BLACK) {
                     Vertex* child = edge->end();
                     addVertex(child, sub);
@@ -69,17 +68,17 @@ public:
 
         const std::string rootId = arguments[0];
         const std::string input = arguments[1];
-        const std::string output = options.get< std::string >("out", "subgraph.asqg.gz");
+        const std::string output = options.get<std::string>("out", "subgraph.asqg.gz");
         LOG4CXX_INFO(logger, boost::format("input: %s") % input);
 
         Bigraph g;
-        if (Bigraph::load(input, options.get< size_t >("min-overlap", 0), true, options.get< size_t >("max-edges", 128), &g)) {
+        if (Bigraph::load(input, options.get<size_t>("min-overlap", 0), true, options.get<size_t>("max-edges", 128), &g)) {
             Bigraph sub;
             const Vertex* root = g.getVertex(rootId);
             if (root != NULL) {
                 // add root to the subgraph
                 SubgraphExtractor extractor(&g);
-                extractor.extract(root, options.get< size_t >("size", 5), &sub);
+                extractor.extract(root, options.get<size_t>("size", 5), &sub);
                 if (!Bigraph::save(output, &sub)) {
                     LOG4CXX_ERROR(logger, boost::format("failed to write stream ") % output);
                 }

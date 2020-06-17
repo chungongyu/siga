@@ -3,8 +3,6 @@
 
 #include <fstream>
 
-#include <boost/foreach.hpp>
-
 static const uint16_t FILE_MAGIC = 0xCACA;
 
 //
@@ -18,7 +16,7 @@ public:
         if (!writeHeader(sa._strings, sa._strings)) {
             return false;
         }
-        BOOST_FOREACH(const SuffixArray::Elem& elem, sa._elems) {
+        for (const auto& elem : sa._elems) {
             if (!writeElem(elem)) {
                 return false;
             }
@@ -64,7 +62,7 @@ public:
             return false;
         }
         sa._elems.resize(elems);
-        BOOST_FOREACH(SuffixArray::Elem& elem, sa._elems) {
+        for (auto& elem : sa._elems) {
             if (!readElem(elem)) {
                 return false;
             }

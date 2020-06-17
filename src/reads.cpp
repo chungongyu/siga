@@ -44,7 +44,7 @@ namespace PairEnd {
 };
 
 std::istream& operator>>(std::istream& stream, ReadInfoList& infos) {
-    std::shared_ptr< DNASeqReader > reader(DNASeqReaderFactory::create(stream));
+    std::shared_ptr<DNASeqReader> reader(DNASeqReaderFactory::create(stream));
     if (reader) {
         DNASeq read;
         while (reader->read(read)) {

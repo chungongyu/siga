@@ -45,10 +45,10 @@ private:
     friend std::ostream& operator << (std::ostream& os, const DNASeq& seq);
 };
 
-typedef std::vector< DNASeq > DNASeqList;
+typedef std::vector<DNASeq> DNASeqList;
 bool ReadDNASequences(std::istream& stream, DNASeqList& sequences);
 bool ReadDNASequences(const std::string& file, DNASeqList& sequences);
-bool ReadDNASequences(const std::vector< std::string >& filelist, DNASeqList& sequences);
+bool ReadDNASequences(const std::vector<std::string>& filelist, DNASeqList& sequences);
 
 class DNASeqReader {
 public:

@@ -31,12 +31,12 @@ public:
 
         std::string outfile = stem + EC_EXT + FA_EXT;
         if (options.find("outfile") != options.not_found()) {
-            outfile = options.get< std::string >("outfile");
+            outfile = options.get<std::string>("outfile");
         }
 
         std::string prefix = stem;
         if (options.find("prefix") != options.not_found()) {
-            prefix = options.get< std::string >("prefix");
+            prefix = options.get<std::string>("prefix");
         }
 
         FMIndex fmi;
@@ -45,7 +45,7 @@ public:
             CorrectProcessor::Options parms(options);
 
             CorrectProcessor processor(parms);
-            if (!processor.process(fmi, input, outfile, options.get< size_t >("threads", kCorrectThreads))) {
+            if (!processor.process(fmi, input, outfile, options.get<size_t>("threads", kCorrectThreads))) {
                 LOG4CXX_ERROR(logger, boost::format("Failed to do error correction for reads %s") % input);
                 r = -1;
             }

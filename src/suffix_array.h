@@ -25,7 +25,7 @@ public:
         size_t i;
         size_t j;
     };
-    typedef std::vector< Elem > ElemList;
+    typedef std::vector<Elem> ElemList;
 
     SuffixArray() : _strings(0) {
     }

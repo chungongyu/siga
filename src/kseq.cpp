@@ -7,8 +7,6 @@
 #include <unordered_map>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/assign.hpp>
-#include <boost/foreach.hpp>
 #include <boost/format.hpp>
 
 #include <log4cxx/logger.h>
@@ -16,22 +14,24 @@
 static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.DNASeq"));
 
 char make_complement_dna(char c) {
-    static std::map< char, char > mapping = boost::assign::map_list_of
-        ('A', 'T')
-        ('C', 'G')
-        ('G', 'C')
-        ('T', 'A')
-        ('N', 'N');
+    static std::map<char, char> mapping = {
+        {'A', 'T'},
+        {'C', 'G'},
+        {'G', 'C'},
+        {'T', 'A'},
+        {'N', 'N'},
+        };
     return mapping[c];
 }
 
 void make_complement_dna(std::string& sequence) {
-    static std::map< char, char > mapping = boost::assign::map_list_of
-        ('A', 'T')
-        ('C', 'G')
-        ('G', 'C')
-        ('T', 'A')
-        ('N', 'N');
+    static std::map<char, char> mapping = {
+        {'A', 'T'},
+        {'C', 'G'},
+        {'G', 'C'},
+        {'T', 'A'},
+        {'N', 'N'},
+        };
 
     size_t N = sequence.length();
     for (size_t i = 0; i < N; ++i) {
@@ -206,7 +206,7 @@ bool FASTAReader::read(DNASeq& sequence) {
 }
 
 bool ReadDNASequences(std::istream& stream, DNASeqList& sequences) {
-    std::shared_ptr< DNASeqReader > reader(DNASeqReaderFactory::create(stream));
+    std::shared_ptr<DNASeqReader> reader(DNASeqReaderFactory::create(stream));
     if (!reader) {
         return false;
     }
@@ -222,8 +222,8 @@ bool ReadDNASequences(const std::string& file, DNASeqList& sequences) {
     return ReadDNASequences(stream, sequences);
 }
 
-bool ReadDNASequences(const std::vector< std::string >& filelist, DNASeqList& sequences) {
-    BOOST_FOREACH(const std::string& file, filelist) {
+bool ReadDNASequences(const std::vector<std::string>& filelist, DNASeqList& sequences) {
+    for (const auto& file : filelist) {
         if (!ReadDNASequences(file, sequences)) {
             return false;
         }

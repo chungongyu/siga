@@ -21,9 +21,9 @@ namespace ASQG {
         RT_EDGE
     };
 
-    void tokenize(std::vector< std::string >& container, const std::string& text, char sep);
+    void tokenize(std::vector<std::string>& container, const std::string& text, char sep);
 
-    template< class T >
+    template <class T>
     class TagValue {
     public:
          TagValue() : _initialized(false) {
@@ -36,7 +36,7 @@ namespace ASQG {
              return ss.str();
          }
          bool fromstring(const std::string& text) {
-             std::vector< std::string > tokens;
+             std::vector<std::string> tokens;
              tokenize(tokens, text, TAG_SEP);
              if (tokens.size() != 3) {
                  return false;
@@ -74,9 +74,9 @@ namespace ASQG {
          bool _initialized;
     };
 
-    typedef TagValue< int >         IntTagValue;
-    typedef TagValue< float >       FloatTagValue;
-    typedef TagValue< std::string > StringTagValue;
+    typedef TagValue<int>         IntTagValue;
+    typedef TagValue<float>       FloatTagValue;
+    typedef TagValue<std::string> StringTagValue;
 
     // A header record is just a tag:value pairs
     class HeaderRecord {

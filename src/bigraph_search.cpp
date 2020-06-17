@@ -4,11 +4,10 @@
 #include <unordered_set>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/foreach.hpp>
 
 size_t BigraphWalk::build(NodePtrQueue& Q, const Vertex* end, size_t minDistance, size_t maxDistance, size_t maxNodes, NodePtrList* leaves) {
     size_t num = 0;
-    std::unordered_set< NodePtr, NodePtrHash< NodePtr >, NodePtrCmp > visited;
+    std::unordered_set<NodePtr, NodePtrHash<NodePtr>, NodePtrCmp> visited;
     while (!Q.empty() && num < maxNodes && Q.size() < 5*maxDistance) {
         std::pair<NodePtr, int> curr = Q.front();
         Q.pop_front();
@@ -41,7 +40,7 @@ size_t BigraphWalk::build(NodePtrQueue& Q, const Vertex* end, size_t minDistance
                 dir = Edge::EDGE_DIRECTIONS[Edge::EC_COUNT - dir - 1];
             }
             const EdgePtrList& edges = curr.first->vertex->edges();
-            BOOST_FOREACH(const Edge* edge, edges) {
+            for (const auto& edge : edges) {
                 if (edge->dir() == dir) {
                     //int distance = curr.first->attr.distance;
                     int distance = 0;
@@ -65,11 +64,11 @@ size_t BigraphWalk::build(NodePtrQueue& Q, const Vertex* end, size_t minDistance
     return num;
 }
 
-size_t BigraphWalk::build(const Vertex* start, std::function< bool(const Edge* edge) > filter, const Vertex* end, size_t minDistance, size_t maxDistance, size_t maxNodes, NodePtrList* leaves) {
+size_t BigraphWalk::build(const Vertex* start, std::function<bool(const Edge* edge)> filter, const Vertex* end, size_t minDistance, size_t maxDistance, size_t maxNodes, NodePtrList* leaves) {
     const EdgePtrList& edges = start->edges();
 
     BigraphWalk::NodePtrQueue Q;
-    BOOST_FOREACH(const Edge* edge, edges) {
+    for (const auto& edge : edges) {
         int flag = 1, distance = 0;
         if (edge->dir() == Edge::ED_SENSE) {
             const SeqCoord& coord = edge->coord();

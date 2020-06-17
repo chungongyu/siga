@@ -1,8 +1,6 @@
 #include "bwt.h"
 #include "suffix_array.h"
 
-#include <boost/foreach.hpp>
-
 BWT::BWT(const SuffixArray& sa, const DNASeqList& sequences) : _strings(sa.strings()), _suffixes(sa.size()) {
     RLUnit run;
     for (size_t i = 0; i < _suffixes; ++i) {
@@ -118,7 +116,7 @@ bool BWTWriter::write(const BWT& bwt) {
     if (!writeHeader(num_strings, num_suffixes, BWF_NOFMI)) {
         return false;
     }
-    BOOST_FOREACH(const RLUnit& run, bwt._runs) {
+    for (const auto& run : bwt._runs) {
         if (!writeRun(run)) {
             return false;
         }
