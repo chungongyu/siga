@@ -6,7 +6,6 @@
 #include <iostream>
 #include <memory>
 
-#include <boost/foreach.hpp>
 #include <boost/format.hpp>
 
 #include <log4cxx/logger.h>
@@ -31,7 +30,7 @@ public:
             EdgeCreator creator(sub, true, -1);
             // These are the edges in the main graph
             EdgePtrList edges = root->edges();
-            BOOST_FOREACH(Edge* edge, edges) {
+            for (auto& edge : edges) {
                 if (edge->color() != GC_BLACK) {
                     Vertex* child = edge->end();
                     addVertex(child, sub);

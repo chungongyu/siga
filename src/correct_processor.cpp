@@ -113,7 +113,7 @@ public:
                 // First check if this kmer is in the cache
                 // If its not, find its count from the fm-index and cache it
                 size_t count = 0;
-                std::unordered_map< std::string, size_t >::iterator iter = kmerCache.find(kmer);
+                auto iter = kmerCache.find(kmer);
                 if (iter != kmerCache.end()) {
                     count = iter->second;
                 } else {

@@ -35,7 +35,7 @@ public:
 
         FMIndex fmi;
         if (FMIndex::load(prefix + BWT_EXT, fmi)) {
-            BOOST_FOREACH(const std::string& input, arguments) {
+            for (const auto& input : arguments) {
                 std::ifstream stream(input.c_str());
                 std::shared_ptr< DNASeqReader > reader(DNASeqReaderFactory::create(stream, &input));
                 if (reader) {

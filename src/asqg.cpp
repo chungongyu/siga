@@ -5,7 +5,6 @@
 #include <cassert>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/foreach.hpp>
 #include <boost/format.hpp>
 #include <boost/iostreams/device/file_descriptor.hpp>
 #include <boost/iostreams/filtering_streambuf.hpp>
@@ -114,7 +113,7 @@ namespace ASQG {
         }
 
         stream << HEAD_TAG;
-        BOOST_FOREACH(const std::string& item, fields) {
+        for (const auto& item : fields) {
             stream << FIELD_SEP;
             stream << item;
         }

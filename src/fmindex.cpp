@@ -3,7 +3,6 @@
 #include "utils.h"
 
 #include <fstream>
-#include <iterator>
 
 #include <boost/format.hpp>
 
