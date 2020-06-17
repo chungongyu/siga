@@ -194,6 +194,6 @@ public:
     Match match;
 };
 
-typedef std::vector< Overlap > OverlapList;
+typedef std::vector<Overlap> OverlapList;
 
 #endif // coord_h_

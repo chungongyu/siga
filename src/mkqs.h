@@ -22,7 +22,7 @@
 #define mkqs_swap(a, b) { T tmp = x[a]; x[a] = x[b]; x[b] = tmp; }
 
 // Swap [i..i+n] and [j..j+n] in x
-template< typename T >
+template <typename T>
 void vecswap2(T* a, T* b, int n) {   
     while (n-- > 0) {
         T t = *a;
@@ -35,7 +35,7 @@ void vecswap2(T* a, T* b, int n) {
 #define ptr2char(p) (primarySorter.getChar(*(p), depth))
 #define elem2char(e, d) (primarySorter.getChar((e), (d)))
 
-template< typename T, typename PrimarySorter, typename FinalSorter >
+template <typename T, typename PrimarySorter, typename FinalSorter>
 void inssort(T* a, int n, int d, const PrimarySorter& primarySorter, const FinalSorter& finalSorter) {   
     T *pi, *pj, s, t;
     for (pi = a + 1; --n > 0; pi++) {
@@ -55,7 +55,7 @@ void inssort(T* a, int n, int d, const PrimarySorter& primarySorter, const Final
     }
 }
 
-template< typename T, typename PrimarySorter, typename FinalSorter >
+template <typename T, typename PrimarySorter, typename FinalSorter>
 void mkqs2(T* a, int n, int depth, const PrimarySorter& primarySorter, const FinalSorter& finalSorter) {
     int r, partval;
     T *pa, *pb, *pc, *pd, *pm, *pn, t;
@@ -106,7 +106,7 @@ void mkqs2(T* a, int n, int depth, const PrimarySorter& primarySorter, const Fin
 
 // Parallel multikey quicksort. It performs mkqs but will
 // subdivide the array to sort into sub jobs which can be sorted using threads.
-template< typename T >
+template <typename T>
 struct MkqsJob {
     MkqsJob(T* p, int num, int d) : pData(p), n(num), depth(d) {
     }
@@ -206,7 +206,7 @@ void parallel_mkqs_process(MkqsJob<T>& job,
     // Unlock the mutex
     pthread_mutex_unlock(pQueueMutex);
 }
-template< typename T, class PrimarySorter, class FinalSorter >
+template <typename T, class PrimarySorter, class FinalSorter>
 class MkqsThread {
     typedef MkqsJob<T> Job;
     typedef std::queue<Job> JobQueue;
@@ -311,7 +311,7 @@ private:
     int m_numProcessed;
 };
 
-template< typename T, typename PrimarySorter, typename FinalSorter >
+template <typename T, typename PrimarySorter, typename FinalSorter>
 void mkqs_parallel(T* pData, int n, int numThreads, const PrimarySorter& primarySorter, const FinalSorter& finalSorter) {
     typedef MkqsJob<T> Job;
     typedef std::queue<Job> JobQueue;

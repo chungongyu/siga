@@ -40,7 +40,7 @@ namespace DNAAlphabet {
         return DNA_ALL[rank];
     }
 
-    template< class Storage >
+    template <class Storage>
     class AlphaCount {
     public:
         AlphaCount() {
@@ -68,48 +68,48 @@ namespace DNAAlphabet {
             std::swap(_data[torank('A')], _data[torank('T')]);
             std::swap(_data[torank('C')], _data[torank('G')]);
         }
-        AlphaCount< Storage > operator-(const AlphaCount< Storage >& c) const {
-            AlphaCount< Storage > r;
+        AlphaCount<Storage> operator-(const AlphaCount<Storage>& c) const {
+            AlphaCount<Storage> r;
             for (size_t i = 0; i < size(); ++i) {
                 r._data[i] = _data[i] - c._data[i];
             }
             return r;
         }
-        AlphaCount< Storage > operator+(const AlphaCount< Storage >& c) const {
-            AlphaCount< Storage > r;
+        AlphaCount<Storage> operator+(const AlphaCount<Storage>& c) const {
+            AlphaCount<Storage> r;
             for (size_t i = 0; i < size(); ++i) {
                 r._data[i] = _data[i] + c._data[i];
             }
             return r;
         }
-        AlphaCount< Storage >& operator-=(const AlphaCount< Storage >& c) {
+        AlphaCount<Storage>& operator-=(const AlphaCount<Storage>& c) {
             for (size_t i = 0; i < size(); ++i) {
                 _data[i] -= c._data[i];
             }
             return *this;
         }
-        AlphaCount< Storage >& operator+=(const AlphaCount< Storage >& c) {
+        AlphaCount<Storage>& operator+=(const AlphaCount<Storage>& c) {
             for (size_t i = 0; i < size(); ++i) {
                 _data[i] += c._data[i];
             }
             return *this;
         }
     private:
-        template< class T >
-        friend std::ostream& operator<<(std::ostream& stream, const AlphaCount< T >& c);
-        template< class T >
-        friend std::istream& operator>>(std::istream& stream, AlphaCount< T >& c);
+        template <class T>
+        friend std::ostream& operator<<(std::ostream& stream, const AlphaCount<T>& c);
+        template <class T>
+        friend std::istream& operator>>(std::istream& stream, AlphaCount<T>& c);
 
         Storage _data[ALL_SIZE];
     };
 
-    typedef AlphaCount< uint64_t > AlphaCount64;
-    typedef AlphaCount< uint32_t > AlphaCount32;
-    typedef AlphaCount< uint16_t > AlphaCount16;
+    typedef AlphaCount<uint64_t> AlphaCount64;
+    typedef AlphaCount<uint32_t> AlphaCount32;
+    typedef AlphaCount<uint16_t> AlphaCount16;
 
-    template< class T >
-    std::ostream& operator<<(std::ostream& stream, const AlphaCount< T >& c) {
-        std::copy(c._data, c._data + c.size(), std::ostream_iterator< T >(stream, " "));
+    template <class T>
+    std::ostream& operator<<(std::ostream& stream, const AlphaCount<T>& c) {
+        std::copy(c._data, c._data + c.size(), std::ostream_iterator<T>(stream, " "));
         return stream;
     }
 };

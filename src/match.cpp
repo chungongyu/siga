@@ -30,14 +30,14 @@ public:
 
         std::string prefix = boost::filesystem::path(arguments[0]).stem().string();
         if (options.find("prefix") != options.not_found()) {
-            prefix = options.get< std::string >("prefix");
+            prefix = options.get<std::string>("prefix");
         }
 
         FMIndex fmi;
         if (FMIndex::load(prefix + BWT_EXT, fmi)) {
             for (const auto& input : arguments) {
                 std::ifstream stream(input.c_str());
-                std::shared_ptr< DNASeqReader > reader(DNASeqReaderFactory::create(stream, &input));
+                std::shared_ptr<DNASeqReader> reader(DNASeqReaderFactory::create(stream, &input));
                 if (reader) {
                     DNASeq read;
                     while (reader->read(read)) {

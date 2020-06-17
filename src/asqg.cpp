@@ -36,7 +36,7 @@ namespace ASQG {
     static const std::string CIGAR_TAG("CG");
     static const std::string PERCENT_IDENTITY_TAG("PI");
 
-    void tokenize(std::vector< std::string >& container, const std::string& text, char sep) {
+    void tokenize(std::vector<std::string>& container, const std::string& text, char sep) {
         boost::algorithm::split(container, text, boost::is_from_range(sep, sep));
     }
 
@@ -47,7 +47,7 @@ namespace ASQG {
     }
 
     bool HeaderRecord::parse(const std::string& text, HeaderRecord& record) {
-        std::vector< std::string > fields;
+        std::vector<std::string> fields;
         tokenize(fields, text, FIELD_SEP);
 
         if (fields.empty()) {
@@ -92,7 +92,7 @@ namespace ASQG {
     }
 
     std::ostream& operator<<(std::ostream& stream, const HeaderRecord& record) { // Version
-        std::vector< std::string > fields;
+        std::vector<std::string> fields;
         assert(record._version);
         fields.push_back(record._version.tostring(VERSION_TAG));
 
@@ -132,7 +132,7 @@ namespace ASQG {
     // VertexRecord
     //
     bool VertexRecord::parse(const std::string& text, VertexRecord& record) {
-        std::vector< std::string > fields;
+        std::vector<std::string> fields;
         tokenize(fields, text, FIELD_SEP);
         if (fields.size() < 3) {
             LOG4CXX_ERROR(logger, "Error: Vertex record is incomplete.");
@@ -177,7 +177,7 @@ namespace ASQG {
     // EdgeRecord
     //
     bool EdgeRecord::parse(const std::string& text, EdgeRecord& record) {
-        std::vector< std::string > fields;
+        std::vector<std::string> fields;
         tokenize(fields, text, FIELD_SEP);
         if (fields.size() < 2) {
             LOG4CXX_ERROR(logger, "Error: Edge record is incomplete.");

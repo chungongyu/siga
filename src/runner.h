@@ -15,7 +15,7 @@
 #include <boost/property_tree/ptree.hpp>
 
 typedef boost::property_tree::ptree Properties;
-typedef std::vector< std::string > Arguments;
+typedef std::vector<std::string> Arguments;
 
 class Runner {
 public:
@@ -63,7 +63,7 @@ public:
     RunnerPtr create(const std::string& name) const {
         auto i = _runners.find(name);
         if (i != _runners.end()) {
-            return std::get< 0 >(i->second);
+            return std::get<0>(i->second);
         }
         return RunnerPtr();
     }
@@ -106,22 +106,22 @@ public:
 
         {
             size_t max_name_length = 0;
-            typedef std::vector< std::tuple< std::string, double > > _RunnerList_;
+            typedef std::vector<std::tuple<std::string, double> > _RunnerList_;
             _RunnerList_ runners;
             {
                 for (auto i = _runners.begin(); i != _runners.end(); ++i) {
                     max_name_length = std::max(max_name_length, i->first.length());
-                    runners.push_back(std::make_tuple(i->first, std::get< 2 >(i->second)));
+                    runners.push_back(std::make_tuple(i->first, std::get<2>(i->second)));
                 }
             }
             std::sort(runners.begin(), runners.end(), Cmp());
             max_name_length += 2;
             for (auto i = runners.begin(); i != runners.end(); ++i) {
-                std::string cmd = std::get< 0 >(*i);
+                std::string cmd = std::get<0>(*i);
                 auto info = _runners.find(cmd);
                 assert(info != _runners.end());
                 cmd.resize(max_name_length, ' ');
-                std::cout << boost::format("   %s%s") % cmd % std::get< 1 >(info->second) << std::endl;
+                std::cout << boost::format("   %s%s") % cmd % std::get<1>(info->second) << std::endl;
             }
         }
 
@@ -132,16 +132,16 @@ public:
     }
 private:
     struct Cmp {
-        bool operator()(const std::tuple< std::string, double >& l, const std::tuple< std::string, double >& r) const {
-            double x = std::get< 1 >(l), y = std::get< 1 >(r);
+        bool operator()(const std::tuple<std::string, double>& l, const std::tuple<std::string, double>& r) const {
+            double x = std::get<1>(l), y = std::get<1>(r);
             if (x != y) {
                 return x < y;
             }
-            return std::get< 0 >(l) < std::get< 0 >(r);
+            return std::get<0>(l) < std::get<0>(r);
         }
     };
-    typedef std::tuple< RunnerPtr, std::string, double > RunnerInfo;
-    typedef std::map< std::string, RunnerInfo > RunnerList;
+    typedef std::tuple<RunnerPtr, std::string, double> RunnerInfo;
+    typedef std::map<std::string, RunnerInfo> RunnerList;
     RunnerList _runners;
 };
 

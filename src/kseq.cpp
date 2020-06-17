@@ -14,7 +14,7 @@
 static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.DNASeq"));
 
 char make_complement_dna(char c) {
-    static std::map< char, char > mapping = {
+    static std::map<char, char> mapping = {
         {'A', 'T'},
         {'C', 'G'},
         {'G', 'C'},
@@ -25,7 +25,7 @@ char make_complement_dna(char c) {
 }
 
 void make_complement_dna(std::string& sequence) {
-    static std::map< char, char > mapping = {
+    static std::map<char, char> mapping = {
         {'A', 'T'},
         {'C', 'G'},
         {'G', 'C'},
@@ -206,7 +206,7 @@ bool FASTAReader::read(DNASeq& sequence) {
 }
 
 bool ReadDNASequences(std::istream& stream, DNASeqList& sequences) {
-    std::shared_ptr< DNASeqReader > reader(DNASeqReaderFactory::create(stream));
+    std::shared_ptr<DNASeqReader> reader(DNASeqReaderFactory::create(stream));
     if (!reader) {
         return false;
     }
@@ -222,7 +222,7 @@ bool ReadDNASequences(const std::string& file, DNASeqList& sequences) {
     return ReadDNASequences(stream, sequences);
 }
 
-bool ReadDNASequences(const std::vector< std::string >& filelist, DNASeqList& sequences) {
+bool ReadDNASequences(const std::vector<std::string>& filelist, DNASeqList& sequences) {
     for (const auto& file : filelist) {
         if (!ReadDNASequences(file, sequences)) {
             return false;

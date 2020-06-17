@@ -20,7 +20,7 @@ public:
 
 private:
     PrimerScreen(); 
-    std::vector< std::string > _db;
+    std::vector<std::string> _db;
 };
 
 #endif // primer_screen_h_

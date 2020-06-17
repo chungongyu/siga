@@ -19,7 +19,7 @@ struct ReadInfo {
     size_t length;
 };
 
-typedef std::vector< ReadInfo > ReadInfoList;
+typedef std::vector<ReadInfo> ReadInfoList;
 
 std::istream& operator>>(std::istream& stream, ReadInfoList& infos);
 
