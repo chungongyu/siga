@@ -9,12 +9,9 @@
 #include <bitset>
 #include <functional>
 #include <iostream>
-#include <iterator>
 #include <memory>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/assign.hpp>
-#include <boost/foreach.hpp>
 #include <boost/format.hpp>
 
 #include <log4cxx/logger.h>
@@ -229,7 +226,7 @@ struct Hit {
 std::ostream& operator<<(std::ostream& stream, const Hit& hit) {
     // Write the header info
     stream << hit.idx << ' ' << hit.substring << ' ' << hit.blocks.size() << ' ';
-    BOOST_FOREACH(const OverlapBlock& block, hit.blocks) {
+    for (const auto& block : hit.blocks) {
         stream << block << ' ';
     }
     return stream;
@@ -311,7 +308,7 @@ public:
         size_t numCopies = 0;
 
         const ReadInfo& query = _readinfo[hit.idx];
-        BOOST_FOREACH(const OverlapBlock& block, hit.blocks) {
+        for (const auto& block : hit.blocks) {
             // Iterate thru the range and write the overlaps
             assert(block.capped[0].lower <= block.capped[0].upper);
 
@@ -372,7 +369,7 @@ public:
 
                 OverlapList overlaps;
                 size_t numCopies = _converter.convert(hit, &overlaps);
-                BOOST_FOREACH(const Overlap& o, overlaps) {
+                for (const auto& o : overlaps) {
                     ASQG::EdgeRecord recod(o);
                     asqg << recod << '\n';
                 }
@@ -473,7 +470,7 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
         }
 
         Hits2ASQGConverter converter(*sa, *rsa, reader);
-        BOOST_FOREACH(const std::string& filename, hits) {
+        for (const auto& filename : hits) {
             LOG4CXX_INFO(logger, boost::format("parsing file %s") % filename);
             if (!converter.convert(filename, output)) {
                 LOG4CXX_ERROR(logger, boost::format("failed to convert hits to asqg %s") % filename);
@@ -571,7 +568,7 @@ public:
 
                 bool isContained = hit.substring;
                 if (!isContained) {
-                    BOOST_FOREACH(const Overlap& o, overlaps) {
+                    for (const auto& o : overlaps) {
                         if (o.isContainment() && o.containedIdx() == 0) {
                             isContained = true;
                             break;
@@ -642,7 +639,7 @@ bool OverlapBuilder::rmdup(DNASeqReader& reader, std::ostream& output, std::ostr
         }
 
         Hits2FastaConverter converter(*sa, *rsa, reader);
-        BOOST_FOREACH(const std::string& filename, hits) {
+        for (const auto& filename : hits) {
             LOG4CXX_INFO(logger, boost::format("parsing file %s") % filename);
             if (!converter.convert(filename, output, duplicates)) {
                 LOG4CXX_ERROR(logger, boost::format("failed to convert hits to asqg %s") % filename);
@@ -697,20 +694,20 @@ public:
         // When a branch is found, the groups are split based on the extension
         typedef std::list< OverlapBlockList > BlockGroups;
 
-        BlockGroups groups = boost::assign::list_of(*inblocks);
+        BlockGroups groups = {*inblocks};
         while (!groups.empty()) {
             // Perform one extenion round for each group.
             // If the top-level block has ended, push the result
             // to the final list and remove the group from processing
             BlockGroups incomings; // Branched blocks are placed here
-            for (BlockGroups::iterator i = groups.begin(); i != groups.end(); ++i) {
+            for (auto i = groups.begin(); i != groups.end(); ++i) {
                 OverlapBlockList& blocklist = *i;
                 bool eraseGroup = true;
 
                 // Count the extensions in the top level (longest) blocks first
                 DNAAlphabet::AlphaCount64 exts;
                 size_t topLength = blocklist.front().length;
-                for (OverlapBlockList::const_iterator j = blocklist.begin(); j != blocklist.end() && j->length == topLength; ++j) {
+                for (auto j = blocklist.begin(); j != blocklist.end() && j->length == topLength; ++j) {
                     exts += j->ext(_fmi, _rfmi);
                 }
 
@@ -727,7 +724,7 @@ public:
                     // (one in the forward and reverse direction). Since we can't decide which one
                     // contains the other at this point, we output hits to both. Under a fixed 
                     // length string assumption one will be contained within the other and removed later.
-                    for (OverlapBlockList::const_iterator j = blocklist.begin(); j != blocklist.end() && j->length == topLength; ++j) {
+                    for (auto j = blocklist.begin(); j != blocklist.end() && j->length == topLength; ++j) {
                         DNAAlphabet::AlphaCount64 test = j->ext(_fmi, _rfmi);
                         if (test[DNAAlphabet::torank('$')] == 0) {
                             LOG4CXX_ERROR(logger, "substring read found during overlap computation.");
@@ -744,7 +741,7 @@ public:
                     }
                 } else {
                     // Count the extension for the rest of the blocks
-                    for (OverlapBlockList::const_iterator j = blocklist.begin(); j != blocklist.end(); ++j) {
+                    for (auto j = blocklist.begin(); j != blocklist.end(); ++j) {
                         if (j->length < topLength) {
                             exts += j->ext(_fmi, _rfmi);
                         }
@@ -794,7 +791,7 @@ private:
     };
     void updateR(char c, OverlapBlockList* blocks) {
         assert(blocks != NULL);
-        OverlapBlockList::iterator i = blocks->begin();
+        auto i = blocks->begin();
         while (i != blocks->end()) {
             char b = i->af.test(AlignFlags::QUERYCOMP_BIT) ? make_complement_dna(c) : c;
             i->capped.updateR(b, i->index(_fmi, _rfmi));
@@ -905,8 +902,8 @@ public:
         if (!blocks->empty()) {
             IntervalLeftSorter sorter;
             blocks->sort(sorter);
-            OverlapBlockList::iterator prev = blocks->begin();
-            OverlapBlockList::iterator curr = std::next(prev);
+            auto prev = blocks->begin();
+            auto curr = std::next(prev);
             while (curr != blocks->end()) {
                 // Check if prev and curr overlaps
                 if (Interval::isIntersecting(prev->capped[0].lower, prev->capped[0].upper, curr->capped[0].lower, curr->capped[0].upper)) {
@@ -1039,7 +1036,7 @@ private:
                 // Write out the final blocks
                 if (resolved != NULL) {
                     OverlapBlock split = *lower;
-                    for (TracingIntervalList::const_iterator i = tracinglist.begin(); i != tracinglist.end(); ++i) {
+                    for (auto i = tracinglist.begin(); i != tracinglist.end(); ++i) {
                         // Check if the forward position intersects the higer block, if so this block
                         // is redundant and can be removed.
                         if (!Interval::isIntersecting(i->forward, i->forward, higher->capped[0].lower, higher->capped[0].upper)) {
@@ -1072,7 +1069,7 @@ public:
     }
     void remove(OverlapBlockList* blocks) const {
         assert(blocks != NULL);
-        OverlapBlockList::iterator i = blocks->begin();
+        auto i = blocks->begin();
         while (i != blocks->end()) {
             if (i->length == _seqlen) {
                 i = blocks->erase(i);

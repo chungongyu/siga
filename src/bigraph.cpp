@@ -76,7 +76,7 @@ void Edge::validate() const {
 // Vertex
 //
 Vertex::~Vertex() {
-    for (EdgePtrList::iterator i = _edges.begin(); i != _edges.end(); ++i) {
+    for (auto i = _edges.begin(); i != _edges.end(); ++i) {
         delete *i;
     }
 }
@@ -127,7 +127,7 @@ void Vertex::merge(Edge* edge) {
     // All the SeqCoords for the edges must have their seqlen field updated
     // Also, if we prepended sequence to this edge, all the matches in the 
     // SENSE direction must have their coordinates offset
-    for (EdgePtrList::iterator i = _edges.begin(); i != _edges.end(); ++i) {
+    for (auto i = _edges.begin(); i != _edges.end(); ++i) {
         SeqCoord& coord = (*i)->coord();
         coord.seqlen = _seq.length();
         if (prepend && (*i)->dir() == Edge::ED_SENSE && edge != *i) {
@@ -139,7 +139,7 @@ void Vertex::merge(Edge* edge) {
 void Vertex::addEdge(Edge* edge) {
     assert(edge->start() == this);
 #ifdef VALIDATE
-    for (EdgePtrList::const_iterator i = _edges.begin(); i != _edges.end(); ++i) {
+    for (auto i = _edges.begin(); i != _edges.end(); ++i) {
         if (i->end()->id() == edge->end()->id()) {
             LOG4CXX_ERROR(logger, boost::format("Attempted to add duplicate edge with ID: %s to vertex %s" % edge->end()->id() % _id));
         }
@@ -149,7 +149,7 @@ void Vertex::addEdge(Edge* edge) {
 }
 
 void Vertex::removeEdge(Edge* edge) {
-    for (EdgePtrList::iterator i = _edges.begin(); i != _edges.end(); ++i) {
+    for (auto i = _edges.begin(); i != _edges.end(); ++i) {
         if (*i == edge) {
             _edges.erase(i);
             return;
@@ -159,7 +159,7 @@ void Vertex::removeEdge(Edge* edge) {
 }
 
 bool Vertex::hasEdge(Edge* edge) const {
-    for (EdgePtrList::const_iterator i = _edges.begin(); i != _edges.end(); ++i) {
+    for (auto i = _edges.begin(); i != _edges.end(); ++i) {
         if (**i == *edge) {
             return true;
         }
@@ -170,7 +170,7 @@ bool Vertex::hasEdge(Edge* edge) const {
 size_t Vertex::sweepEdges(GraphColor c) {
     size_t num = 0;
 
-    EdgePtrList::iterator i = _edges.begin();
+    auto i = _edges.begin();
     while (i != _edges.end()) {
         Edge* edge = *i;
         if (edge->color() == c) {
@@ -187,7 +187,7 @@ size_t Vertex::sweepEdges(GraphColor c) {
 }
 
 void Vertex::deleteEdges() {
-    for (EdgePtrList::iterator i = _edges.begin(); i != _edges.end(); ++i) {
+    for (auto i = _edges.begin(); i != _edges.end(); ++i) {
         Edge* edge = *i;
         Edge* twin = edge->twin();
 
@@ -201,7 +201,7 @@ void Vertex::deleteEdges() {
 }
 
 void Vertex::validate() const {
-    for (EdgePtrList::const_iterator i = _edges.begin(); i != _edges.end(); ++i) {
+    for (auto i = _edges.begin(); i != _edges.end(); ++i) {
         (*i)->validate();
     }
 }
@@ -210,13 +210,13 @@ void Vertex::validate() const {
 // Bigraph
 //
 Bigraph::~Bigraph() {
-    for (VertexTable::iterator i = _vertices.begin(); i != _vertices.end(); ++i) {
+    for (auto i = _vertices.begin(); i != _vertices.end(); ++i) {
         delete i->second;
     }
 }
 
 bool Bigraph::addVertex(Vertex* vertex) {
-    VertexTable::iterator i = _vertices.find(vertex->id());
+    auto i = _vertices.find(vertex->id());
     if (i != _vertices.end()) {
         return false;
     }
@@ -225,7 +225,7 @@ bool Bigraph::addVertex(Vertex* vertex) {
 }
 
 Vertex* Bigraph::getVertex(const Vertex::Id& id) const {
-    VertexTable::const_iterator i = _vertices.find(id);
+    auto i = _vertices.find(id);
     if (i != _vertices.end()) {
         return i->second;
     }
@@ -240,9 +240,9 @@ void Bigraph::removeVertex(Vertex* vertex) {
 size_t Bigraph::sweepVertices(GraphColor c) {
     size_t num = 0;
 
-    VertexTable::iterator i = _vertices.begin();
+    auto i = _vertices.begin();
     while (i != _vertices.end()) {
-        VertexTable::iterator next = i;
+        auto next = i;
         ++next;
         if (i->second->color() == c) {
             // Remove the edges pointing to this Vertex
@@ -266,7 +266,7 @@ void Bigraph::addEdge(Vertex* vertex, Edge* edge) {
 size_t Bigraph::sweepEdges(GraphColor c) {
     size_t num = 0;
 
-    for (VertexTable::iterator i = _vertices.begin(); i != _vertices.end(); ++i) {
+    for (auto i = _vertices.begin(); i != _vertices.end(); ++i) {
         num += i->second->sweepEdges(c);
     }
 
@@ -282,7 +282,7 @@ void Bigraph::simplify(Edge::Dir dir) {
     bool changed = true;
     while (changed) {
         changed = false;
-        for (VertexTable::iterator i = _vertices.begin(); i != _vertices.end(); ++i) {
+        for (auto i = _vertices.begin(); i != _vertices.end(); ++i) {
             // Get the edges for this direction
             EdgePtrList edges = i->second->edges(dir);
 
@@ -323,7 +323,7 @@ void Bigraph::merge(Vertex* v1, Edge* edge) {
     EdgePtrList transEdges = v2->edges((Edge::Dir)(Edge::ED_COUNT - twin->dir() - 1));
 
     // Move the edges from V2 to V1
-    for (EdgePtrList::iterator i = transEdges.begin(); i != transEdges.end(); ++i) {
+    for (auto i = transEdges.begin(); i != transEdges.end(); ++i) {
         Edge* transEdge = *i;
 
         // Remove the edge from V2, this does not destroy the edge
@@ -347,7 +347,7 @@ void Bigraph::merge(Vertex* v1, Edge* edge) {
 }
 
 void Bigraph::validate() const {
-    for (VertexTable::const_iterator i = _vertices.begin(); i != _vertices.end(); ++i) {
+    for (auto i = _vertices.begin(); i != _vertices.end(); ++i) {
         i->second->validate();
     }
 }
@@ -356,7 +356,7 @@ bool Bigraph::visit(BigraphVisitor* visitor) {
     bool modified = false;
 
     visitor->previsit(this);
-    for (VertexTable::const_iterator i = _vertices.begin(); i != _vertices.end(); ++i) {
+    for (auto i = _vertices.begin(); i != _vertices.end(); ++i) {
         modified |= visitor->visit(this, i->second);
     }
     visitor->postvisit(this);
@@ -365,7 +365,7 @@ bool Bigraph::visit(BigraphVisitor* visitor) {
 }
 
 void Bigraph::color(GraphColor c) {
-    for (VertexTable::const_iterator i = _vertices.begin(); i != _vertices.end(); ++i) {
+    for (auto i = _vertices.begin(); i != _vertices.end(); ++i) {
         i->second->color(c);
     }
 }
@@ -567,7 +567,7 @@ bool Bigraph::save(std::ostream& stream, const Bigraph* g) {
         }
     }
     // Vertices
-    for (VertexTable::const_iterator i = g->_vertices.begin(); i != g->_vertices.end(); ++i) {
+    for (auto i = g->_vertices.begin(); i != g->_vertices.end(); ++i) {
         ASQG::VertexRecord record(i->second->id(), i->second->seq());
         stream << record << '\n';
         if (!stream) {
@@ -575,9 +575,9 @@ bool Bigraph::save(std::ostream& stream, const Bigraph* g) {
         }
     }
     // Edges
-    for (VertexTable::const_iterator i = g->_vertices.begin(); i != g->_vertices.end(); ++i) {
+    for (auto i = g->_vertices.begin(); i != g->_vertices.end(); ++i) {
         EdgePtrList edges = i->second->edges();
-        for (EdgePtrList::const_iterator j = edges.begin(); j != edges.end(); ++j) {
+        for (auto j = edges.begin(); j != edges.end(); ++j) {
             // We write one record for every bidirectional edge so only write edges
             // that are in canonical form (where id1 < id2)
             Edge* edge = (*j);

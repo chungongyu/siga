@@ -15,7 +15,7 @@ public:
     static size_t sample(const FMIndex* index, size_t k, size_t n, KmerDistribution* distr);
 
     void add(int count) {
-        std::map< int, size_t >::iterator i = _data.find(count);
+        auto i = _data.find(count);
         if (i != _data.end()) {
             ++i->second;
         } else {

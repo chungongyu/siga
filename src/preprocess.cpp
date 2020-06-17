@@ -12,8 +12,6 @@
 #include <iostream>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/assign.hpp>
-#include <boost/foreach.hpp>
 #include <boost/format.hpp>
 
 #include <log4cxx/logger.h>
@@ -132,7 +130,7 @@ private:
     }
 
     int processSingleEnds(const Properties& options, const std::vector< std::string >& inputs, std::ostream& output, Statistics& stats) {
-        BOOST_FOREACH(const std::string& file, inputs) {
+        for (const auto& file : inputs) {
             LOG4CXX_INFO(logger, boost::format("Processing %s") % file);
 
             int r = 0;
@@ -197,7 +195,7 @@ private:
     }
 
     int processPairEnds2(const Properties& options, const std::vector< std::string >& inputs, std::ostream& output, Statistics& stats) {
-        BOOST_FOREACH(const std::string& file, inputs) {
+        for (const auto& file : inputs) {
             LOG4CXX_INFO(logger, boost::format("Processing %s") % file);
 
             int r = 0;
@@ -345,7 +343,7 @@ private:
         assert(record.seq.length() == record.quality.length());
 
         size_t n = 0;
-        BOOST_FOREACH(char q, record.quality) {
+        for (auto q : record.quality) {
             int ps = Quality::Phred::fromchar(q);
             if (ps <= LOW_QUALITY_PHRED_SCORE) {
                 ++n;
@@ -398,7 +396,7 @@ private:
     }
 
     int checkOptions(const Properties& options, const Arguments& arguments) const {
-        std::set< std::string > orientations = boost::assign::list_of("fr")("ff")("rf");
+        std::set< std::string > orientations = {"fr", "ff", "rf"};
         if (options.find("help") != options.not_found() 
                 || orientations.find(options.get< std::string >("pe-orientation", "fr")) == orientations.end() 
                 || arguments.empty()) {

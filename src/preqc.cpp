@@ -13,9 +13,7 @@
 #include <iostream>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/assign.hpp>
 #include <boost/filesystem.hpp>
-#include <boost/foreach.hpp>
 #include <boost/format.hpp>
 
 #include <rapidjson/document.h>
@@ -137,14 +135,14 @@ private:
                 {
                     writer->String("mean_quality");
                     writer->StartArray();
-                    BOOST_FOREACH(const Statistics& base, bases) {
+                    for (const auto& base : bases) {
                         writer->Double((double)base.qualitysum / base.count);
                     }
                     writer->EndArray();
 
                     writer->String("fraction_q30");
                     writer->StartArray();
-                    BOOST_FOREACH(const Statistics& base, bases) {
+                    for (const auto& base : bases) {
                         writer->Double((double)base.q30num / base.count);
                     }
                     writer->EndArray();

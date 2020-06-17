@@ -9,9 +9,6 @@
 //
 #include "primer_screen.h"
 
-#include <boost/assign.hpp>
-#include <boost/foreach.hpp>
-
 // Hardcoded primer sequences that we wish to filter against
 
 // Primers used in the Sanger's pcr-free library prep
@@ -21,7 +18,7 @@
 #define ILLUMINA_SANGER_PCR_FREE_B "GATCGGAAGAGCGGTTCAGCAGGAATGC"
 
 PrimerScreen::PrimerScreen() {
-    boost::assign::push_back(_db)(ILLUMINA_SANGER_PCR_FREE_A)(ILLUMINA_SANGER_PCR_FREE_B);
+    _db = {ILLUMINA_SANGER_PCR_FREE_A, ILLUMINA_SANGER_PCR_FREE_B};
 }
 
 // Check seq against the primer database
@@ -34,7 +31,7 @@ bool PrimerScreen::containsPrimer(const std::string& seq) {
     // contamination
     const size_t check_size = 14;
     std::string check = seq.substr(0, check_size);
-    BOOST_FOREACH(const std::string& item, screener._db) {
+    for (const auto& item : screener._db) {
         if (item.find(check) != std::string::npos) {
             return true;
         }

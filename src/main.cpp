@@ -65,7 +65,7 @@ int main(int argc, char* argv[]) {
         }
 
         // merge options
-        for (Properties::const_iterator it = cmd.begin(); it != cmd.end(); it++){
+        for (auto it = cmd.begin(); it != cmd.end(); it++){
             options.put(it->first,it->second.data());
         }
     }

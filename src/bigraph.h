@@ -140,7 +140,7 @@ public:
     }
     EdgePtrList edges(Edge::Dir dir) const {
         EdgePtrList ev;
-        for (EdgePtrList::const_iterator i = _edges.begin(); i != _edges.end(); ++i) {
+        for (auto i = _edges.begin(); i != _edges.end(); ++i) {
             if ((*i)->dir() == dir) {
                 ev.push_back(*i);
             }

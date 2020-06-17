@@ -12,7 +12,6 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
-#include <boost/foreach.hpp>
 #include <boost/format.hpp>
 
 #include <log4cxx/logger.h>
@@ -52,7 +51,7 @@ public:
 
                 // reverse
                 if (options.find("no-reverse") == options.not_found()) {
-                    BOOST_FOREACH(DNASeq& read, reads) {
+                    for (auto& read : reads) {
                         read.make_reverse();
                     }
 

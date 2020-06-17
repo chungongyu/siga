@@ -11,7 +11,6 @@
 
 #include <getopt.h>
 
-#include <boost/foreach.hpp>
 #include <boost/format.hpp>
 #include <boost/property_tree/ptree.hpp>
 
@@ -62,7 +61,7 @@ public:
     }
 
     RunnerPtr create(const std::string& name) const {
-        RunnerList::const_iterator i = _runners.find(name);
+        auto i = _runners.find(name);
         if (i != _runners.end()) {
             return std::get< 0 >(i->second);
         }
@@ -76,7 +75,7 @@ public:
         return true;
     }
     bool uninstall(const std::string& name) {
-        RunnerList::iterator i = _runners.find(name);
+        auto i = _runners.find(name);
         if (i != _runners.end()) {
             _runners.erase(i);
             return true;
@@ -110,16 +109,16 @@ public:
             typedef std::vector< std::tuple< std::string, double > > _RunnerList_;
             _RunnerList_ runners;
             {
-                for (RunnerList::const_iterator i = _runners.begin(); i != _runners.end(); ++i) {
+                for (auto i = _runners.begin(); i != _runners.end(); ++i) {
                     max_name_length = std::max(max_name_length, i->first.length());
                     runners.push_back(std::make_tuple(i->first, std::get< 2 >(i->second)));
                 }
             }
             std::sort(runners.begin(), runners.end(), Cmp());
             max_name_length += 2;
-            for (_RunnerList_::const_iterator i = runners.begin(); i != runners.end(); ++i) {
+            for (auto i = runners.begin(); i != runners.end(); ++i) {
                 std::string cmd = std::get< 0 >(*i);
-                RunnerList::const_iterator info = _runners.find(cmd);
+                auto info = _runners.find(cmd);
                 assert(info != _runners.end());
                 cmd.resize(max_name_length, ' ');
                 std::cout << boost::format("   %s%s") % cmd % std::get< 1 >(info->second) << std::endl;
