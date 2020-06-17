@@ -45,6 +45,7 @@ AC_CONFIG_FILES([Makefile
                  3rdparty/Makefile
                  benchmark/Makefile
                  docs/Makefile
+                 docs/_layouts/Makefile
                  examples/Makefile
                  m4/Makefile
                  src/Makefile])
