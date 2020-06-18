@@ -1,62 +1,64 @@
 bin_PROGRAMS=siga
-siga_CPPFLAGS=-I$(top_srcdir)/3rdparty
-siga_LDADD=${top_builddir}/3rdparty/lib3rdparty.a
+siga_CPPFLAGS=-I$(top_srcdir)/3rdparty \
+             ${BOOST_CPPFLAGS}
+siga_LDADD=${top_builddir}/3rdparty/lib3rdparty.a \
+             ${BOOST_LDFLAGS}
 siga_SOURCES=assembler.cpp \
-			 asqg.cpp \
-			 asqg.h \
-			 bigraph.cpp \
-			 bigraph.h \
-			 bigraph_search.cpp \
-			 bigraph_search.h \
-			 bigraph_visitors.cpp \
-			 bigraph_visitors.h \
-			 bwt.cpp \
-			 bwt.h \
-			 constant.h \
-			 correct.cpp \
-			 correct_processor.cpp \
-			 correct_processor.h \
-			 coord.cpp \
-			 coord.h \
-			 fmindex.cpp \
-			 fmindex.h \
-			 indexer.cpp \
-			 kmerdistr.cpp \
-			 kmerdistr.h \
-			 kseq.cpp \
-			 kseq.h \
-			 match.cpp \
-			 mkqs.h \
-			 overlap.cpp \
-			 overlap_builder.cpp \
-			 overlap_builder.h \
-			 preprocess.cpp \
-			 preqc.cpp \
-			 primer_screen.cpp \
-			 primer_screen.h \
-			 reads.cpp \
-			 reads.h \
-			 rmdup.cpp \
-			 runner.h \
-			 sequence_process_framework.h \
-			 subgraph.cpp \
-			 suffix_array.cpp \
-			 suffix_array.h \
-			 suffix_array_builder.cpp \
-			 suffix_array_builder.h \
-			 utils.h \
-			 main.cpp
+             asqg.cpp \
+             asqg.h \
+             bigraph.cpp \
+             bigraph.h \
+             bigraph_search.cpp \
+             bigraph_search.h \
+             bigraph_visitors.cpp \
+             bigraph_visitors.h \
+             bwt.cpp \
+             bwt.h \
+             constant.h \
+             correct.cpp \
+             correct_processor.cpp \
+             correct_processor.h \
+             coord.cpp \
+             coord.h \
+             fmindex.cpp \
+             fmindex.h \
+             indexer.cpp \
+             kmerdistr.cpp \
+             kmerdistr.h \
+             kseq.cpp \
+             kseq.h \
+             match.cpp \
+             mkqs.h \
+             overlap.cpp \
+             overlap_builder.cpp \
+             overlap_builder.h \
+             preprocess.cpp \
+             preqc.cpp \
+             primer_screen.cpp \
+             primer_screen.h \
+             reads.cpp \
+             reads.h \
+             rmdup.cpp \
+             runner.h \
+             sequence_process_framework.h \
+             subgraph.cpp \
+             suffix_array.cpp \
+             suffix_array.h \
+             suffix_array_builder.cpp \
+             suffix_array_builder.h \
+             utils.h \
+             main.cpp
 siga_CXXFLAGS=${LOG4CXX_CFLAGS} \
-			  ${OPENMP_CFLAGS} \
-			  ${RAPIDJSON_CFLAGS} \
-			  ${TCMALLOC_CFLAGS}
+             ${OPENMP_CFLAGS} \
+             ${RAPIDJSON_CFLAGS} \
+             ${TCMALLOC_CFLAGS}
 siga_LDFLAGS=${LOG4CXX_LIBS} \
-			 ${OPENMP_LIBS} \
-			 ${RAPIDJSON_LIBS} \
-			 ${TCMALLOC_LIBS} \
-			 -lboost_filesystem \
-			 -lboost_iostreams \
-			 -lboost_system
+             ${OPENMP_LIBS} \
+             ${RAPIDJSON_LIBS} \
+             ${TCMALLOC_LIBS} \
+             ${BOOST_FILESYSTEM_LIB} \
+             ${BOOST_IOSTREAMS_LIB} \
+             ${BOOST_SYSTEM_LIB}
 
 EXTRA_DIST=log4cxx.properties
 
