@@ -1,8 +1,7 @@
 bin_PROGRAMS=siga
 siga_CPPFLAGS=-I$(top_srcdir)/3rdparty \
              ${BOOST_CPPFLAGS}
-siga_LDADD=${top_builddir}/3rdparty/lib3rdparty.a \
-             ${BOOST_LDFLAGS}
+siga_LDADD=${top_builddir}/3rdparty/lib3rdparty.a
 siga_SOURCES=assembler.cpp \
              asqg.cpp \
              asqg.h \
@@ -52,7 +51,8 @@ siga_CXXFLAGS=${LOG4CXX_CFLAGS} \
              ${OPENMP_CFLAGS} \
              ${RAPIDJSON_CFLAGS} \
              ${TCMALLOC_CFLAGS}
-siga_LDFLAGS=${LOG4CXX_LIBS} \
+siga_LDFLAGS=${BOOST_LDFLAGS} \
+             ${LOG4CXX_LIBS} \
              ${OPENMP_LIBS} \
              ${RAPIDJSON_LIBS} \
              ${TCMALLOC_LIBS} \
