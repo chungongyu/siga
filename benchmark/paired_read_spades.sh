@@ -63,4 +63,4 @@ ${spades_main} --careful --only-assembler -k 21,27,33,55,77,99,127 --pe1-ff -o $
 # Evaluate
 #
 ########################
-cat ${dirname}/contigs.fasta | python ${CWD}/contigs_mapping.py 300 ${datadir}/new_ref.fa fasta ${dirname}/unmatched_contigs > ${dirname}/spades-contigs_${insert_size}.stats
+cat ${dirname}/contigs.fasta | python ${CWD}/contigs_mapping.py 300 ${datadir}/new_ref.fa fasta ${dirname}/unmatched_contigs_${read_len}_${coverage}_${insert_size}_${sigma} > ${dirname}/spades-contigs_${read_len}_${coverage}_${insert_size}_${sigma}.stats
