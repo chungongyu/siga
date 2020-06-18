@@ -14,7 +14,7 @@ if [ -z ${spades_main} ]; then
 fi
 
 coverage=50
-sigma=100
+sigma=150
 insert_size=1000
 read_len=150
 
@@ -51,16 +51,16 @@ echo "-----------------------------"
 R1="${datadir}/read_${read_len}_${coverage}_${insert_size}_${sigma}_paired_R1"
 R2="${datadir}/read_${read_len}_${coverage}_${insert_size}_${sigma}_paired_R2"
 
-#########################
-##
-## Assemble paired read
-##
-#########################
-#${spades_main} --careful --only-assembler -k 21,27,33,55,77,99,127 --pe1-ff -o ${dirname} -1 ${R1}.fasta -2 ${R2}.fasta
+########################
 #
-#########################
-##
-## Evaluate
-##
-#########################
+# Assemble paired read
+#
+########################
+${spades_main} --careful --only-assembler -k 21,27,33,55,77,99,127 --pe1-ff -o ${dirname} -1 ${R1}.fasta -2 ${R2}.fasta
+
+########################
+#
+# Evaluate
+#
+########################
 cat ${dirname}/contigs.fasta | python ${CWD}/contigs_mapping.py 300 ${datadir}/new_ref.fa fasta ${dirname}/unmatched_contigs > ${dirname}/spades-contigs_${insert_size}.stats

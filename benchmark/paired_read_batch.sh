@@ -3,13 +3,19 @@
 CWD=`readlink -f $0`
 CWD=`dirname ${CWD}`
 
+
+########################
+# example: 
+# nohup sh paired_read_batch.sh -e paired_read_spades.sh -p spades -r /home/weiguozheng/simulated/Bacteria -x "1000 10000" vim paired_read_batch.sh > paired_read_batch.log 2>&1
+########################
+
 help() {
     echo "usage: `basename $0` -e <tool> -p <dirname> -r <datadir> -x <insert_size_list> -c <coverage_list> -d <sigma_list> -l <read_length_list>"
     exit $1
 }
 
 coverage_list=50
-sigma_list=100
+sigma_list=150
 insert_size_list=1000
 read_len_list=150
 
@@ -39,10 +45,12 @@ fi
 
 for p in $(ls ${datadir}); do
     mkdir -p ${datadir}/${p}
-    for insert_size in "${insert_size_list}"; do
-        for coverage in "${coverage_list}"; do
-            for sigma in "${sigma_list}"; do
-                for read_len in "${read_len_list}"; do
+    for insert_size in ${insert_size_list}; do
+        for coverage in ${coverage_list}; do
+            for sigma in ${sigma_list}; do
+                for read_len in ${read_len_list}; do
+                    echo "--------------------------"
+                    echo "cmd: sh ${tool} -p ${dirname}/${p} -r ${datadir}/${p} -c ${coverage} -x ${insert_size} -d ${sigma} -l ${read_len}"
                     sh ${tool} -p ${dirname}/${p} -r ${datadir}/${p} -c ${coverage} -x ${insert_size} -d ${sigma} -l ${read_len}
                 done
             done

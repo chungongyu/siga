@@ -16,7 +16,7 @@ if [ -z ${siga_log4cxx} ]; then
 fi
 
 coverage=50
-sigma=100
+sigma=150
 insert_size=1000
 read_len=150
 

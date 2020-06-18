@@ -7,4 +7,5 @@ EXTRA_DIST=contigs_mapping.py \
 		   paired_read_gen.py \
 		   paired_read_gen.sh \
 		   paired_read_siga.sh \
-		   paired_read_spades.sh
+		   paired_read_spades.sh \
+		   siga_oview.py
