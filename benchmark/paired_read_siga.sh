@@ -85,7 +85,7 @@ ${siga_main} assemble -c ${siga_log4cxx} --pe-mode=0 -m 100 -p "${f}-contigs.rmd
 # Evaluate
 #
 ########################
-cat ${f}-contigs.rmdup-contigs.fa | python ${CWD}/contigs_mapping.py 300 ${datadir}/new_ref.fa fasta ${dirname}/unmatched_contigs > ${dirname}/siga-contigs_${insert_size}.stats
+cat ${f}-contigs.rmdup-contigs.fa | python ${CWD}/contigs_mapping.py 300 ${datadir}/new_ref.fa fasta ${dirname}/unmatched_contigs_${read_len}_${coverage}_${insert_size}_${sigma} > ${dirname}/siga-contigs_${read_len}_${coverage}_${insert_size}_${sigma}.stats
 
 ########################
 #
@@ -94,4 +94,4 @@ cat ${f}-contigs.rmdup-contigs.fa | python ${CWD}/contigs_mapping.py 300 ${datad
 ########################
 zcat ${f}-contigs.rmdup-graph.asqg.gz | awk -f ${CWD}/graphviz.awk | dot -Tjpg -o ${f}-contigs.rmdup.jpg
 
-cat ${dirname}/siga-contigs_${insert_size}.stats
+cat ${dirname}/siga-contigs_${read_len}_${coverage}_${insert_size}_${sigma}.stats
