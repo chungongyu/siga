@@ -6,7 +6,11 @@ CWD=`dirname ${CWD}`
 
 ########################
 # example: 
-# nohup sh paired_read_batch.sh -e paired_read_spades.sh -p spades -r /home/weiguozheng/simulated/Bacteria -x "1000 10000" vim paired_read_batch.sh > paired_read_batch.log 2>&1
+#
+# nohup sh paired_read_batch.sh -e paired_read_spades.sh -p spades -r /home/weiguozheng/simulated/Bacteria -x "1000 10000" > paired_read_batch_spades.log 2>&1
+#
+# nohup sh paired_read_batch.sh -e paired_read_siga.sh -p siga -r /home/weiguozheng/simulated/Bacteria -x "1000 10000" > paired_read_batch_siga.log 2>&1
+#
 ########################
 
 help() {
