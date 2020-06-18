@@ -16,7 +16,9 @@ IN2=MiSeq_Ecoli_MG1655_110721_PF_R2.fastq.gz
 #
 
 # Program paths
-SIGA_BIN=siga
+if [ -z ${siga_main} ]; then
+    siga_main="${HOME}/siga/src/siga"
+fi
 
 # The number of threads to use
 CPU=8
@@ -39,7 +41,7 @@ TRIM_LENGTH=150
 #
 
 # Check the required programs are installed and executable
-prog_list="$SIGA_BIN"
+prog_list="${siga_main}"
 for prog in $prog_list; do
     hash $prog 2>/dev/null || { echo "Error $prog not found. Please place $prog on your PATH or update the *_BIN variables in this script"; exit 1; }
 done 
@@ -57,7 +59,7 @@ done
 #
 
 # Preprocess the data to remove ambiguous basecalls
-$SIGA_BIN preprocess --pe-mode=1 -o reads.pp.fastq $IN1 $IN2
+${siga_main} preprocess --pe-mode=1 -o reads.pp.fastq $IN1 $IN2
 
 #
 # Error Correction
@@ -66,21 +68,21 @@ $SIGA_BIN preprocess --pe-mode=1 -o reads.pp.fastq $IN1 $IN2
 # Build the index that will be used for error correction
 # As the error corrector does not require the reverse BWT, suppress
 # construction of the reversed index
-$SIGA_BIN index -t $CPU --no-reverse reads.pp.fastq
+${siga_main} index -t $CPU --no-reverse reads.pp.fastq
 
 # Perform k-mer based error correction.
 # The k-mer cutoff parameter is learned automatically.
-$SIGA_BIN correct -k $CORRECTION_K --learn -t $CPU -o reads.ec.fastq reads.pp.fastq
+${siga_main} correct -k $CORRECTION_K --learn -t $CPU -o reads.ec.fastq reads.pp.fastq
 
 #
 # Primary (contig) assembly
 #
 
 # Index the corrected data.
-$SIGA_BIN index -t $CPU reads.ec.fastq
+${siga_main} index -t $CPU reads.ec.fastq
 
 # Compute the structure of the string graph
-$SIGA_BIN overlap -m $MIN_OVERLAP -t $CPU reads.ec.filter.pass.fa
+${siga_main} overlap -m $MIN_OVERLAP -t $CPU reads.ec.filter.pass.fa
 
 # Perform the contig assembly
-$SIGA_BIN assemble -m $ASSEMBLE_OVERLAP --min-branch-length $TRIM_LENGTH -o primary reads.ec.filter.pass.asqg.gz
+${siga_main} assemble -m $ASSEMBLE_OVERLAP --min-branch-length $TRIM_LENGTH -o primary reads.ec.filter.pass.asqg.gz
