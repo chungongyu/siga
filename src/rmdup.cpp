@@ -81,6 +81,8 @@ private:
 static const std::string shortopts = "c:s:t:p:d:h";
 enum { OPT_HELP = 1 };
 static const option longopts[] = {
+    {"log4cxx",             required_argument,  NULL, 'c'}, 
+    {"ini",                 required_argument,  NULL, 's'}, 
     {"prefix",              required_argument,  NULL, 'o'}, 
     {"threads",             required_argument,  NULL, 't'}, 
     {"sample-rate",         required_argument,  NULL, 'd'}, 

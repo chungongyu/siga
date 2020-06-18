@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
         }
 
         // config log4cxx.
-        const std::string log_config = cmd.get<std::string>("c", "log4cxx.properties");
+        const std::string log_config = cmd.get<std::string>("log4cxx", "log4cxx.properties");
         if (boost::filesystem::exists(log_config)) {
             log4cxx::PropertyConfigurator::configure(log_config);
         } else {
@@ -54,8 +54,8 @@ int main(int argc, char* argv[]) {
         }
         
         // load ini options
-        if (cmd.find("s") != cmd.not_found()) {
-            const std::string file_config = cmd.get<std::string>("s");
+        if (cmd.find("ini") != cmd.not_found()) {
+            const std::string file_config = cmd.get<std::string>("ini");
             try {
                 boost::property_tree::read_ini(file_config, options);
             } catch (const boost::property_tree::ini_parser_error& e) {

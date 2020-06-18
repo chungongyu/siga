@@ -451,6 +451,8 @@ private:
 static const std::string shortopts = "c:s:o:p:q:f:m:h";
 enum { OPT_HELP = 1, OPT_PE_MODE, OPT_PE_ORIENTATION, OPT_PHRED64, OPT_HARD_CLIP, OPT_SAMPLE_RATE, OPT_NO_PRIMER_CHECK };
 static const option longopts[] = {
+    {"log4cxx",             required_argument,  NULL, 'c'}, 
+    {"ini",                 required_argument,  NULL, 's'}, 
     {"out",                 required_argument,  NULL, 'o'}, 
     {"pe-mode",             required_argument,  NULL, OPT_PE_MODE}, 
     {"pe-orientation",      required_argument,  NULL, OPT_PE_ORIENTATION}, 

@@ -85,6 +85,8 @@ private:
 static const std::string shortopts = "c:s:t:p:m:xh";
 enum { OPT_HELP = 1, OPT_BATCH_SIZE, OPT_NO_RC };
 static const option longopts[] = {
+    {"log4cxx",             required_argument,  NULL, 'c'}, 
+    {"ini",                 required_argument,  NULL, 's'}, 
     {"prefix",              required_argument,  NULL, 'p'}, 
     {"threads",             required_argument,  NULL, 't'}, 
     {"batch-size",          required_argument,  NULL, OPT_BATCH_SIZE}, 

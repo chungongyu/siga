@@ -256,6 +256,8 @@ private:
 static const std::string shortopts = "c:s:p:t:m:x:n:l:a:b:d:h";
 enum { OPT_HELP = 1, OPT_BATCH_SIZE, OPT_PEMODE, OPT_MAXDIST, OPT_INSERTSIZE, OPT_INSERTSIZE_DELTA, OPT_MAXEDGES, OPT_INIT_VERTEX_CAPACITY };
 static const option longopts[] = {
+    {"log4cxx",             required_argument,  NULL, 'c'}, 
+    {"ini",                 required_argument,  NULL, 's'}, 
     {"prefix",              required_argument,  NULL, 'p'}, 
     {"min-overlap",         required_argument,  NULL, 'm'}, 
     {"max-edges",           required_argument,  NULL, OPT_MAXEDGES}, 

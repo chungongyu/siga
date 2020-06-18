@@ -126,6 +126,8 @@ private:
 static const std::string shortopts = "o:m:h";
 enum { OPT_HELP = 1, OPT_SIZE };
 static const option longopts[] = {
+    {"log4cxx",             required_argument,  NULL, 'c'}, 
+    {"ini",                 required_argument,  NULL, 's'}, 
     {"out",                 required_argument,  NULL, 'o'}, 
     {"min-overlap",         required_argument,  NULL, 'm'}, 
     {"size",                required_argument,  NULL, OPT_SIZE}, 
