@@ -18,6 +18,7 @@ AX_BOOST_BASE([1.41], [], AC_MSG_ERROR([Could not find a useful version of boost
 AX_BOOST_FILESYSTEM
 AX_BOOST_IOSTREAMS
 AX_BOOST_SYSTEM
+AX_BOOST_UNIT_TEST_FRAMEWORK
 
 AX_CXX_COMPILE_STDCXX_11([noext],[mandatory])
 
@@ -52,6 +53,7 @@ AC_CONFIG_FILES([Makefile
                  docs/_layouts/Makefile
                  examples/Makefile
                  m4/Makefile
-                 src/Makefile])
+                 src/Makefile
+                 test/Makefile])
 AC_CONFIG_SUBDIRS()
 AC_OUTPUT
