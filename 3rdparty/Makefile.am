@@ -1,4 +1,4 @@
-noinst_LIBRARIES = lib3rdparty.a
-lib3rdparty_a_SOURCES = \
+noinst_LTLIBRARIES = lib3rdparty.la
+lib3rdparty_la_SOURCES = \
                     bcr.c \
                     bcr.h
