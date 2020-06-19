@@ -8,4 +8,4 @@ before_install:
     - sudo apt-get install -y rapidjson-dev
     - sh autogen.sh
 script:
-    - ./configure RAPIDJSON_CFLAGS=-I/usr/include RAPIDJSON_LIBS="-L/usr/lib" && make
+    - ./configure RAPIDJSON_CFLAGS=-I/usr/include RAPIDJSON_LIBS="-L/usr/lib" && make && make check
