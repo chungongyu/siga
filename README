@@ -18,7 +18,7 @@ SIGA dependencies:
     -rapidjson (https://github.com/Tencent/rapidjson)
     -(optional but suggested)gperftools (https://github.com/gperftools/gperftools)
 
-If you cloned the repository from github, run autogen.sh from the src directory 
+If you cloned the repository from github, run autogen.sh from the root directory 
 to generate the configure file:
 
 ./autogen.sh
@@ -35,9 +35,9 @@ Installing SIGA
 Running make install will install siga into /usr/local/bin/ by default. To specify the install
 location use the --prefix option to configure:
 
-./configure --prefix=/home/chaunceyyu/ && make && make install
+./configure --prefix=${HOME}/.local && make && make install
 
-This command will copy siga to /home/chaunceyyu/bin/siga
+This command will copy siga to ${HOME}/.local/bin/siga
 
 -----------
 Running SIGA
@@ -136,6 +136,6 @@ property, including patents, are granted to you under this license.
 -------
 Credits
 
-Written by Chauncey Yu.
-The algorithms were developed by Chauncey Yu, Yu Lin, Guozheng Wei, Bing Wang,
+Written by Chungong Yu.
+The algorithms were developed by Chungong Yu, Yu Lin, Guozheng Wei, Bing Wang,
 Yanbo Li and Dongbo Bu.
