@@ -317,7 +317,7 @@ bool CorrectProcessor::process(const FMIndex& index, const std::string& input, c
 
     // DNASeqReader
     std::ifstream reads(input);
-    std::shared_ptr<DNASeqReader> reader(DNASeqReaderFactory::create(reads, &input));
+    std::shared_ptr<DNASeqReader> reader(DNASeqReaderFactory::create(reads));
     if (!reader) {
         LOG4CXX_ERROR(logger, boost::format("Failed to create DNASeqReader %s") % input);
         return false;
