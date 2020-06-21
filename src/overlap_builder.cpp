@@ -390,9 +390,9 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
         ASQG::HeaderRecord record;
         record.overlap(minOverlap);
         record.containment(1);
-        std::string* infile = (std::string *)reader.extra();
-        if (infile != NULL) {
-            record.infile(*infile);
+        std::string infile = reader.getAttr("infile");
+        if (!infile.empty()) {
+            record.infile(infile);
         }
         output << record << '\n';
     }
@@ -485,7 +485,10 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
 bool OverlapBuilder::build(const std::string& input, size_t minOverlap, const std::string& output, size_t threads, size_t batch, size_t* processed) const {
     // DNASeqReader
     std::ifstream reads(input.c_str());
-    std::shared_ptr<DNASeqReader> reader(DNASeqReaderFactory::create(reads, &input));
+    std::map<std::string, std::string> attrs = {
+        {"infile", input}
+    };
+    std::shared_ptr<DNASeqReader> reader(DNASeqReaderFactory::create(reads, &attrs));
     if (!reader) {
         LOG4CXX_ERROR(logger, boost::format("Failed to create DNASeqReader %s") % input);
         return false;

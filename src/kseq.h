@@ -2,6 +2,7 @@
 #define kseq_h_
 
 #include <iostream>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -52,8 +53,11 @@ bool ReadDNASequences(const std::vector<std::string>& filelist, DNASeqList& sequ
 
 class DNASeqReader {
 public:
-    DNASeqReader(std::istream& stream, const void* extra=NULL) : _stream(stream), _extra(extra) {
+    DNASeqReader(std::istream& stream, const std::map<std::string, std::string>* attrs=NULL) : _stream(stream) {
         _pos = stream.tellg();
+        if (attrs != NULL) {
+            _attrs = *attrs;
+        }
     }
     virtual ~DNASeqReader() {
     }
@@ -64,19 +68,25 @@ public:
     }
     virtual bool read(DNASeq& sequence) = 0;
 
-    const void* extra() const {
-        return _extra;
+    bool hasAttr(const std::string& key) const {
+        return _attrs.find(key) != _attrs.end();
+    }
+    std::string getAttr(const std::string& key, const std::string& defval="") const {
+        auto it = _attrs.find(key);
+        if (it != _attrs.end()) {
+            return it->second;
+        }
+        return defval;
     }
 protected:
     std::istream& _stream;
     size_t _pos;
-
-    const void* _extra;
+    std::map<std::string, std::string> _attrs;
 };
 
 class DNASeqReaderFactory {
 public:
-    static DNASeqReader* create(std::istream& stream, const void* extra=NULL);
+    static DNASeqReader* create(std::istream& stream, const std::map<std::string, std::string>* attrs=NULL);
 };
 
 //
@@ -103,7 +113,7 @@ public:
 // 
 class FASTQReader : public DNASeqReader {
 public:
-    FASTQReader(std::istream& stream, const void* extra=NULL) : DNASeqReader(stream, extra) {
+    FASTQReader(std::istream& stream, const std::map<std::string, std::string>* attrs=NULL) : DNASeqReader(stream, attrs) {
     }
     
     bool read(DNASeq& sequence);
@@ -119,7 +129,7 @@ public:
 // 
 class FASTAReader : public DNASeqReader {
 public:
-    FASTAReader(std::istream& stream, const void* extra=NULL) : DNASeqReader(stream, extra) {
+    FASTAReader(std::istream& stream, const std::map<std::string, std::string>* attrs=NULL) : DNASeqReader(stream, attrs) {
     }
 
     void reset() {

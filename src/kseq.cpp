@@ -95,13 +95,13 @@ std::ostream& operator << (std::ostream& os, const DNASeq& seq) {
     return os;
 }
 
-DNASeqReader* DNASeqReaderFactory::create(std::istream& stream, const void* extra) {
+DNASeqReader* DNASeqReaderFactory::create(std::istream& stream, const std::map<std::string, std::string>* attrs) {
     if (stream) {
         int c = stream.peek();
         if (c == '@') {
-            return new FASTQReader(stream, extra);
+            return new FASTQReader(stream, attrs);
         } else if (c == '>') {
-            return new FASTAReader(stream, extra);
+            return new FASTAReader(stream, attrs);
         }
     }
     return NULL;
