@@ -43,3 +43,5 @@ assemble_test_LDFLAGS=\
             ${BOOST_UNIT_TEST_FRAMEWORK_LIB}
 assemble_test_SOURCES=\
             assemble_test.cpp
+
+TESTS=${check_PROGRAMS}
