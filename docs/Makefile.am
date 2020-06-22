@@ -5,7 +5,11 @@ EXTRA_DIST=404.html \
         favicon.png \
         index.md \
         logo_with_text.png
-html-local:
+html-env:
+	bundle install --path=vendor/bundle
+html-local: html-env
 	bundle exec jekyll build
 clean-local:
 	rm -rf _site
+distclean-local:
+	rm -rf vendor
