@@ -1,3 +1,4 @@
+man_MANS=siga.1
 SUBDIRS=_layouts
 EXTRA_DIST=404.html \
         Gemfile \
