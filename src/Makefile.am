@@ -19,6 +19,7 @@ libsiga_la_LDFLAGS=\
             ${BOOST_IOSTREAMS_LIB} \
             ${BOOST_SYSTEM_LIB}
 libsiga_la_SOURCES=\
+            alphabet.h \
             asqg.cpp \
             asqg.h \
             bigraph.cpp \
@@ -45,8 +46,10 @@ libsiga_la_SOURCES=\
             overlap_builder.h \
             primer_screen.cpp \
             primer_screen.h \
+            quality.h \
             reads.cpp \
             reads.h \
+            rlstring.h \
             runner.h \
             sequence_process_framework.h \
             suffix_array.cpp \
@@ -73,6 +76,16 @@ siga_CXXFLAGS=\
             ${OPENMP_CFLAGS} \
             ${RAPIDJSON_CFLAGS} \
             ${TCMALLOC_CFLAGS}
+
+if HELP2MAN
+man_MANS=siga.1
+siga.1: siga${EXEEXT}
+	help2man -o siga.1 ./siga${EXEEXT}
+clean-local:
+	rm -rf siga.1
+else
+man_MANS=
+endif !HELP2MAN
 
 EXTRA_DIST=log4cxx.properties
 
