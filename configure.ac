@@ -14,6 +14,8 @@ AC_PROG_CC
 AM_PROG_AR
 AC_PROG_LIBTOOL 
 AC_OPENMP
+AC_CHECK_PROG([with_help2man], [help2man], [yes], [no])
+AM_CONDITIONAL([HELP2MAN], [test "x${with_help2man}" = "xyes"])
 AX_BOOST_BASE([1.41], [], AC_MSG_ERROR([Could not find a useful version of boost]))
 AX_BOOST_FILESYSTEM
 AX_BOOST_IOSTREAMS
@@ -25,7 +27,7 @@ AX_CXX_COMPILE_STDCXX_11([noext],[mandatory])
 PKG_CHECK_MODULES([RAPIDJSON], [RapidJSON >= 1.0.0])
 PKG_CHECK_MODULES([LOG4CXX], [liblog4cxx >= 0.10.0])
 AC_ARG_WITH([tcmalloc], AS_HELP_STRING([--with-tcmalloc], [Build with the `TCMalloc`]))
-AS_IF([test "x$with_tcmalloc" = "xyes"], [
+AS_IF([test "x${with_tcmalloc}" = "xyes"], [
     PKG_CHECK_MODULES([TCMALLOC], [libtcmalloc >= 2.1])
 ])
 

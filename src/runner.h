@@ -100,6 +100,7 @@ public:
         }
 
         std::cout << boost::format("%s version %s, report bugs to [%s]") % PACKAGE_NAME % PACKAGE_VERSION % PACKAGE_BUGREPORT << std::endl;
+        std::cout << std::endl;
         std::cout << boost::format("usage: %s <command> [<args>]") % PACKAGE_NAME << std::endl;
         std::cout << std::endl;
         std::cout << boost::format("The most commonly used %s commands are:") % PACKAGE_NAME << std::endl;
