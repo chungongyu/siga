@@ -57,5 +57,6 @@ AC_CONFIG_FILES([Makefile
                  m4/Makefile
                  src/Makefile
                  test/Makefile])
+AC_CONFIG_LINKS([docs/Gemfile:docs/Gemfile])
 AC_CONFIG_SUBDIRS()
 AC_OUTPUT

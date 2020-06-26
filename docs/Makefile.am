@@ -8,8 +8,7 @@ EXTRA_DIST=404.html \
 html-env:
 	bundle install --path=vendor/bundle
 html-local: html-env
-	bundle exec jekyll build
-
+	bundle exec jekyll build --source=${srcdir} --layouts=${srcdir}
 clean-local:
 	rm -rf _site
 distclean-local:
