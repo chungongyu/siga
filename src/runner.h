@@ -83,25 +83,10 @@ public:
         return false;
     }
 
-    int help(int argc, char* argv[]) const {
-        static std::string shortopt("vh");
-        static option longopts[] = {
-            {"version",     no_argument, NULL, 'v'}, 
-            {"help",        no_argument, NULL, 'h'}, 
-            {NULL, 0, NULL, 0}
-        };
-        int opt = -1;
-        while ((opt = getopt_long(argc, argv, shortopt.c_str(), longopts, NULL)) != -1) {
-            switch ((char)opt) {
-            case 'v':
-                std::cout << boost::format("%s version %s") % PACKAGE_NAME % PACKAGE_VERSION << std::endl;
-                return 256;
-            }
-        }
-
+    int help(int ret = 0) const {
         std::cout << boost::format("%s version %s, report bugs to [%s]") % PACKAGE_NAME % PACKAGE_VERSION % PACKAGE_BUGREPORT << std::endl;
         std::cout << std::endl;
-        std::cout << boost::format("usage: %s <command> [<args>]") % PACKAGE_NAME << std::endl;
+        std::cout << boost::format("Usage: %s <command> [<args>]") % PACKAGE_NAME << std::endl;
         std::cout << std::endl;
         std::cout << boost::format("The most commonly used %s commands are:") % PACKAGE_NAME << std::endl;
 
@@ -129,7 +114,27 @@ public:
         std::cout << std::endl;
         std::cout << boost::format("See '%s <command> -h' to read about a specific subcommand.") % PACKAGE_NAME << std::endl;
         std::cout << boost::format("Further help: %s") % PACKAGE_URL << std::endl;
-        return 256;
+
+        return ret;
+    }
+    int help(int argc, char* argv[]) const {
+        static std::string shortopt("vh");
+        static option longopts[] = {
+            {"version",     no_argument, NULL, 'v'}, 
+            {"help",        no_argument, NULL, 'h'}, 
+            {NULL, 0, NULL, 0}
+        };
+        int opt = -1;
+        while ((opt = getopt_long(argc, argv, shortopt.c_str(), longopts, NULL)) != -1) {
+            switch ((char)opt) {
+            case 'v':
+                std::cout << boost::format("%s version %s") % PACKAGE_NAME % PACKAGE_VERSION << std::endl;
+                return 0;
+            case 'h':
+                return help(0);
+            }
+        }
+        return help(1);
     }
 private:
     struct Cmp {

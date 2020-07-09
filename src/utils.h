@@ -1,7 +1,7 @@
 #ifndef utils_h_
 #define utils_h_
 
-#include <string>
+#include <cstring>
 
 #ifndef SIZEOF_BITS
 #define SIZEOF_BITS(x) (8 * sizeof(x))
