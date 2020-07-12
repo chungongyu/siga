@@ -63,7 +63,7 @@ public:
         std::ostream* out = &std::cout;
         if (options.find("out") != options.not_found()) {
             std::string file = options.get<std::string>("out");
-            out = new std::ofstream(file.c_str());
+            out = Utils::ofstream(file);
             LOG4CXX_INFO(logger, boost::format("output: %s") % file);
         }
 
@@ -134,12 +134,14 @@ private:
         for (const auto& file : inputs) {
             LOG4CXX_INFO(logger, boost::format("Processing %s") % file);
 
-            int r = 0;
+            int r = -1;
             if (file == "-") {
                 r = processSingleEnds(options, std::cin, output, stats);
             } else {
-                std::ifstream stream(file.c_str());
-                r = processSingleEnds(options, stream, output, stats);
+                std::shared_ptr<std::istream> stream(Utils::ifstream(file));
+                if (stream) {
+                    r = processSingleEnds(options, *stream, output, stats);
+                }
             }
             if (r != 0) {
                 LOG4CXX_ERROR(logger, boost::format("Failed to open input stream %s") % file);
@@ -182,9 +184,13 @@ private:
             std::string file2 = inputs[i++];
             LOG4CXX_INFO(logger, boost::format("Processing %s,%s") % file1 % file2);
 
-            std::ifstream stream1(file1.c_str()), stream2(file2.c_str());
-            std::shared_ptr<DNASeqReader> reader1(DNASeqReaderFactory::create(stream1));
-            std::shared_ptr<DNASeqReader> reader2(DNASeqReaderFactory::create(stream2));
+            std::shared_ptr<std::istream> stream1(Utils::ifstream(file1)), stream2(Utils::ifstream(file2));
+            if (!stream1 || !stream2) {
+                LOG4CXX_ERROR(logger, boost::format("Failed to read pair ends: %s,%s") % file1 % file2);
+                return -1;
+            }
+            std::shared_ptr<DNASeqReader> reader1(DNASeqReaderFactory::create(*stream1));
+            std::shared_ptr<DNASeqReader> reader2(DNASeqReaderFactory::create(*stream2));
             int r = processPairEnds(options, reader1.get(), reader2.get(), output, stats);
             if (r != 0) {
                 LOG4CXX_ERROR(logger, boost::format("Failed to process pair ends: %s,%s") % file1 % file2);
@@ -199,12 +205,14 @@ private:
         for (const auto& file : inputs) {
             LOG4CXX_INFO(logger, boost::format("Processing %s") % file);
 
-            int r = 0;
+            int r = -1;
             if (file == "-") {
                 r = processPairEnds(options, std::cin, std::cin, output, stats);
             } else {
-                std::ifstream stream(file.c_str());
-                r = processPairEnds(options, stream, stream, output, stats);
+                std::shared_ptr<std::istream> stream(Utils::ifstream(file));
+                if (stream) {
+                    r = processPairEnds(options, *stream, *stream, output, stats);
+                }
             }
             if (r != 0) {
                 LOG4CXX_ERROR(logger, boost::format("Failed to process pair ends: %s") % file);

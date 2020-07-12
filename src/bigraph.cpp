@@ -549,10 +549,9 @@ bool Bigraph::load(std::istream& stream, size_t minOverlap, bool allowContainmen
 }
 
 bool Bigraph::load(const std::string& filename, size_t minOverlap, bool allowContainments, size_t maxEdges, Bigraph* g) {
-    std::shared_ptr<std::streambuf> buf(ASQG::ifstreambuf(filename));
-    if (buf) {
-        std::istream stream(buf.get());
-        return load(stream, minOverlap, allowContainments, maxEdges, g);
+    std::shared_ptr<std::istream> stream(Utils::ifstream(filename));
+    if (stream) {
+        return load(*stream, minOverlap, allowContainments, maxEdges, g);
     }
     return false;
 }
@@ -602,10 +601,9 @@ bool Bigraph::save(std::ostream& stream, const Bigraph* g) {
 }
 
 bool Bigraph::save(const std::string& filename, const Bigraph* g) {
-    std::shared_ptr<std::streambuf> buf(ASQG::ofstreambuf(filename));
-    if (buf) {
-        std::ostream stream(buf.get());
-        return save(stream, g);
+    std::shared_ptr<std::ostream> stream(Utils::ofstream(filename));
+    if (stream) {
+        return save(*stream, g);
     }
     return false;
 }

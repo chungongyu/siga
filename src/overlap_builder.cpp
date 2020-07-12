@@ -348,13 +348,12 @@ public:
     }
 
     bool convert(const std::string& hits, std::ostream& asqg) const {
-        std::shared_ptr<std::streambuf> buf(ASQG::ifstreambuf(hits));
-        if (!buf) {
+        std::shared_ptr<std::istream> stream(Utils::ifstream(hits));
+        if (!stream) {
             LOG4CXX_ERROR(logger, boost::format("failed to read hits %s") % hits);
             return false;
         }
-        std::istream stream(buf.get());
-        return convert(stream, asqg);
+        return convert(*stream, asqg);
     }
 
     bool convert(std::istream& hits, std::ostream& asqg) const {
@@ -399,13 +398,12 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
 
     if (threads <= 1) { // single thread
         std::string hit = _prefix + HITS_EXT + GZIP_EXT;
-        std::shared_ptr<std::streambuf> buf(ASQG::ofstreambuf(hit));
-        if (!buf) {
+        std::shared_ptr<std::ostream> stream(Utils::ofstream(hit));
+        if (!stream) {
             LOG4CXX_ERROR(logger, boost::format("failed to create hits %s") % hit);
             return false;
         }
-        std::ostream stream(buf.get());
-        OverlapProcess proc(this, minOverlap, stream);
+        OverlapProcess proc(this, minOverlap, *stream);
         OverlapPostProcess postproc(output);
 
         SequenceProcessFramework::SerialWorker<
@@ -423,20 +421,17 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
         hits.push_back(hit);
     } else { // multi thread
 #ifdef _OPENMP
-        std::vector<std::shared_ptr<std::streambuf> > buflist(threads);
         std::vector<std::shared_ptr<std::ostream> > streamlist(threads);
         std::vector<OverlapProcess *> proclist(threads);
         for (size_t i = 0; i < threads; ++i) {
             std::string hit = boost::str(boost::format("%s-thread%d%s%s") % _prefix % i % HITS_EXT % GZIP_EXT);
-            std::shared_ptr<std::streambuf> buf(ASQG::ofstreambuf(hit));
-            if (!buf) {
+            std::shared_ptr<std::ostream> stream(Utils::ofstream(hit));
+            if (!stream) {
                 LOG4CXX_ERROR(logger, boost::format("failed to create hits %s") % hit);
                 return false;
             }
-            std::shared_ptr<std::ostream> stream(new std::ostream(buf.get()));
             proclist[i] = new OverlapProcess(this, minOverlap, *stream);
             streamlist[i] = stream;
-            buflist[i] = buf;
             hits.push_back(hit);
         }
         OverlapPostProcess postproc(output);
@@ -484,26 +479,27 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
 
 bool OverlapBuilder::build(const std::string& input, size_t minOverlap, const std::string& output, size_t threads, size_t batch, size_t* processed) const {
     // DNASeqReader
-    std::ifstream reads(input.c_str());
-    std::map<std::string, std::string> attrs = {
-        {"infile", input}
-    };
-    std::shared_ptr<DNASeqReader> reader(DNASeqReaderFactory::create(reads, &attrs));
+    std::shared_ptr<std::istream> reads(Utils::ifstream(input));
+    if (!reads) {
+        LOG4CXX_ERROR(logger, boost::format("Failed to read file %s") % input);
+        return false;
+    }
+    std::shared_ptr<DNASeqReader> reader(DNASeqReaderFactory::create(*reads));
     if (!reader) {
+        reader->setAttr("infile", input);
         LOG4CXX_ERROR(logger, boost::format("Failed to create DNASeqReader %s") % input);
         return false;
     }
 
     // ASQG
-    std::shared_ptr<std::streambuf> buf(ASQG::ofstreambuf(output));
-    if (!buf) {
+    std::shared_ptr<std::ostream> asqg(Utils::ofstream(output));
+    if (!asqg) {
         LOG4CXX_ERROR(logger, boost::format("Failed to create ASQG %s") % output);
         return false;
     }
-    std::ostream asqg(buf.get());
 
     // Build
-    return build(*reader, minOverlap, asqg, threads, batch, processed);
+    return build(*reader, minOverlap, *asqg, threads, batch, processed);
 }
 
 //
@@ -546,13 +542,12 @@ public:
     }
 
     bool convert(const std::string& hits, std::ostream& fasta, std::ostream& duplicates) const {
-        std::shared_ptr<std::streambuf> buf(ASQG::ifstreambuf(hits));
-        if (!buf) {
+        std::shared_ptr<std::istream> stream(Utils::ifstream(hits));
+        if (!stream) {
             LOG4CXX_ERROR(logger, boost::format("failed to read hits %s") % hits);
             return false;
         }
-        std::istream stream(buf.get());
-        return convert(stream, fasta, duplicates);
+        return convert(*stream, fasta, duplicates);
     }
 
     bool convert(std::istream& hits, std::ostream& fasta, std::ostream& duplicates) const {
@@ -607,13 +602,12 @@ bool OverlapBuilder::rmdup(DNASeqReader& reader, std::ostream& output, std::ostr
 
     if (threads <= 1) { // single thread
         std::string hit = _prefix + RMDUP_EXT + HITS_EXT + GZIP_EXT;
-        std::shared_ptr<std::streambuf> buf(ASQG::ofstreambuf(hit));
-        if (!buf) {
+        std::shared_ptr<std::ostream> stream(Utils::ofstream(hit));
+        if (!stream) {
             LOG4CXX_ERROR(logger, boost::format("failed to create hits %s") % hit);
             return false;
         }
-        std::ostream stream(buf.get());
-        DuplicateRemoveProcess proc(this, stream);
+        DuplicateRemoveProcess proc(this, *stream);
         DuplicateRemovePostProcess postproc;
 
         SequenceProcessFramework::SerialWorker<
@@ -664,21 +658,21 @@ bool OverlapBuilder::rmdup(const std::string& input, const std::string& output, 
     }
 
     // FASTA
-    std::ofstream fasta(output.c_str());
+    std::shared_ptr<std::ostream> fasta(Utils::ofstream(output));
     if (!fasta) {
         LOG4CXX_ERROR(logger, boost::format("Failed to create FASTA %s") % output);
         return false;
     }
 
     // DUPLICATES 
-    std::ofstream dup(duplicates.c_str());
+    std::shared_ptr<std::ostream> dup(Utils::ofstream(duplicates));
     if (!fasta) {
         LOG4CXX_ERROR(logger, boost::format("Failed to create dup FASTA %s") % duplicates);
         return false;
     }
 
     // Build
-    return rmdup(*reader, fasta, dup, threads, processed);
+    return rmdup(*reader, *fasta, *dup, threads, processed);
 }
 
 class IrreducibleBlockListExtractor {

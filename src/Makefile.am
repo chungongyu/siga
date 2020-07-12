@@ -56,6 +56,7 @@ libsiga_la_SOURCES=\
             suffix_array.h \
             suffix_array_builder.cpp \
             suffix_array_builder.h \
+            utils.cpp \
             utils.h
 
 bin_PROGRAMS=siga

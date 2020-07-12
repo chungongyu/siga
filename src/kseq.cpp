@@ -1,4 +1,5 @@
 #include "kseq.h"
+#include "utils.h"
 
 #include <fstream>
 #include <map>
@@ -95,13 +96,13 @@ std::ostream& operator << (std::ostream& os, const DNASeq& seq) {
     return os;
 }
 
-DNASeqReader* DNASeqReaderFactory::create(std::istream& stream, const std::map<std::string, std::string>* attrs) {
+DNASeqReader* DNASeqReaderFactory::create(std::istream& stream) {
     if (stream) {
         int c = stream.peek();
         if (c == '@') {
-            return new FASTQReader(stream, attrs);
+            return new FASTQReader(stream);
         } else if (c == '>') {
-            return new FASTAReader(stream, attrs);
+            return new FASTAReader(stream);
         }
     }
     return NULL;
@@ -218,8 +219,11 @@ bool ReadDNASequences(std::istream& stream, DNASeqList& sequences) {
 }
 
 bool ReadDNASequences(const std::string& file, DNASeqList& sequences) {
-    std::ifstream stream(file.c_str());
-    return ReadDNASequences(stream, sequences);
+    std::shared_ptr<std::istream> stream(Utils::ifstream(file));
+    if (stream) {
+        return ReadDNASequences(*stream, sequences);
+    }
+    return false;
 }
 
 bool ReadDNASequences(const std::vector<std::string>& filelist, DNASeqList& sequences) {

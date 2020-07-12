@@ -1,14 +1,9 @@
 #include "asqg.h"
-#include "constant.h"
-#include "utils.h"
 
 #include <cassert>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
-#include <boost/iostreams/device/file_descriptor.hpp>
-#include <boost/iostreams/filtering_streambuf.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
 
 #include <log4cxx/logger.h>
 
@@ -233,31 +228,5 @@ namespace ASQG {
             return RT_EDGE;
         }
         return RT_NONE;
-    }
-
-    std::streambuf* ifstreambuf(const std::string& filename) {
-        boost::iostreams::filtering_istreambuf* buf = new boost::iostreams::filtering_istreambuf();
-        try {
-            if (boost::algorithm::ends_with(filename, GZIP_EXT)) {
-                buf->push(boost::iostreams::gzip_decompressor());
-            }
-            buf->push(boost::iostreams::file_descriptor_source(filename));
-        } catch (...) {
-            SAFE_DELETE(buf);
-        }
-        return buf;
-    }
-
-    std::streambuf* ofstreambuf(const std::string& filename) {
-        boost::iostreams::filtering_ostreambuf* buf = new boost::iostreams::filtering_ostreambuf();
-        try {
-            if (boost::algorithm::ends_with(filename, GZIP_EXT)) {
-                buf->push(boost::iostreams::gzip_compressor());
-            }
-            buf->push(boost::iostreams::file_descriptor_sink(filename));
-        } catch (...) {
-            SAFE_DELETE(buf);
-        }
-        return buf;
     }
 };

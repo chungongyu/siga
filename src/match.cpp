@@ -3,6 +3,7 @@
 #include "fmindex.h"
 #include "kseq.h"
 #include "runner.h"
+#include "utils.h"
 
 #include <fstream>
 #include <iostream>
@@ -36,13 +37,21 @@ public:
         FMIndex fmi;
         if (FMIndex::load(prefix + BWT_EXT, fmi)) {
             for (const auto& input : arguments) {
-                std::ifstream stream(input.c_str());
-                std::shared_ptr<DNASeqReader> reader(DNASeqReaderFactory::create(stream));
-                if (reader) {
-                    DNASeq read;
-                    while (reader->read(read)) {
-                        std::cout << boost::format("%s\t%s\t%d\n") % read.name % read.seq % (FMIndex::Interval::occurrences(read.seq, &fmi) + FMIndex::Interval::occurrences(make_reverse_complement_dna_copy(read.seq), &fmi));
-                    }
+                std::shared_ptr<std::istream> stream(Utils::ifstream(input));
+                if (!stream) {
+                    LOG4CXX_ERROR(logger, boost::format("Failed to read file %s") % input);
+                    r = -1;
+                    break;
+                }
+                std::shared_ptr<DNASeqReader> reader(DNASeqReaderFactory::create(*stream));
+                if (!reader) {
+                    LOG4CXX_ERROR(logger, boost::format("Failed to create DNASeqReader %s") % input);
+                    r = -1;
+                    break;
+                }
+                DNASeq read;
+                while (reader->read(read)) {
+                    std::cout << boost::format("%s\t%s\t%d\n") % read.name % read.seq % (FMIndex::Interval::occurrences(read.seq, &fmi) + FMIndex::Interval::occurrences(make_reverse_complement_dna_copy(read.seq), &fmi));
                 }
             }
         } else {
