@@ -89,14 +89,16 @@ private:
         }
 
         int stats(const std::string& file, JSONWriter* writer) const {
-            int r = 0;
+            int r = -1;
 
             LOG4CXX_INFO(logger, boost::format("Processing %s") % file);
             if (file == "-") {
                 r = stats(std::cin, writer);
             } else {
-                std::ifstream stream(file.c_str());
-                r = stats(stream, writer);
+                std::shared_ptr<std::istream> stream(Utils::ifstream(file));
+                if (stream) {
+                    r = stats(*stream, writer);
+                }
             }
             if (r != 0) {
                 LOG4CXX_ERROR(logger, boost::format("Failed to open input stream %s") % file);

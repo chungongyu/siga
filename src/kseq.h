@@ -53,11 +53,8 @@ bool ReadDNASequences(const std::vector<std::string>& filelist, DNASeqList& sequ
 
 class DNASeqReader {
 public:
-    DNASeqReader(std::istream& stream, const std::map<std::string, std::string>* attrs=NULL) : _stream(stream) {
-        _pos = stream.tellg();
-        if (attrs != NULL) {
-            _attrs = *attrs;
-        }
+    DNASeqReader(std::istream& stream) : _stream(stream) {
+        _pos = 0;//_stream.tellg();
     }
     virtual ~DNASeqReader() {
     }
@@ -78,6 +75,9 @@ public:
         }
         return defval;
     }
+    void setAttr(const std::string& key, const std::string& val) {
+        _attrs[key] = val;
+    }
 protected:
     std::istream& _stream;
     size_t _pos;
@@ -86,7 +86,7 @@ protected:
 
 class DNASeqReaderFactory {
 public:
-    static DNASeqReader* create(std::istream& stream, const std::map<std::string, std::string>* attrs=NULL);
+    static DNASeqReader* create(std::istream& stream);
 };
 
 //
@@ -113,7 +113,7 @@ public:
 // 
 class FASTQReader : public DNASeqReader {
 public:
-    FASTQReader(std::istream& stream, const std::map<std::string, std::string>* attrs=NULL) : DNASeqReader(stream, attrs) {
+    FASTQReader(std::istream& stream) : DNASeqReader(stream) {
     }
     
     bool read(DNASeq& sequence);
@@ -129,7 +129,7 @@ public:
 // 
 class FASTAReader : public DNASeqReader {
 public:
-    FASTAReader(std::istream& stream, const std::map<std::string, std::string>* attrs=NULL) : DNASeqReader(stream, attrs) {
+    FASTAReader(std::istream& stream) : DNASeqReader(stream) {
     }
 
     void reset() {

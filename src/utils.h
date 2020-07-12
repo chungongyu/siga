@@ -1,7 +1,8 @@
 #ifndef utils_h_
 #define utils_h_
 
-#include <cstring>
+#include <sstream>
+#include <string>
 
 #ifndef SIZEOF_BITS
 #define SIZEOF_BITS(x) (8 * sizeof(x))
@@ -27,5 +28,10 @@
 #ifndef SAFE_DELETE_ARRAY
 #define SAFE_DELETE_ARRAY(x) if (x != NULL) {delete[] x; x = NULL;}
 #endif
+
+namespace Utils {
+    std::istream* ifstream(const std::string& filename);
+    std::ostream* ofstream(const std::string& filename);
+};
 
 #endif // utils_h_

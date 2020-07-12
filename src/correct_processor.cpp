@@ -316,13 +316,21 @@ bool CorrectProcessor::process(const FMIndex& index, DNASeqReader& reader, std::
 bool CorrectProcessor::process(const FMIndex& index, const std::string& input, const std::string& output, size_t threads, size_t* processed) const {
 
     // DNASeqReader
-    std::ifstream reads(input);
-    std::shared_ptr<DNASeqReader> reader(DNASeqReaderFactory::create(reads));
+    std::shared_ptr<std::istream> reads(Utils::ifstream(input));
+    if (!reads) {
+        LOG4CXX_ERROR(logger, boost::format("Failed to read file %s") % input);
+        return false;
+    }
+    std::shared_ptr<DNASeqReader> reader(DNASeqReaderFactory::create(*reads));
     if (!reader) {
         LOG4CXX_ERROR(logger, boost::format("Failed to create DNASeqReader %s") % input);
         return false;
     }
 
-    std::ofstream out(output);
-    return process(index, *reader, out, threads, processed);
+    std::shared_ptr<std::ostream> out(Utils::ofstream(output));
+    if (!out) {
+        LOG4CXX_ERROR(logger, boost::format("Failed to create DNASeqWriter %s") % output);
+        return false;
+    }
+    return process(index, *reader, *out, threads, processed);
 }

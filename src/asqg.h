@@ -172,8 +172,6 @@ namespace ASQG {
     };
 
     RecordType recordtype(const std::string& record);
-    std::streambuf* ifstreambuf(const std::string& filename);
-    std::streambuf* ofstreambuf(const std::string& filename);
 };
 
 #endif // asqg_h_
