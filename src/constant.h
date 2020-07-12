@@ -10,6 +10,7 @@
 #define ASQG_EXT  ".asqg"
 #define HITS_EXT  ".hits"
 #define GZIP_EXT  ".gz"
+#define BZIP_EXT  ".bz2"
 #define RMDUP_EXT ".rmdup"
 #define EC_EXT    ".ec"
 #define FA_EXT    ".fa"

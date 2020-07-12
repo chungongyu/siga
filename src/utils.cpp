@@ -3,8 +3,8 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/iostreams/device/file_descriptor.hpp>
-#include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/filter/bzip2.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 
 #include <log4cxx/logger.h>
@@ -17,6 +17,8 @@ namespace Utils {
         try {
             if (boost::algorithm::ends_with(filename, GZIP_EXT)) {
                 stream->push(boost::iostreams::gzip_decompressor());
+            } else if (boost::algorithm::ends_with(filename, BZIP_EXT)) {
+                stream->push(boost::iostreams::bzip2_decompressor());
             }
             stream->push(boost::iostreams::file_descriptor_source(filename));
         } catch (...) {
@@ -29,6 +31,8 @@ namespace Utils {
         try {
             if (boost::algorithm::ends_with(filename, GZIP_EXT)) {
                 stream->push(boost::iostreams::gzip_compressor());
+            } else if (boost::algorithm::ends_with(filename, BZIP_EXT)) {
+                stream->push(boost::iostreams::bzip2_compressor());
             }
             stream->push(boost::iostreams::file_descriptor_sink(filename));
         } catch (...) {
