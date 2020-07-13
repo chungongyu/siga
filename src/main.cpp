@@ -14,6 +14,10 @@
 static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.main"));
 
 int main(int argc, char* argv[]) {
+    // Synchronizing iostreams with printf-style I/O can be costly. 
+    // std::cin and std::cout are by default synchronized with printf.
+    std::ios::sync_with_stdio(false);
+
     if (argc < 2) {
         return RunnerManager::get()->help(argc, argv);
     }
