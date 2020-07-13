@@ -68,7 +68,7 @@ public:
         }
 
         // process
-        if (*out) {
+        if (out != NULL) {
             Statistics stats;
             if ((r = processReads(options, filelist, *out, stats)) == 0) {
                 // report statistics
