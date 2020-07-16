@@ -67,6 +67,24 @@ std::string make_reverse_complement_dna_copy(const std::string& sequence) {
     return complement;
 }
 
+void make_seq_name(std::string& name, std::string& comment) {
+    size_t i = name.find_first_of(" \t");
+    if (i != std::string::npos) {
+        comment = name.substr(i + 1);
+        name.resize(i);
+    } else {
+        comment.clear();
+    }
+}
+
+DNASeq::DNASeq(const std::string& name, const std::string& seq) : name(name), seq(seq) {
+    make_seq_name(this->name, this->comment);
+}
+
+DNASeq::DNASeq(const std::string& name, const std::string& seq, const std::string& quality) : name(name), seq(seq), quality(quality) {
+    make_seq_name(this->name, this->comment);
+}
+
 void DNASeq::make_complement() {
     make_complement_dna(seq);
 }
@@ -85,10 +103,18 @@ void DNASeq::make_reverse_complement() {
 
 std::ostream& operator << (std::ostream& os, const DNASeq& seq) {
     if (seq.quality.empty()) {
-        os << '>' << seq.name << '\n';
+        os << '>' << seq.name;
+        if (!seq.comment.empty()) {
+            os << ' ' << seq.comment;
+        }
+        os << '\n';
         os << seq.seq << '\n';
     } else {
-        os << '@' << seq.name << '\n';
+        os << '@' << seq.name;
+        if (!seq.comment.empty()) {
+            os << ' ' << seq.comment;
+        }
+        os << '\n';
         os << seq.seq << '\n';
         os << '+' << '\n';
         os << seq.quality << '\n';
@@ -145,10 +171,7 @@ bool FASTQReader::read(DNASeq& sequence) {
                 if (buf.length() == sequence.seq.length()) {
                     sequence.quality = buf;
                     // name
-                    size_t i = sequence.name.find_first_of(" \t");
-                    if (i != std::string::npos) {
-                        sequence.name.resize(i);
-                    }
+                    make_seq_name(sequence.name, sequence.comment);
                     return true;
                 } else {
                     LOG4CXX_WARN(logger, boost::format("fastq=>length of sequence and quality are not equal: %s") % buf);
@@ -172,11 +195,8 @@ bool FASTAReader::read(DNASeq& sequence) {
             if (boost::algorithm::starts_with(line, ">")) {
                 if (!seq.empty() && !_name.empty()) {
                     // name
-                    size_t i = _name.find_first_of(" \t");
-                    if (i != std::string::npos) {
-                        _name.resize(i);
-                    }
                     sequence.name = _name;
+                    make_seq_name(sequence.name, sequence.comment);
                     sequence.seq = seq;
                     _name = line.substr(1);
                     return true;
@@ -193,11 +213,8 @@ bool FASTAReader::read(DNASeq& sequence) {
         // the last one
         if (!seq.empty() && !_name.empty()) {
             // name
-            size_t i = _name.find_first_of(" \t");
-            if (i != std::string::npos) {
-                _name.resize(i);
-            }
             sequence.name = _name;
+            make_seq_name(sequence.name, sequence.comment);
             sequence.seq = seq;
             return true;
         }
