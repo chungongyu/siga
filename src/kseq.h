@@ -22,13 +22,14 @@ std::string make_reverse_complement_dna_copy(const std::string& dna);
 class DNASeq {
 public:
     DNASeq() {}
-    DNASeq(const std::string& name, const std::string& seq) : name(name), seq(seq) {}
-    DNASeq(const std::string& name, const std::string& seq, const std::string& quality) : name(name), seq(seq), quality(quality) {}
+    DNASeq(const std::string& name, const std::string& seq);
+    DNASeq(const std::string& name, const std::string& seq, const std::string& quality);
     virtual ~DNASeq() {}
 
     std::string name;
     std::string seq;
     std::string quality;
+    std::string comment;
 
     int score(size_t i) const {
         if (!quality.empty()) {
