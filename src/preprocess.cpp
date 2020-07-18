@@ -131,16 +131,19 @@ private:
     }
 
     int processSingleEnds(const Properties& options, const std::vector<std::string>& inputs, std::ostream& output, Statistics& stats) {
+        if (options.find("with-index") != options.not_found()) {
+            return processSingleEndsWithIndex(options, inputs, output, stats);
+        }
         for (const auto& file : inputs) {
             LOG4CXX_INFO(logger, boost::format("Processing %s") % file);
 
             int r = -1;
             if (file == "-") {
-                r = processSingleEnds(options, std::cin, output, stats);
+                r = processSingleEnds(options, std::cin, NULL, output, stats);
             } else {
                 std::shared_ptr<std::istream> stream(Utils::ifstream(file));
                 if (stream) {
-                    r = processSingleEnds(options, *stream, output, stats);
+                    r = processSingleEnds(options, *stream, NULL, output, stats);
                 }
             }
             if (r != 0) {
@@ -151,16 +154,57 @@ private:
         return 0;
     }
 
-    int processSingleEnds(const Properties& options, std::istream& input, std::ostream& output, Statistics& stats) {
-        std::shared_ptr<DNASeqReader> reader(DNASeqReaderFactory::create(input));
-        return processSingleEnds(options, reader.get(), output, stats);
+    int processSingleEndsWithIndex(const Properties& options, const std::vector<std::string>& inputs, std::ostream& output, Statistics& stats) {
+        if (inputs.size() % 2 != 0) {
+            LOG4CXX_ERROR(logger, boost::format("An even number of files must be given for pe-mode=0 with index files"));
+            return -1;
+        }
+        size_t i = 0;
+        while (i < inputs.size()) {
+            std::string index = inputs[i++];
+            std::string file1 = inputs[i++];
+            LOG4CXX_INFO(logger, boost::format("Processing %s with index %s") % file1 % index);
+            int r = -1;
+
+            std::istream* indexer = &std::cin;
+            if (index != "-") {
+                indexer = Utils::ifstream(index);
+            }
+            if (indexer != NULL) {
+                if (file1 == "-") {
+                    r = processSingleEnds(options, std::cin, indexer, output, stats);
+                } else {
+                    std::shared_ptr<std::istream> stream(Utils::ifstream(file1));
+                    if (stream) {
+                        r = processSingleEnds(options, *stream, indexer, output, stats);
+                    }
+                }
+                if (indexer != &std::cin) {
+                    SAFE_DELETE(indexer);
+                }
+            }
+            if (r != 0) {
+                LOG4CXX_ERROR(logger, boost::format("Failed to process single ends: %s with index: %s") % file1 % index);
+                return r;
+            }
+        }
+        return 0;
     }
 
-    int processSingleEnds(const Properties& options, DNASeqReader* reader, std::ostream& output, Statistics& stats) {
+    int processSingleEnds(const Properties& options, std::istream& input, std::istream* index, std::ostream& output, Statistics& stats) {
+        std::shared_ptr<DNASeqReader> reader(DNASeqReaderFactory::create(input));
+        std::shared_ptr<DNASeqReader> indexer;
+        if (index != NULL) {
+            indexer.reset(DNASeqReaderFactory::create(*index));
+        }
+        return processSingleEnds(options, reader.get(), indexer.get(), output, stats);
+    }
+
+    int processSingleEnds(const Properties& options, DNASeqReader* reader, DNASeqReader* indexer, std::ostream& output, Statistics& stats) {
         if (reader) {
-            DNASeq read;
-            while (reader->read(read)) {
-                if (processRead(options, read, stats) && samplePass(options)) {
+            DNASeq read, index;
+            while (reader->read(read) && (indexer == NULL || indexer->read(index))) {
+                if (processRead(options, read, (indexer != NULL ? &index : NULL), stats) && samplePass(options)) {
                     output << read;
                     // Statistics
                     ++stats.numReadsKept;
@@ -173,6 +217,9 @@ private:
     }
 
     int processPairEnds1(const Properties& options, const std::vector<std::string>& inputs, std::ostream& output, Statistics& stats) {
+        if (options.find("with-index") != options.not_found()) {
+            return processPairEnds1WithIndex(options, inputs, output, stats);
+        }
         if (inputs.size() % 2 != 0) {
             LOG4CXX_ERROR(logger, boost::format("An even number of files must be given for pe-mode 1"));
             return -1;
@@ -189,9 +236,7 @@ private:
                 LOG4CXX_ERROR(logger, boost::format("Failed to read pair ends: %s,%s") % file1 % file2);
                 return -1;
             }
-            std::shared_ptr<DNASeqReader> reader1(DNASeqReaderFactory::create(*stream1));
-            std::shared_ptr<DNASeqReader> reader2(DNASeqReaderFactory::create(*stream2));
-            int r = processPairEnds(options, reader1.get(), reader2.get(), output, stats);
+            int r = processPairEnds(options, *stream1, *stream2, NULL, output, stats);
             if (r != 0) {
                 LOG4CXX_ERROR(logger, boost::format("Failed to process pair ends: %s,%s") % file1 % file2);
                 return r;
@@ -201,17 +246,46 @@ private:
         return 0;
     }
 
+    int processPairEnds1WithIndex(const Properties& options, const std::vector<std::string>& inputs, std::ostream& output, Statistics& stats) {
+        if (inputs.size() % 3 != 0) {
+            LOG4CXX_ERROR(logger, boost::format("An odd number of files must be given for pe-mode=1 with index files"));
+            return -1;
+        }
+        size_t i = 0;
+        while (i < inputs.size()) {
+            std::string index = inputs[i++];
+            std::string file1 = inputs[i++];
+            std::string file2 = inputs[i++];
+            LOG4CXX_INFO(logger, boost::format("Processing %s,%s with index %s") % file1 % file2 % index);
+
+            std::shared_ptr<std::istream> indexer(Utils::ifstream(index)), stream1(Utils::ifstream(file1)), stream2(Utils::ifstream(file2));
+            if (!indexer || !stream1 || !stream2) {
+                LOG4CXX_ERROR(logger, boost::format("Failed to read pair ends: %s,%s with index: %s") % file1 % file2 % index);
+                return -1;
+            }
+            int r = processPairEnds(options, *stream1, *stream2, indexer.get(), output, stats);
+            if (r != 0) {
+                LOG4CXX_ERROR(logger, boost::format("Failed to process pair ends: %s,%s with index: %s") % file1 % file2 % index);
+                return r;
+            }
+        }
+        return 0;
+    }
+
     int processPairEnds2(const Properties& options, const std::vector<std::string>& inputs, std::ostream& output, Statistics& stats) {
+        if (options.find("with-index") != options.not_found()) {
+            return processPairEnds2WithIndex(options, inputs, output, stats);
+        }
         for (const auto& file : inputs) {
             LOG4CXX_INFO(logger, boost::format("Processing %s") % file);
 
             int r = -1;
             if (file == "-") {
-                r = processPairEnds(options, std::cin, std::cin, output, stats);
+                r = processPairEnds(options, std::cin, std::cin, NULL, output, stats);
             } else {
                 std::shared_ptr<std::istream> stream(Utils::ifstream(file));
                 if (stream) {
-                    r = processPairEnds(options, *stream, *stream, output, stats);
+                    r = processPairEnds(options, *stream, *stream, NULL, output, stats);
                 }
             }
             if (r != 0) {
@@ -222,18 +296,59 @@ private:
         return 0;
     }
 
-    int processPairEnds(const Properties& options, std::istream& input1, std::istream& input2, std::ostream& output, Statistics& stats) {
-        std::shared_ptr<DNASeqReader> reader1(DNASeqReaderFactory::create(input1));
-        std::shared_ptr<DNASeqReader> reader2(DNASeqReaderFactory::create(input2));
-        return processPairEnds(options, reader1.get(), reader2.get(), output, stats);
+    int processPairEnds2WithIndex(const Properties& options, const std::vector<std::string>& inputs, std::ostream& output, Statistics& stats) {
+        if (inputs.size() % 2 != 0) {
+            LOG4CXX_ERROR(logger, boost::format("An even number of files must be given for pe-mode=2 with index"));
+            return -1;
+        }
+        size_t i = 0;
+        while (i < inputs.size()) {
+            std::string index = inputs[i++];
+            std::string file1 = inputs[i++];
+            LOG4CXX_INFO(logger, boost::format("Processing %s with index %s") % file1 % index);
+
+            int r = -1;
+            std::istream* indexer = &std::cin;
+            if (index != "-") {
+                indexer = Utils::ifstream(index);
+            }
+            if (indexer != NULL) {
+                if (file1 == "-") {
+                    r = processPairEnds(options, std::cin, std::cin, indexer, output, stats);
+                } else {
+                    std::shared_ptr<std::istream> stream(Utils::ifstream(file1));
+                    if (stream) {
+                        r = processPairEnds(options, *stream, *stream, indexer, output, stats);
+                    }
+                }
+                if (indexer != &std::cin) {
+                    SAFE_DELETE(indexer);
+                }
+            }
+            if (r != 0) {
+                LOG4CXX_ERROR(logger, boost::format("Failed to process pair ends: %s with index: %s") % file1 % index);
+                return r;
+            }
+        }
+        return 0;
     }
 
-    int processPairEnds(const Properties& options, DNASeqReader* reader1, DNASeqReader* reader2, std::ostream& output, Statistics& stats) {
+    int processPairEnds(const Properties& options, std::istream& input1, std::istream& input2, std::istream* index, std::ostream& output, Statistics& stats) {
+        std::shared_ptr<DNASeqReader> reader1(DNASeqReaderFactory::create(input1));
+        std::shared_ptr<DNASeqReader> reader2(DNASeqReaderFactory::create(input2));
+        std::shared_ptr<DNASeqReader> indexer;
+        if (index != NULL) {
+            indexer.reset(DNASeqReaderFactory::create(*index));
+        }
+        return processPairEnds(options, reader1.get(), reader2.get(), indexer.get(), output, stats);
+    }
+
+    int processPairEnds(const Properties& options, DNASeqReader* reader1, DNASeqReader* reader2, DNASeqReader* indexer, std::ostream& output, Statistics& stats) {
         if (reader1 != NULL && reader2 != NULL) {
             std::string orientation = options.get("pe-orientation", "fr");
 
-            DNASeq read1, read2;
-            while (reader1->read(read1) && reader2->read(read2)) {
+            DNASeq read1, read2, index;
+            while (reader1->read(read1) && reader2->read(read2) && (indexer == NULL || indexer->read(index))) {
                 // If the names of the records are the same, append a /1 and /2 to them
                 if (read1.name == read2.name) {
                     read1.name += "/1";
@@ -252,8 +367,8 @@ private:
                     stats.numInvalidPE += 2;
                 }
 
-                bool passed1 = processRead(options, read1, stats);
-                bool passed2 = processRead(options, read2, stats);
+                bool passed1 = processRead(options, read1, (indexer != NULL ? &index : NULL), stats);
+                bool passed2 = processRead(options, read2, (indexer != NULL ? &index : NULL), stats);
                 if (passed1 && passed2 && samplePass(options)) {
                     if (boost::algorithm::iequals(orientation, "fr")) {
                         read2.make_reverse_complement();
@@ -271,10 +386,17 @@ private:
         return -1;
     }
 
-    bool processRead(const Properties& options, DNASeq& record, Statistics& stats) const {
+    bool processRead(const Properties& options, DNASeq& record, DNASeq* index, Statistics& stats) const {
         // Statistics
         ++stats.numReadsRead;
         stats.numBasesRead += record.seq.length();
+
+        if (index != NULL) {
+            if (!record.comment.empty()) {
+                record.comment = " ";
+            }
+            record.comment = boost::str(boost::format("%sBX:Z:%s") % record.comment % index->seq);
+        }
 
         // Ensure sequence is entirely ACGT
         if (record.seq.find_first_not_of("ACGT") != std::string::npos) {
@@ -428,6 +550,7 @@ private:
                 "                                       read in READS2. The paired reads will be interleaved in the output file\n"
                 "                                       2 - reads are paired and the records are interleaved within a single file.\n"
                 "          --pe-orientation=STR         orientation of reads for paired-end reads. orientation = fr(default), rf, ff.\n"
+                "          --with-index                 specifies the index file in fasta/fastq format.\n"
                 "\n"
                 "Conversions/Filtering:\n"
                 "          --phred64                    convert quality values from phred-64 to phred-33.\n"
@@ -457,12 +580,13 @@ private:
 };
 
 static const std::string shortopts = "c:s:o:p:q:f:m:h";
-enum { OPT_HELP = 1, OPT_PE_MODE, OPT_PE_ORIENTATION, OPT_PHRED64, OPT_HARD_CLIP, OPT_SAMPLE_RATE, OPT_NO_PRIMER_CHECK };
+enum { OPT_HELP = 1, OPT_PE_MODE, OPT_WITH_IDX, OPT_PE_ORIENTATION, OPT_PHRED64, OPT_HARD_CLIP, OPT_SAMPLE_RATE, OPT_NO_PRIMER_CHECK };
 static const option longopts[] = {
     {"log4cxx",             required_argument,  NULL, 'c'}, 
     {"ini",                 required_argument,  NULL, 's'}, 
     {"out",                 required_argument,  NULL, 'o'}, 
     {"pe-mode",             required_argument,  NULL, OPT_PE_MODE}, 
+    {"with-index",          no_argument,        NULL, OPT_WITH_IDX}, 
     {"pe-orientation",      required_argument,  NULL, OPT_PE_ORIENTATION}, 
     {"phred64",             no_argument,        NULL, OPT_PHRED64}, 
     {"quality-trim",        required_argument,  NULL, 'q'}, 

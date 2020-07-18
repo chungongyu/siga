@@ -100,7 +100,7 @@ bool BigraphWalk::hasLink(const Vertex* v1, const Vertex* v2, int distance, Edge
     assert(distance >= 0);
     std::string seq1 = v1->seq(), seq2 = v2->seq();
     if (comp == Edge::EC_REVERSE) {
-        make_reverse_complement_dna(seq2);
+        make_dna_reverse_complement(seq2);
     }
     return (
                 dir == Edge::ED_SENSE && distance < seq1.length() && boost::algorithm::starts_with(seq2, seq1.substr(distance))

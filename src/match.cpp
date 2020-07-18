@@ -51,7 +51,7 @@ public:
                 }
                 DNASeq read;
                 while (reader->read(read)) {
-                    std::cout << boost::format("%s\t%s\t%d\n") % read.name % read.seq % (FMIndex::Interval::occurrences(read.seq, &fmi) + FMIndex::Interval::occurrences(make_reverse_complement_dna_copy(read.seq), &fmi));
+                    std::cout << boost::format("%s\t%s\t%d\n") % read.name % read.seq % (FMIndex::Interval::occurrences(read.seq, &fmi) + FMIndex::Interval::occurrences(make_dna_reverse_complement_copy(read.seq), &fmi));
                 }
             }
         } else {

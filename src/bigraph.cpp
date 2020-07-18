@@ -26,7 +26,7 @@ std::string Edge::label() const {
     const std::string& seq = _end->seq();
     std::string label = seq.substr(unmatched.interval.start, unmatched.length());
     if (comp() == EC_REVERSE) {
-        make_reverse_complement_dna(label);
+        make_dna_reverse_complement(label);
     }
     return label;
 }
@@ -60,7 +60,7 @@ void Edge::validate() const {
     std::string m1 = v1.substr(_coord.interval.start, _coord.length());
     std::string m2 = v2.substr(_twin->_coord.interval.start, _twin->_coord.length());
     if (_comp == EC_REVERSE) {
-        make_reverse_complement_dna(m2);
+        make_dna_reverse_complement(m2);
     }
     if (m1 != m2) {
         LOG4CXX_ERROR(logger, "Error, matching strings are not the same length");

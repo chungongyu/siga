@@ -8,13 +8,13 @@
 
 #include "quality.h"
 
-char make_complement_dna(char c);
-void make_complement_dna(std::string& dna);
-std::string make_complement_dna_copy(const std::string& dna);
-void make_reverse_dna(std::string& dna);
-std::string make_reverse_dna_copy(const std::string& dna);
-void make_reverse_complement_dna(std::string& dna);
-std::string make_reverse_complement_dna_copy(const std::string& dna);
+char make_dna_complement(char c);
+void make_dna_complement(std::string& dna);
+std::string make_dna_complement_copy(const std::string& dna);
+void make_dna_reverse(std::string& dna);
+std::string make_dna_reverse_copy(const std::string& dna);
+void make_dna_reverse_complement(std::string& dna);
+std::string make_dna_reverse_complement_copy(const std::string& dna);
 
 //
 // DNASeq represents a DNA sequence.

@@ -790,7 +790,7 @@ private:
         assert(blocks != NULL);
         auto i = blocks->begin();
         while (i != blocks->end()) {
-            char b = i->af.test(AlignFlags::QUERYCOMP_BIT) ? make_complement_dna(c) : c;
+            char b = i->af.test(AlignFlags::QUERYCOMP_BIT) ? make_dna_complement(c) : c;
             i->capped.updateR(b, i->index(_fmi, _rfmi));
 
             // remove the block from the list if its no longer valid
@@ -1092,13 +1092,13 @@ OverlapResult OverlapBuilder::overlap(const DNASeq& read, size_t minOverlap, Ove
     // Match the suffix of seq to prefixes
     finder.find(seq, kSuffixPrefixAF, &suffixfwd, &containfwd, &result);
     if (_rc) {
-        finder.find(make_reverse_complement_dna_copy(seq), kPrefixPrefixAF, &prefixfwd, &containfwd, &result);
+        finder.find(make_dna_reverse_complement_copy(seq), kPrefixPrefixAF, &prefixfwd, &containfwd, &result);
     }
 
     // Match the prefix of seq to suffixes
-    rfinder.find(make_reverse_dna_copy(seq), kPrefixSuffixAF, &prefixrev, &containrev, &result);
+    rfinder.find(make_dna_reverse_copy(seq), kPrefixSuffixAF, &prefixrev, &containrev, &result);
     if (_rc) {
-        rfinder.find(make_complement_dna_copy(seq), kSuffixSuffixAF, &suffixrev, &containrev, &result);
+        rfinder.find(make_dna_complement_copy(seq), kSuffixSuffixAF, &suffixrev, &containrev, &result);
     }
 
     // Remove submaximal blocks for each block list including fully contained blocks
@@ -1158,7 +1158,7 @@ OverlapResult OverlapBuilder::duplicate(const DNASeq& read, OverlapBlockList* bl
     OverlapBlockFinder finder(_fmi, _rfmi, minOverlap), rfinder(_rfmi, _fmi, minOverlap);
 
     finder.find(seq, kSuffixPrefixAF, NULL, blocks, &result);
-    rfinder.find(make_complement_dna_copy(seq), kSuffixSuffixAF, NULL, blocks, &result);
+    rfinder.find(make_dna_complement_copy(seq), kSuffixSuffixAF, NULL, blocks, &result);
 
     return result;
 }
