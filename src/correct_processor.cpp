@@ -191,7 +191,7 @@ private:
         size_t bestCount = 0;
         char bestBase = '$';
 
-        LOG4CXX_DEBUG(logger, boost::format("baseIdx: %d kmerIdx: %d %s %s") % baseIdx % kmerIdx % kmer % make_reverse_complement_dna_copy(kmer));
+        LOG4CXX_DEBUG(logger, boost::format("baseIdx: %d kmerIdx: %d %s %s") % baseIdx % kmerIdx % kmer % make_dna_reverse_complement_copy(kmer));
 
         for (size_t i = 0; i < DNAAlphabet::size; ++i) {
             char c = DNAAlphabet::DNA[i];

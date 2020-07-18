@@ -14,7 +14,7 @@
 
 static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.DNASeq"));
 
-char make_complement_dna(char c) {
+char make_dna_complement(char c) {
     static std::map<char, char> mapping = {
         {'A', 'T'},
         {'C', 'G'},
@@ -25,7 +25,7 @@ char make_complement_dna(char c) {
     return mapping[c];
 }
 
-void make_complement_dna(std::string& sequence) {
+void make_dna_complement(std::string& sequence) {
     static std::map<char, char> mapping = {
         {'A', 'T'},
         {'C', 'G'},
@@ -40,30 +40,30 @@ void make_complement_dna(std::string& sequence) {
     }
 }
 
-std::string make_complement_dna_copy(const std::string& sequence) {
+std::string make_dna_complement_copy(const std::string& sequence) {
     std::string complement = sequence;
-    make_complement_dna(complement);
+    make_dna_complement(complement);
     return complement;
 }
 
-void make_reverse_dna(std::string& sequence) {
+void make_dna_reverse(std::string& sequence) {
     std::reverse(sequence.begin(), sequence.end());
 }
 
-std::string make_reverse_dna_copy(const std::string& sequence) {
+std::string make_dna_reverse_copy(const std::string& sequence) {
     std::string reverse = sequence;
-    make_reverse_dna(reverse);
+    make_dna_reverse(reverse);
     return reverse;
 }
 
-void make_reverse_complement_dna(std::string& sequence) {
-    make_complement_dna(sequence);
-    make_reverse_dna(sequence);
+void make_dna_reverse_complement(std::string& sequence) {
+    make_dna_complement(sequence);
+    make_dna_reverse(sequence);
 }
 
-std::string make_reverse_complement_dna_copy(const std::string& sequence) {
-    std::string complement = make_complement_dna_copy(sequence);
-    make_reverse_dna(complement);
+std::string make_dna_reverse_complement_copy(const std::string& sequence) {
+    std::string complement = make_dna_complement_copy(sequence);
+    make_dna_reverse(complement);
     return complement;
 }
 
@@ -86,7 +86,7 @@ DNASeq::DNASeq(const std::string& name, const std::string& seq, const std::strin
 }
 
 void DNASeq::make_complement() {
-    make_complement_dna(seq);
+    make_dna_complement(seq);
 }
 
 void DNASeq::make_reverse() {

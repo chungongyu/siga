@@ -16,7 +16,7 @@ size_t KmerDistribution::sample(const FMIndex* index, size_t k, size_t n, KmerDi
 
         for (size_t j = k; j < s.length(); ++j) {
             std::string w = s.substr(j - k, k);
-            std::string v = make_reverse_dna_copy(w);
+            std::string v = make_dna_reverse_copy(w);
 
             size_t count = 0;
             count += FMIndex::Interval::occurrences(w, index);
