@@ -111,7 +111,7 @@ class Vertex {
 public:
     typedef std::string Id;
 
-    Vertex(const Id& id, const std::string& seq, bool contained = false) : _id(id), _seq(seq), _contained(contained), _color(GC_NONE), _coverage(1) {
+    Vertex(const Id& id, const std::string& seq, bool contained=false, const std::string& index="") : _id(id), _seq(seq), _contained(contained), _index(index), _color(GC_NONE), _coverage(1) {
     }
     ~Vertex();
 
@@ -120,6 +120,9 @@ public:
     }
     const std::string& seq() const {
         return _seq;
+    }
+    const std::string& index() const {
+        return _index;
     }
     size_t coverage() const {
         return _coverage;
@@ -173,6 +176,7 @@ private:
     Id _id;
     GraphColor _color;
     std::string _seq;
+    std::string _index;
     size_t _coverage; // Number of vertices that have been merged into this one
     bool _contained;
 
