@@ -26,6 +26,7 @@ namespace ASQG {
 
     // Vertex tags
     static const std::string SUBSTRING_TAG("SS");
+    // static const std::string BARCODE_TAG("BX");
 
     // Edge tags
     static const std::string CIGAR_TAG("CG");
@@ -147,6 +148,10 @@ namespace ASQG {
                 if (!record.substring.fromstring(fields[i])) {
                     return false;
                 }
+            } else if (boost::algorithm::starts_with(fields[i], BARCODE_TAG)) {
+                if (!record.barcode.fromstring(fields[i])) {
+                    return false;
+                }
             }
         }
         return true;
@@ -156,6 +161,9 @@ namespace ASQG {
         stream << VERTEX_TAG << FIELD_SEP << record.id << FIELD_SEP << record.seq;
         if (record.substring) {
             stream << FIELD_SEP << record.substring.tostring(SUBSTRING_TAG);
+        }
+        if (record.barcode) {
+            stream << FIELD_SEP << record.barcode.tostring(BARCODE_TAG);
         }
         return stream;
     }

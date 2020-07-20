@@ -8,11 +8,12 @@
 #include "coord.h"
 
 //
-// The ASQG format describes an assembly graph
+// The ASQG format describes an assembly and sequence graph
 //
 namespace ASQG {
     const char FIELD_SEP = '\t';
     const char TAG_SEP = ':';
+    const std::string BARCODE_TAG = "BX";
 
     enum RecordType {
         RT_NONE = -1, 
@@ -138,6 +139,7 @@ namespace ASQG {
         std::string id;
         std::string seq;
         IntTagValue substring;
+        StringTagValue barcode; // optional
     private:
         friend std::ostream& operator<<(std::ostream& stream, const VertexRecord& record);
         friend std::istream& operator>>(std::istream& stream, VertexRecord& record);

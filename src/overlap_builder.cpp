@@ -283,6 +283,15 @@ public:
     void process(const SequenceProcessFramework::SequenceWorkItem& workItem, const OverlapResult& result) {
         ASQG::VertexRecord record(workItem.read.name, workItem.read.seq);
         record.substring = result.substring ? 1 : 0;
+        if (!workItem.read.comment.empty()) {
+            std::vector<std::string> tokens;
+            ASQG::tokenize(tokens, workItem.read.comment, ' ');
+            for (const auto& token : tokens) {
+                if (boost::algorithm::starts_with(token, ASQG::BARCODE_TAG) && record.barcode.fromstring(token)) {
+                    break;
+                }
+            }
+        }
         _stream << record << '\n';
     }
 
