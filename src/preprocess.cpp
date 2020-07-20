@@ -1,3 +1,4 @@
+#include "asqg.h"
 #include "config.h"
 #include "constant.h"
 #include "kseq.h"
@@ -131,46 +132,40 @@ private:
     }
 
     int processSingleEnds(const Properties& options, const std::vector<std::string>& inputs, std::ostream& output, Statistics& stats) {
-        if (options.find("with-index") != options.not_found()) {
-            return processSingleEndsWithIndex(options, inputs, output, stats);
-        }
-        for (const auto& file : inputs) {
-            LOG4CXX_INFO(logger, boost::format("Processing %s") % file);
-
-            int r = -1;
-            if (file == "-") {
-                r = processSingleEnds(options, std::cin, NULL, output, stats);
-            } else {
-                std::shared_ptr<std::istream> stream(Utils::ifstream(file));
-                if (stream) {
-                    r = processSingleEnds(options, *stream, NULL, output, stats);
-                }
+        bool withIndex = options.find("with-index") != options.not_found();
+        {
+            size_t multiples = 2;
+            if (withIndex) {
+                multiples += 1;
             }
-            if (r != 0) {
-                LOG4CXX_ERROR(logger, boost::format("Failed to open input stream %s") % file);
-                return r;
+            if (inputs.size() % multiples != 0) {
+                LOG4CXX_ERROR(logger, boost::format("Files in multiples of %d must be given for --pe-mode=1") % multiples % (withIndex ? " and --with-index" : ""));
+                return -1;
             }
-        }
-        return 0;
-    }
-
-    int processSingleEndsWithIndex(const Properties& options, const std::vector<std::string>& inputs, std::ostream& output, Statistics& stats) {
-        if (inputs.size() % 2 != 0) {
-            LOG4CXX_ERROR(logger, boost::format("An even number of files must be given for pe-mode=0 with index files"));
-            return -1;
         }
         size_t i = 0;
         while (i < inputs.size()) {
-            std::string index = inputs[i++];
+            std::string index;
+            if (withIndex) {
+                index = inputs[i++];
+            }
             std::string file1 = inputs[i++];
-            LOG4CXX_INFO(logger, boost::format("Processing %s with index %s") % file1 % index);
+            if (withIndex) {
+                LOG4CXX_INFO(logger, boost::format("Processing %s with index %s") % file1 % index);
+            } else {
+                LOG4CXX_INFO(logger, boost::format("Processing %s") % file1);
+            }
+
             int r = -1;
 
-            std::istream* indexer = &std::cin;
-            if (index != "-") {
-                indexer = Utils::ifstream(index);
+            std::istream* indexer = NULL;
+            if (!index.empty()) {
+                indexer = &std::cin;
+                if (index != "-") {
+                    indexer = Utils::ifstream(index);
+                }
             }
-            if (indexer != NULL) {
+            if (index.empty() || indexer != NULL) {
                 if (file1 == "-") {
                     r = processSingleEnds(options, std::cin, indexer, output, stats);
                 } else {
@@ -179,12 +174,16 @@ private:
                         r = processSingleEnds(options, *stream, indexer, output, stats);
                     }
                 }
-                if (indexer != &std::cin) {
-                    SAFE_DELETE(indexer);
-                }
+            }
+            if (indexer != &std::cin) {
+                SAFE_DELETE(indexer);
             }
             if (r != 0) {
-                LOG4CXX_ERROR(logger, boost::format("Failed to process single ends: %s with index: %s") % file1 % index);
+                if (withIndex) {
+                    LOG4CXX_ERROR(logger, boost::format("Failed to process single ends: %s with index: %s") % file1 % (index.empty() ? "out" : "") % index);
+                } else {
+                    LOG4CXX_ERROR(logger, boost::format("Failed to process single ends: %s") % file1);
+                }
                 return r;
             }
         }
@@ -217,55 +216,56 @@ private:
     }
 
     int processPairEnds1(const Properties& options, const std::vector<std::string>& inputs, std::ostream& output, Statistics& stats) {
-        if (options.find("with-index") != options.not_found()) {
-            return processPairEnds1WithIndex(options, inputs, output, stats);
-        }
-        if (inputs.size() % 2 != 0) {
-            LOG4CXX_ERROR(logger, boost::format("An even number of files must be given for pe-mode 1"));
-            return -1;
+        bool withIndex = options.find("with-index") != options.not_found();
+        {
+            size_t multiples = 2;
+            if (withIndex) {
+                multiples += 1;
+            }
+            if (inputs.size() % multiples != 0) {
+                LOG4CXX_ERROR(logger, boost::format("Files in multiples of %d must be given for --pe-mode=1") % multiples % (withIndex ? " and --with-index" : ""));
+                return -1;
+            }
         }
 
         size_t i = 0;
         while (i < inputs.size()) {
+            std::string index;
+            if (withIndex) {
+                index = inputs[i++];
+            }
             std::string file1 = inputs[i++];
             std::string file2 = inputs[i++];
-            LOG4CXX_INFO(logger, boost::format("Processing %s,%s") % file1 % file2);
-
-            std::shared_ptr<std::istream> stream1(Utils::ifstream(file1)), stream2(Utils::ifstream(file2));
-            if (!stream1 || !stream2) {
-                LOG4CXX_ERROR(logger, boost::format("Failed to read pair ends: %s,%s") % file1 % file2);
-                return -1;
+            if (withIndex) {
+                LOG4CXX_INFO(logger, boost::format("Processing %s,%s with index %s") % file1 % file2 % index);
+            } else {
+                LOG4CXX_INFO(logger, boost::format("Processing %s,%s") % file1 % file2);
             }
-            int r = processPairEnds(options, *stream1, *stream2, NULL, output, stats);
+
+            int r = -1;
+
+            std::istream* indexer = NULL;
+            if (!index.empty()) {
+                indexer = &std::cin;
+                if (index != "-") {
+                    indexer = Utils::ifstream(index);
+                }
+            }
+            if (index.empty() || indexer != NULL) {
+                std::shared_ptr<std::istream> stream1(Utils::ifstream(file1)), stream2(Utils::ifstream(file2));
+                if (stream1 && stream2) {
+                    r = processPairEnds(options, *stream1, *stream2, indexer, output, stats);
+                }
+            }
+            if (indexer != &std::cin) {
+                SAFE_DELETE(indexer);
+            }
             if (r != 0) {
-                LOG4CXX_ERROR(logger, boost::format("Failed to process pair ends: %s,%s") % file1 % file2);
-                return r;
-            }
-        }
-
-        return 0;
-    }
-
-    int processPairEnds1WithIndex(const Properties& options, const std::vector<std::string>& inputs, std::ostream& output, Statistics& stats) {
-        if (inputs.size() % 3 != 0) {
-            LOG4CXX_ERROR(logger, boost::format("An odd number of files must be given for pe-mode=1 with index files"));
-            return -1;
-        }
-        size_t i = 0;
-        while (i < inputs.size()) {
-            std::string index = inputs[i++];
-            std::string file1 = inputs[i++];
-            std::string file2 = inputs[i++];
-            LOG4CXX_INFO(logger, boost::format("Processing %s,%s with index %s") % file1 % file2 % index);
-
-            std::shared_ptr<std::istream> indexer(Utils::ifstream(index)), stream1(Utils::ifstream(file1)), stream2(Utils::ifstream(file2));
-            if (!indexer || !stream1 || !stream2) {
-                LOG4CXX_ERROR(logger, boost::format("Failed to read pair ends: %s,%s with index: %s") % file1 % file2 % index);
-                return -1;
-            }
-            int r = processPairEnds(options, *stream1, *stream2, indexer.get(), output, stats);
-            if (r != 0) {
-                LOG4CXX_ERROR(logger, boost::format("Failed to process pair ends: %s,%s with index: %s") % file1 % file2 % index);
+                if (withIndex) {
+                    LOG4CXX_ERROR(logger, boost::format("Failed to process pair ends: %s,%s with index: %s") % file1 % file2 % index);
+                } else {
+                    LOG4CXX_ERROR(logger, boost::format("Failed to process pair ends: %s,%s") % file1 % file2);
+                }
                 return r;
             }
         }
@@ -273,46 +273,41 @@ private:
     }
 
     int processPairEnds2(const Properties& options, const std::vector<std::string>& inputs, std::ostream& output, Statistics& stats) {
-        if (options.find("with-index") != options.not_found()) {
-            return processPairEnds2WithIndex(options, inputs, output, stats);
-        }
-        for (const auto& file : inputs) {
-            LOG4CXX_INFO(logger, boost::format("Processing %s") % file);
-
-            int r = -1;
-            if (file == "-") {
-                r = processPairEnds(options, std::cin, std::cin, NULL, output, stats);
-            } else {
-                std::shared_ptr<std::istream> stream(Utils::ifstream(file));
-                if (stream) {
-                    r = processPairEnds(options, *stream, *stream, NULL, output, stats);
-                }
+        bool withIndex = options.find("with-index") != options.not_found();
+        {
+            size_t multiples = 1;
+            if (withIndex) {
+                multiples += 1;
             }
-            if (r != 0) {
-                LOG4CXX_ERROR(logger, boost::format("Failed to process pair ends: %s") % file);
-                return r;
+            if (inputs.size() % multiples != 0) {
+                LOG4CXX_ERROR(logger, boost::format("Files in multiples of %d must be given for --pe-mode=2") % multiples % (withIndex ? " and --with-index" : ""));
+                return -1;
             }
         }
-        return 0;
-    }
 
-    int processPairEnds2WithIndex(const Properties& options, const std::vector<std::string>& inputs, std::ostream& output, Statistics& stats) {
-        if (inputs.size() % 2 != 0) {
-            LOG4CXX_ERROR(logger, boost::format("An even number of files must be given for pe-mode=2 with index"));
-            return -1;
-        }
         size_t i = 0;
         while (i < inputs.size()) {
-            std::string index = inputs[i++];
+            std::string index;
+            if (withIndex) {
+                index = inputs[i++];
+            }
             std::string file1 = inputs[i++];
-            LOG4CXX_INFO(logger, boost::format("Processing %s with index %s") % file1 % index);
+            if (withIndex) {
+                LOG4CXX_INFO(logger, boost::format("Processing %s with index %s") % file1 % index);
+            } else {
+                LOG4CXX_INFO(logger, boost::format("Processing %s") % file1);
+            }
 
             int r = -1;
-            std::istream* indexer = &std::cin;
-            if (index != "-") {
-                indexer = Utils::ifstream(index);
+
+            std::istream* indexer = NULL;
+            if (!index.empty()) {
+                indexer = &std::cin;
+                if (index != "-") {
+                    indexer = Utils::ifstream(index);
+                }
             }
-            if (indexer != NULL) {
+            if (index.empty() || indexer != NULL) {
                 if (file1 == "-") {
                     r = processPairEnds(options, std::cin, std::cin, indexer, output, stats);
                 } else {
@@ -321,12 +316,16 @@ private:
                         r = processPairEnds(options, *stream, *stream, indexer, output, stats);
                     }
                 }
-                if (indexer != &std::cin) {
-                    SAFE_DELETE(indexer);
-                }
+            }
+            if (indexer != &std::cin) {
+                SAFE_DELETE(indexer);
             }
             if (r != 0) {
-                LOG4CXX_ERROR(logger, boost::format("Failed to process pair ends: %s with index: %s") % file1 % index);
+                if (withIndex) {
+                    LOG4CXX_ERROR(logger, boost::format("Failed to process pair ends: %s with index: %s") % file1 % index);
+                } else {
+                    LOG4CXX_ERROR(logger, boost::format("Failed to process pair ends: %s") % file1);
+                }
                 return r;
             }
         }
@@ -395,7 +394,8 @@ private:
             if (!record.comment.empty()) {
                 record.comment = " ";
             }
-            record.comment = boost::str(boost::format("%sBX:Z:%s") % record.comment % index->seq);
+            ASQG::StringTagValue bx(index->seq);
+            record.comment = boost::str(boost::format("%s%s") % record.comment % bx.tostring(ASQG::BARCODE_TAG));
         }
 
         // Ensure sequence is entirely ACGT
@@ -586,8 +586,8 @@ static const option longopts[] = {
     {"ini",                 required_argument,  NULL, 's'}, 
     {"out",                 required_argument,  NULL, 'o'}, 
     {"pe-mode",             required_argument,  NULL, OPT_PE_MODE}, 
-    {"with-index",          no_argument,        NULL, OPT_WITH_IDX}, 
     {"pe-orientation",      required_argument,  NULL, OPT_PE_ORIENTATION}, 
+    {"with-index",          no_argument,        NULL, OPT_WITH_IDX}, 
     {"phred64",             no_argument,        NULL, OPT_PHRED64}, 
     {"quality-trim",        required_argument,  NULL, 'q'}, 
     {"quality-filter",      required_argument,  NULL, 'f'}, 
