@@ -66,8 +66,8 @@ void Edge::validate() const {
         LOG4CXX_ERROR(logger, "Error, matching strings are not the same length");
         LOG4CXX_ERROR(logger, boost::format("V1M: %s,%s") % start()->id() % m1);
         LOG4CXX_ERROR(logger, boost::format("V2M: %s,%s") % end()->id() % m2);
-        LOG4CXX_ERROR(logger, boost::format("V1: %s") % v1)
-        LOG4CXX_ERROR(logger, boost::format("V2: %s") % v2)
+        LOG4CXX_ERROR(logger, boost::format("V1: %s") % v1);
+        LOG4CXX_ERROR(logger, boost::format("V2: %s") % v2);
         assert(false);
     }
 }
@@ -503,7 +503,7 @@ bool Bigraph::load(std::istream& stream, size_t minOverlap, bool allowContainmen
                     LOG4CXX_ERROR(logger, boost::format("Error: Unexpected vertex record found at line %s") % line);
                     return false;
                 }
-                Vertex* vertex = new Vertex(record.id, record.seq, record.substring ? (int)record.substring : false);
+                Vertex* vertex = new Vertex(record.id, record.seq, record.substring ? (int)record.substring : false, record.barcode ? (std::string)record.barcode : "");
                 if (!g->addVertex(vertex)) {
                     LOG4CXX_ERROR(logger, boost::format("Error: Attempted to insert vertex into graph with a duplicate id: %s") % vertex->id());
                     LOG4CXX_ERROR(logger, "All reads must have a unique identifier");

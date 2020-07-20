@@ -92,7 +92,7 @@ public:
                 // Trimming
                 size_t trimRound = 0, numTrimRounds = options.get<size_t>("cut-terminal", 10);
                 while (trimRound < numTrimRounds) {
-                    LOG4CXX_INFO(logger, boost::format("[Trim] Trim round: %d") % (trimRound + 1))
+                    LOG4CXX_INFO(logger, boost::format("[Trim] Trim round: %d") % (trimRound + 1));
                     bool modified = false;
 
                     LOG4CXX_INFO(logger, "Trimming tips");
@@ -118,7 +118,7 @@ public:
                 // Trimming
                 size_t trimRound = 0, numTrimRounds = options.get<size_t>("cut-terminal", 10);
                 while (trimRound < numTrimRounds) {
-                    LOG4CXX_INFO(logger, boost::format("[Trim] Trim round: %d") % (trimRound + 1))
+                    LOG4CXX_INFO(logger, boost::format("[Trim] Trim round: %d") % (trimRound + 1));
                     bool modified = false;
 
                     LOG4CXX_INFO(logger, "Removing loops");

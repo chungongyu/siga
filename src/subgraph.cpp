@@ -50,7 +50,7 @@ private:
     void addVertex(const Vertex* vertex, Bigraph* sub) {
         // Make sure the vertex hasn't been added yet
         if (sub->getVertex(vertex->id()) == NULL) {
-            sub->addVertex(new Vertex(vertex->id(), vertex->seq(), vertex->contained()));
+            sub->addVertex(new Vertex(vertex->id(), vertex->seq(), vertex->contained(), vertex->index()));
         }
     }
 
