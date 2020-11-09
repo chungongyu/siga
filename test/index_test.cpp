@@ -45,4 +45,39 @@ BOOST_AUTO_TEST_CASE(RLUnit_test) {
     }
 }
 
+BOOST_AUTO_TEST_CASE(RLString_test) {
+    DNASeq read("test", "AAACGGGTA");
+
+    RLString runs;
+
+    RLUnit run;
+    for (const auto& c : read.seq) {
+        if (run.initialized()) {
+            if (run == c && !run.full()) {
+                ++run;
+            } else {
+                runs.push_back(run);
+                run = RLUnit(c);
+            }
+        } else {
+            run = RLUnit(c);
+        }
+    }
+    if (run.initialized()) {
+        runs.push_back(run);
+    }
+
+    BOOST_CHECK_EQUAL(runs.size(), 5);
+    BOOST_CHECK_EQUAL(runs[0], 'A');
+    BOOST_CHECK_EQUAL(runs[0].count(), 3);
+    BOOST_CHECK_EQUAL(runs[1], 'C');
+    BOOST_CHECK_EQUAL(runs[1].count(), 1);
+    BOOST_CHECK_EQUAL(runs[2], 'G');
+    BOOST_CHECK_EQUAL(runs[2].count(), 3);
+    BOOST_CHECK_EQUAL(runs[3], 'T');
+    BOOST_CHECK_EQUAL(runs[3].count(), 1);
+    BOOST_CHECK_EQUAL(runs[4], 'A');
+    BOOST_CHECK_EQUAL(runs[4].count(), 1);
+}
+
 BOOST_AUTO_TEST_SUITE_END();
