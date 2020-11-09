@@ -1,4 +1,5 @@
 #include "bigraph_visitors.h"
+#include "asqg.h"
 #include "bigraph_search.h"
 #include "kseq.h"
 #include "reads.h"
@@ -159,6 +160,14 @@ void ContainRemoveVisitor::postvisit(Bigraph* graph) {
 //
 bool FastaVisitor::visit(Bigraph* graph, Vertex* vertex) {
     DNASeq seq(vertex->id(), vertex->seq());
+    const std::string& index = vertex->index();
+    if (!index.empty()) {
+        ASQG::StringTagValue bx(index);
+        if (!seq.comment.empty()) {
+            seq.comment += ' ';
+        }
+        seq.comment += bx.tostring(ASQG::BARCODE_TAG);
+    }
     _stream << seq;
     return false;
 }
@@ -215,7 +224,7 @@ bool LoopRemoveVisitor::visit(Bigraph* graph, Vertex* vertex) {
         Edge* nextEdge = vertex->edges(Edge::ED_SENSE)[0];
         Vertex* prevVert = prevEdge->end();
         Vertex* nextVert = nextEdge->end();
-        if (prevVert == nextVert) {
+        if (!prevEdge->isSelf() && !nextEdge->isSelf() && prevVert == nextVert) {
             //vertex->color(GC_BLACK);
             _loops.push_back(vertex);
             modified = true;
@@ -589,7 +598,7 @@ public:
         size_t numNodes[Edge::ED_COUNT] = {0}, MAX_STEPS = 3;
         for (const auto& node1 : adjacents) {
             size_t numIdx = node1->attr.distance >= 0 ? Edge::ED_SENSE : Edge::ED_ANTISENSE; 
-            if (numNodes[numIdx] >= MAX_STEPS) continue;
+            //if (numNodes[numIdx] >= MAX_STEPS) continue;
             const Vertex* paired_v2 = _graph->getVertex(PairEnd::id(node1->vertex->id()));
             assert(paired_v2 != NULL);
             LOG4CXX_DEBUG(logger, boost::format("vertex1: %s<->%s, vertex2: %s<->%s") % vertex1->id() % paired_v1->id() % node1->vertex->id() % paired_v2->id());
@@ -602,6 +611,11 @@ public:
                         }, paired_v2, 0, std::abs(node1->attr.distance) + _visitor->_insertDelta*4, 1, &faraways);
             }
             for (const auto& node2 : faraways) {
+                if (_visitor->_withIndex) {
+                    if (node1->vertex->index() != node2->vertex->index()) {
+                        continue;
+                    }
+                }
                 linklist.push_back(node1);
                 LOG4CXX_DEBUG(logger, boost::format("paired_read_all\t%s\t%s\t%d\t%s\t%s\t%d") % vertex1->id() % node1->vertex->id() % node1->attr.distance % paired_v1->id() % node2->vertex->id() % node2->attr.distance);
                 ++numNodes[numIdx];
@@ -797,7 +811,7 @@ public:
             for (auto& n : *containment) {
                 // Modify inplace
                 n->attr.distance -= distance;
-                LOG4CXX_INFO(logger, boost::format("PairedContainmentVisitor::visit\t%s\t%s\t%d\t%d\t%d") % vertex->id() % n->vertex->id() % n->attr.distance % n->attr.dir % n->attr.comp);
+                LOG4CXX_DEBUG(logger, boost::format("PairedContainmentVisitor::visit\t%s\t%s\t%d\t%d\t%d") % vertex->id() % n->vertex->id() % n->attr.distance % n->attr.dir % n->attr.comp);
             }
             assert(_table.find(vertex->id()) == _table.end());
             _table[vertex->id()] = containment;

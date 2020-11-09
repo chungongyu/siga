@@ -76,7 +76,7 @@ public:
                         delta = sigma;
                     }
                 }
-                PairedReadVisitor prVisit(options.get<size_t>("max-distance", 100), average, delta, options.get<size_t>("max-search-nodes", 100), options.get<size_t>("threads", 1), options.get<size_t>("batch-size", 1000));
+                PairedReadVisitor prVisit(options.get<size_t>("max-distance", 100), average, delta, options.get<size_t>("max-search-nodes", 100), options.find("with-index") != options.not_found(), options.get<size_t>("threads", 1), options.get<size_t>("batch-size", 1000));
                 g.visit(&prVisit);
             } else {
                 LOG4CXX_INFO(logger, "Removing contained vertices from graph");
@@ -235,6 +235,7 @@ private:
                 "Paired reads parameters:\n"
                 "          --pe-mode=INT                0 - do not treat reads as paired (default)\n"
                 "                                       1 - treat reads as paired\n"
+                "          --with-index                 treat as 10x linked read data\n"
                 "          --max-distance=INT           treat reads as connected whose distance is less than INT (default: 100)\n"
                 "          --insert-size=INT            treat reads as paired with insert size INT (default: learned from paired reads)\n"
                 "          --insert-size-delta=INT      treat reads as paired with insert size delta INT (default: learned from paired reads)\n"
@@ -254,7 +255,7 @@ private:
 };
 
 static const std::string shortopts = "c:s:p:t:m:x:n:l:a:b:d:h";
-enum { OPT_HELP = 1, OPT_BATCH_SIZE, OPT_PEMODE, OPT_MAXDIST, OPT_INSERTSIZE, OPT_INSERTSIZE_DELTA, OPT_MAXEDGES, OPT_INIT_VERTEX_CAPACITY };
+enum { OPT_HELP = 1, OPT_BATCH_SIZE, OPT_PEMODE, OPT_WITH_IDX, OPT_MAXDIST, OPT_INSERTSIZE, OPT_INSERTSIZE_DELTA, OPT_MAXEDGES, OPT_INIT_VERTEX_CAPACITY };
 static const option longopts[] = {
     {"log4cxx",             required_argument,  NULL, 'c'}, 
     {"ini",                 required_argument,  NULL, 's'}, 
@@ -265,6 +266,7 @@ static const option longopts[] = {
     {"threads",             required_argument,  NULL, 't'}, 
     {"batch-size",          required_argument,  NULL, OPT_BATCH_SIZE}, 
     {"pe-mode",             required_argument,  NULL, OPT_PEMODE}, 
+    {"with-index",          no_argument,        NULL, OPT_WITH_IDX}, 
     {"max-distance",        required_argument,  NULL, OPT_MAXDIST}, 
     {"insert-size",         required_argument,  NULL, OPT_INSERTSIZE}, 
     {"insert-size-delta",   required_argument,  NULL, OPT_INSERTSIZE_DELTA}, 
