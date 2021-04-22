@@ -10,231 +10,249 @@
 static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.ASQG"));
 
 namespace ASQG {
-    static const int HEADER_VERSION = 1;
-    // Record ID tags
-    static const std::string HEAD_TAG("HT");
-    static const std::string VERTEX_TAG("VT");
-    static const std::string EDGE_TAG("ED");
 
-    // Header tags
-    static const std::string VERSION_TAG("VN");
-    static const std::string OVERLAP_TAG("OL");
-    static const std::string INFILE_TAG("IN");
-    static const std::string ERRRATE_TAG("ER");
-    static const std::string CONTAINMENT_TAG("CN");
-    static const std::string TRANSITIVE_TAG("TE");
+static const int HEADER_VERSION = 1;
+// Record ID tags
+static const std::string HEAD_TAG("HT");
+static const std::string VERTEX_TAG("VT");
+static const std::string EDGE_TAG("ED");
 
-    // Vertex tags
-    static const std::string SUBSTRING_TAG("SS");
-    // static const std::string BARCODE_TAG("BX");
+// Header tags
+static const std::string VERSION_TAG("VN");
+static const std::string OVERLAP_TAG("OL");
+static const std::string INFILE_TAG("IN");
+static const std::string ERRRATE_TAG("ER");
+static const std::string CONTAINMENT_TAG("CN");
+static const std::string TRANSITIVE_TAG("TE");
 
-    // Edge tags
-    static const std::string CIGAR_TAG("CG");
-    static const std::string PERCENT_IDENTITY_TAG("PI");
+// Vertex tags
+static const std::string SUBSTRING_TAG("SS");
+// static const std::string BARCODE_TAG("BX");
+// static const std::string COVERAGE_TAG("CR");
+// static const std::string EXTENSION_TAG("EX");
 
-    void tokenize(std::vector<std::string>& container, const std::string& text, char sep) {
-        boost::algorithm::split(container, text, boost::is_from_range(sep, sep));
+// Edge tags
+static const std::string CIGAR_TAG("CG");
+static const std::string PERCENT_IDENTITY_TAG("PI");
+
+void tokenize(std::vector<std::string>& container, const std::string& text, char sep) {
+  boost::algorithm::split(container, text, boost::is_from_range(sep, sep));
+}
+
+//
+// HeaderRecord
+//
+HeaderRecord::HeaderRecord() : _version(HEADER_VERSION) {
+}
+
+bool HeaderRecord::parse(const std::string& text, HeaderRecord& record) {
+  std::vector<std::string> fields;
+  tokenize(fields, text, FIELD_SEP);
+
+  if (fields.empty()) {
+    LOG4CXX_ERROR(logger, "Error: Header record is incomplete.");
+    LOG4CXX_ERROR(logger, boost::format("Record: %s") % text);
+    return false;
+  }
+  if (!boost::algorithm::equals(fields[0], HEAD_TAG)) {
+    LOG4CXX_ERROR(logger, "Error: Header does not have a header tag");
+    LOG4CXX_ERROR(logger, boost::format("Record: %s") % text);
+    return false;
+  }
+  for (size_t i = 1; i < fields.size(); ++i) {
+    if (boost::algorithm::starts_with(fields[i], VERSION_TAG)) {
+      if (!record._version.fromstring(fields[i])) {
+        return false;
+      }
+    } else if (boost::algorithm::starts_with(fields[i], OVERLAP_TAG)) {
+      if (!record._overlap.fromstring(fields[i])) {
+        return false;
+      }
+    } else if (boost::algorithm::starts_with(fields[i], INFILE_TAG)) {
+      if (!record._infile.fromstring(fields[i])) {
+        return false;
+      }
+    } else if (boost::algorithm::starts_with(fields[i], ERRRATE_TAG)) {
+      if (!record._errorRate.fromstring(fields[i])) {
+        return false;
+      }
+    } else if (boost::algorithm::starts_with(fields[i], CONTAINMENT_TAG)) {
+      if (!record._containment.fromstring(fields[i])) {
+        return false;
+      }
+    } else if (boost::algorithm::starts_with(fields[i], TRANSITIVE_TAG)) {
+      if (!record._transitive.fromstring(fields[i])) {
+        return false;
+      }
     }
+  }
 
-    //
-    // HeaderRecord
-    //
-    HeaderRecord::HeaderRecord() : _version(HEADER_VERSION) {
+  return true;
+}
+
+std::ostream& operator<<(std::ostream& stream, const HeaderRecord& record) {  // Version
+  std::vector<std::string> fields;
+  assert(record._version);
+  fields.push_back(record._version.tostring(VERSION_TAG));
+
+  if (record._errorRate) {
+    fields.push_back(record._errorRate.tostring(ERRRATE_TAG));
+  }
+  if (record._overlap) {
+    fields.push_back(record._overlap.tostring(OVERLAP_TAG));
+  }
+  if (record._infile) {
+    fields.push_back(record._infile.tostring(INFILE_TAG));
+  }
+  if (record._containment) {
+    fields.push_back(record._containment.tostring(CONTAINMENT_TAG));
+  }
+  if (record._transitive) {
+    fields.push_back(record._transitive.tostring(TRANSITIVE_TAG));
+  }
+
+  stream << HEAD_TAG;
+  for (const auto& item : fields) {
+    stream << FIELD_SEP;
+    stream << item;
+  }
+  return stream;
+}
+
+std::istream& operator>>(std::istream& stream, HeaderRecord& record) {
+  std::string line;
+  std::getline(stream, line);
+  bool r = HeaderRecord::parse(line, record);
+  assert(r);
+  return stream;
+}
+
+//
+// VertexRecord
+//
+bool VertexRecord::parse(const std::string& text, VertexRecord& record) {
+  std::vector<std::string> fields;
+  tokenize(fields, text, FIELD_SEP);
+  if (fields.size() < 3) {
+    LOG4CXX_ERROR(logger, "Error: Vertex record is incomplete.");
+    LOG4CXX_ERROR(logger, boost::format("Record: %s") % text);
+    return false;
+  }
+  if (!boost::algorithm::equals(fields[0], VERTEX_TAG)) {
+    LOG4CXX_ERROR(logger, "Error: Record does not have a vertex tag");
+    LOG4CXX_ERROR(logger, boost::format("Record: %s") % text);
+    return false;
+  }
+  record.id = fields[1];
+  record.seq = fields[2];
+
+  for (size_t i = 3; i < fields.size(); ++i) {
+    if (boost::algorithm::starts_with(fields[i], SUBSTRING_TAG)) {
+      if (!record.substring.fromstring(fields[i])) {
+        return false;
+      }
+    } else if (boost::algorithm::starts_with(fields[i], COVERAGE_TAG)) {
+      if (!record.coverage.fromstring(fields[i])) {
+        return false;
+      }
+    } else if (boost::algorithm::starts_with(fields[i], BARCODE_TAG)) {
+      if (!record.barcode.fromstring(fields[i])) {
+        return false;
+      }
+    } else if (boost::algorithm::starts_with(fields[i], EXTENSION_TAG)) {
+      if (!record.ext.fromstring(fields[i])) {
+        return false;
+      }
     }
+  }
+  return true;
+}
 
-    bool HeaderRecord::parse(const std::string& text, HeaderRecord& record) {
-        std::vector<std::string> fields;
-        tokenize(fields, text, FIELD_SEP);
+std::ostream& operator<<(std::ostream& stream, const VertexRecord& record) {
+  stream << VERTEX_TAG << FIELD_SEP << record.id << FIELD_SEP << record.seq;
+  if (record.substring) {
+    stream << FIELD_SEP << record.substring.tostring(SUBSTRING_TAG);
+  }
+  if (record.coverage) {
+    stream << FIELD_SEP << record.coverage.tostring(COVERAGE_TAG);
+  }
+  if (record.barcode) {
+    stream << FIELD_SEP << record.barcode.tostring(BARCODE_TAG);
+  }
+  if (record.ext) {
+    stream << FIELD_SEP << record.ext.tostring(EXTENSION_TAG);
+  }
+  return stream;
+}
 
-        if (fields.empty()) {
-            LOG4CXX_ERROR(logger, "Error: Header record is incomplete.");
-            LOG4CXX_ERROR(logger, boost::format("Record: %s") % text);
-            return false;
-        }
-        if (!boost::algorithm::equals(fields[0], HEAD_TAG)) {
-            LOG4CXX_ERROR(logger, "Error: Header does not have a header tag");
-            LOG4CXX_ERROR(logger, boost::format("Record: %s") % text);
-            return false;
-        }
-        for (size_t i = 1; i < fields.size(); ++i) {
-            if (boost::algorithm::starts_with(fields[i], VERSION_TAG)) {
-                if (!record._version.fromstring(fields[i])) {
-                    return false;
-                }
-            } else if (boost::algorithm::starts_with(fields[i], OVERLAP_TAG)) {
-                if (!record._overlap.fromstring(fields[i])) {
-                    return false;
-                }
-            } else if (boost::algorithm::starts_with(fields[i], INFILE_TAG)) {
-                if (!record._infile.fromstring(fields[i])) {
-                    return false;
-                }
-            } else if (boost::algorithm::starts_with(fields[i], ERRRATE_TAG)) {
-                if (!record._errorRate.fromstring(fields[i])) {
-                    return false;
-                }
-            } else if (boost::algorithm::starts_with(fields[i], CONTAINMENT_TAG)) {
-                if (!record._containment.fromstring(fields[i])) {
-                    return false;
-                }
-            } else if (boost::algorithm::starts_with(fields[i], TRANSITIVE_TAG)) {
-                if (!record._transitive.fromstring(fields[i])) {
-                    return false;
-                }
-            }
-        }
-        
-        return true;
+std::istream& operator>>(std::istream& stream, VertexRecord& record) {
+  std::string line;
+  std::getline(stream, line);
+  bool r = VertexRecord::parse(line, record);
+  assert(r);
+  return stream;
+}
+
+//
+// EdgeRecord
+//
+bool EdgeRecord::parse(const std::string& text, EdgeRecord& record) {
+  std::vector<std::string> fields;
+  tokenize(fields, text, FIELD_SEP);
+  if (fields.size() < 2) {
+    LOG4CXX_ERROR(logger, "Error: Edge record is incomplete.");
+    LOG4CXX_ERROR(logger, boost::format("Record: %s") % text);
+    return false;
+  }
+  if (!boost::algorithm::equals(fields[0], EDGE_TAG)) {
+    LOG4CXX_ERROR(logger, "Error: Edge does not have a edge tag");
+    LOG4CXX_ERROR(logger, boost::format("Record: %s") % text);
+    return false;
+  }
+  std::stringstream ss(fields[1]);
+  ss >> record._overlap;
+  for (size_t i = 2; i < fields.size(); ++i) {
+    if (boost::algorithm::starts_with(fields[i], CIGAR_TAG)) {
+      if (!record._cigar.fromstring(fields[i])) {
+        return false;
+      }
+    } else if (boost::algorithm::starts_with(fields[i], PERCENT_IDENTITY_TAG)) {
+      if (!record._identity.fromstring(fields[i])) {
+        return false;
+      }
     }
+  }
+  return true;
+}
 
-    std::ostream& operator<<(std::ostream& stream, const HeaderRecord& record) { // Version
-        std::vector<std::string> fields;
-        assert(record._version);
-        fields.push_back(record._version.tostring(VERSION_TAG));
+std::ostream& operator<<(std::ostream& stream, const EdgeRecord& record) {
+  stream << EDGE_TAG << FIELD_SEP << record._overlap;
+  if (record._cigar) {
+    stream << FIELD_SEP << record._cigar.tostring(CIGAR_TAG);
+  }
+  if (record._identity) {
+    stream << FIELD_SEP << record._identity.tostring(PERCENT_IDENTITY_TAG);
+  }
+  return stream;
+}
 
-        if (record._errorRate) {
-            fields.push_back(record._errorRate.tostring(ERRRATE_TAG));
-        }
-        if (record._overlap) {
-            fields.push_back(record._overlap.tostring(OVERLAP_TAG));
-        }
-        if (record._infile) {
-            fields.push_back(record._infile.tostring(INFILE_TAG));
-        }
-        if (record._containment) {
-            fields.push_back(record._containment.tostring(CONTAINMENT_TAG));
-        }
-        if (record._transitive) {
-            fields.push_back(record._transitive.tostring(TRANSITIVE_TAG));
-        }
+std::istream& operator>>(std::istream& stream, EdgeRecord& record) {
+  std::string line;
+  std::getline(stream, line);
+  bool r = EdgeRecord::parse(line, record);
+  assert(r);
+  return stream;
+}
 
-        stream << HEAD_TAG;
-        for (const auto& item : fields) {
-            stream << FIELD_SEP;
-            stream << item;
-        }
-        return stream;
-    }
+RecordType recordtype(const std::string& record) {
+  if (boost::algorithm::starts_with(record, HEAD_TAG)) {
+    return RT_HEADER;
+  } else if (boost::algorithm::starts_with(record, VERTEX_TAG)) {
+    return RT_VERTEX;
+  } else if (boost::algorithm::starts_with(record, EDGE_TAG)) {
+    return RT_EDGE;
+  }
+  return RT_NONE;
+}
 
-    std::istream& operator>>(std::istream& stream, HeaderRecord& record) {
-        std::string line;
-        std::getline(stream, line);
-        bool r = HeaderRecord::parse(line, record);
-        assert(r);
-        return stream;
-    }
-
-    //
-    // VertexRecord
-    //
-    bool VertexRecord::parse(const std::string& text, VertexRecord& record) {
-        std::vector<std::string> fields;
-        tokenize(fields, text, FIELD_SEP);
-        if (fields.size() < 3) {
-            LOG4CXX_ERROR(logger, "Error: Vertex record is incomplete.");
-            LOG4CXX_ERROR(logger, boost::format("Record: %s") % text);
-            return false;
-        }
-        if (!boost::algorithm::equals(fields[0], VERTEX_TAG)) {
-            LOG4CXX_ERROR(logger, "Error: Record does not have a vertex tag");
-            LOG4CXX_ERROR(logger, boost::format("Record: %s") % text);
-            return false;
-        }
-        record.id = fields[1];
-        record.seq = fields[2];
-
-        for (size_t i = 3; i < fields.size(); ++i) {
-            if (boost::algorithm::starts_with(fields[i], SUBSTRING_TAG)) {
-                if (!record.substring.fromstring(fields[i])) {
-                    return false;
-                }
-            } else if (boost::algorithm::starts_with(fields[i], BARCODE_TAG)) {
-                if (!record.barcode.fromstring(fields[i])) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    std::ostream& operator<<(std::ostream& stream, const VertexRecord& record) {
-        stream << VERTEX_TAG << FIELD_SEP << record.id << FIELD_SEP << record.seq;
-        if (record.substring) {
-            stream << FIELD_SEP << record.substring.tostring(SUBSTRING_TAG);
-        }
-        if (record.barcode) {
-            stream << FIELD_SEP << record.barcode.tostring(BARCODE_TAG);
-        }
-        return stream;
-    }
-
-    std::istream& operator>>(std::istream& stream, VertexRecord& record) {
-        std::string line;
-        std::getline(stream, line);
-        bool r = VertexRecord::parse(line, record);
-        assert(r);
-        return stream;
-    }
-
-    //
-    // EdgeRecord
-    //
-    bool EdgeRecord::parse(const std::string& text, EdgeRecord& record) {
-        std::vector<std::string> fields;
-        tokenize(fields, text, FIELD_SEP);
-        if (fields.size() < 2) {
-            LOG4CXX_ERROR(logger, "Error: Edge record is incomplete.");
-            LOG4CXX_ERROR(logger, boost::format("Record: %s") % text);
-            return false;
-        }
-        if (!boost::algorithm::equals(fields[0], EDGE_TAG)) {
-            LOG4CXX_ERROR(logger, "Error: Edge does not have a edge tag");
-            LOG4CXX_ERROR(logger, boost::format("Record: %s") % text);
-            return false;
-        }
-        std::stringstream ss(fields[1]);
-        ss >> record._overlap;
-        for (size_t i = 2; i < fields.size(); ++i) {
-            if (boost::algorithm::starts_with(fields[i], CIGAR_TAG)) {
-                if (!record._cigar.fromstring(fields[i])) {
-                    return false;
-                }
-            } else if (boost::algorithm::starts_with(fields[i], PERCENT_IDENTITY_TAG)) {
-                if (!record._identity.fromstring(fields[i])) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    std::ostream& operator<<(std::ostream& stream, const EdgeRecord& record) {
-        stream << EDGE_TAG << FIELD_SEP << record._overlap;
-        if (record._cigar) {
-            stream << FIELD_SEP << record._cigar.tostring(CIGAR_TAG);
-        }
-        if (record._identity) {
-            stream << FIELD_SEP << record._identity.tostring(PERCENT_IDENTITY_TAG);
-        }
-        return stream;
-    }
-
-    std::istream& operator>>(std::istream& stream, EdgeRecord& record) {
-        std::string line;
-        std::getline(stream, line);
-        bool r = EdgeRecord::parse(line, record);
-        assert(r);
-        return stream;
-    }
-
-    RecordType recordtype(const std::string& record) {
-        if (boost::algorithm::starts_with(record, HEAD_TAG)) {
-            return RT_HEADER;
-        } else if (boost::algorithm::starts_with(record, VERTEX_TAG)) {
-            return RT_VERTEX;
-        } else if (boost::algorithm::starts_with(record, EDGE_TAG)) {
-            return RT_EDGE;
-        }
-        return RT_NONE;
-    }
-};
+};  // namespace ASQG

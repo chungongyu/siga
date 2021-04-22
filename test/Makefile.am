@@ -1,4 +1,4 @@
-check_PROGRAMS=index_test preprocess_test overlap_test assemble_test
+check_PROGRAMS=index_test preprocess_test overlap_test assemble_test utils_test
 
 preprocess_test_CPPFLAGS=\
             -I$(top_srcdir)/src \
@@ -43,5 +43,16 @@ assemble_test_LDFLAGS=\
             ${BOOST_UNIT_TEST_FRAMEWORK_LIB}
 assemble_test_SOURCES=\
             assemble_test.cpp
+
+utils_test_CPPFLAGS=\
+            -I$(top_srcdir)/src \
+            ${BOOST_CPPFLAGS}
+utils_test_LDADD=\
+            ${top_builddir}/src/libsiga.la
+utils_test_LDFLAGS=\
+            ${BOOST_LDFLAGS} \
+            ${BOOST_UNIT_TEST_FRAMEWORK_LIB}
+utils_test_SOURCES=\
+            utils_test.cpp
 
 TESTS=${check_PROGRAMS}

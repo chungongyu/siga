@@ -12,21 +12,21 @@
 #define GZIP_EXT  ".gz"
 #define BZIP_EXT  ".bz2"
 #define RMDUP_EXT ".rmdup"
-#define EC_EXT    ".ec"
-#define FA_EXT    ".fa"
+#define EC_EXT  ".ec"
+#define FA_EXT  ".fa"
 
 // command sorting
 enum {
-    kPreprocess, 
-    kIndex, 
-    kCorrect, 
-    kOverlap, 
-    kAssemble, 
-    kSubgraph, 
-    kRmDup, 
-    kPreQC, 
-    kMatch, 
-    kUnkown = 1000
+  kPreprocess,
+  kIndex,
+  kCorrect,
+  kOverlap,
+  kAssemble,
+  kSubgraph,
+  kRmDup,
+  kPreQC,
+  kMatch,
+  kUnkown = 1000
 };
 
-#endif // constant_h_
+#endif  // constant_h_

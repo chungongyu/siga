@@ -62,39 +62,100 @@ void ChimericVisitor::previsit(Bigraph* graph) {
 bool ChimericVisitor::visit(Bigraph* graph, Vertex* vertex) {
     // Check if this node is chimeric
     const std::string& seq = vertex->seq();
-    if (vertex->degrees(Edge::ED_SENSE) == 1 && vertex->degrees(Edge::ED_ANTISENSE) == 1 && seq.length() < _minLength) {
+    if (vertex->degrees(Edge::ED_SENSE) == 1 && vertex->degrees(Edge::ED_ANTISENSE) == 1 && seq.length() <= _minLength) {
         Edge* prevEdge = vertex->edges(Edge::ED_ANTISENSE)[0];
         Edge* nextEdge = vertex->edges(Edge::ED_SENSE)[0];
         Vertex* prevVert = prevEdge->end();
         Vertex* nextVert = nextEdge->end();
+
+        size_t n = _N > 0 ? _N : 1751447;
+        size_t G = _G > 0 ? _G : 59128983;
 
         bool chimeric = true;
         if (chimeric) {
             chimeric &= (prevVert->degrees(Edge::ED_SENSE) >= 2);
         }
         if (chimeric) {
+            size_t k = prevVert->coverage();
+            size_t delta = prevVert->seq().length();
+            double score = (n-k)*(log(G-delta)-log(G>2*delta ? G-2*delta : 0.001)) - k*log(2.0);
+            LOG4CXX_INFO(logger, boost::format("ChimericVisitor::vertex=%s,prevVert=%s,delta=%ld,score=%lf") % vertex->id() % prevVert->id() % delta % score);
+            //chimeric &= (score >= _T);
+        }
+        if (chimeric) {
             chimeric &= (nextVert->degrees(Edge::ED_ANTISENSE) >= 2);
         }
         if (chimeric) {
+            size_t k = nextVert->coverage();
+            size_t delta = nextVert->seq().length();
+            double score = (n-k)*(log(G-delta)-log(G>2*delta ? G-2*delta : 0.001)) - k*log(2.0);
+            LOG4CXX_INFO(logger, boost::format("ChimericVisitor::vertex=%s,nextVert=%s,delta=%ld,score=%lf") % vertex->id() % nextVert->id() % delta % score);
+            //chimeric &= (score > _T);
+        }
+        if (chimeric) {
+            auto smallest = [&](const EdgePtrList& edges, const Edge* edge)->bool {
+                for (size_t k = 0; k < edges.size(); ++k) {
+                    if (edges[k]->coord().length() < edge->coord().length() || edges[k]->coord().length() - edge->coord().length() < _delta) {
+                        return false;
+                    }
+                }
+               return true;
+            };
+            auto smallest_length = [&](const EdgePtrList& edges, const Edge* edge)->bool {
+                for (size_t k = 0; k < edges.size(); ++k) {
+                    if (edges[k]->end()->id() == vertex->id()) {
+                        continue;
+                    }
+                    if (edges[k]->end()->seq().length() <= seq.length() + _delta) {
+                        LOG4CXX_INFO(logger, boost::format("ChimericVisitor::vertex=%s,xx=%s,seq.length=%d,xx.length=%d,delta=%ld") % vertex->id() % edges[k]->end()->id() % seq.length() % edges[k]->end()->seq().length() % _delta);
+                        return false;
+                    }
+                }
+               return true;
+            };
+            auto smallest_coverage = [&](const EdgePtrList& edges, const Edge* edge)->bool {
+                for (size_t k = 0; k < edges.size(); ++k) {
+                    if (edges[k]->end()->id() == vertex->id()) {
+                        continue;
+                    }
+                    if (edges[k]->end()->coverage() <= vertex->coverage() + 3) {
+                        LOG4CXX_INFO(logger, boost::format("ChimericVisitor::smallest_coverage::vertex=%s,xx=%s,seq.length=%d,xx.length=%d,delta=%ld,xx.coverage=%ld,seq.coverage=%ld") % vertex->id() % edges[k]->end()->id() % seq.length() % edges[k]->end()->seq().length() % _delta % edges[k]->end()->coverage() % vertex->coverage());
+                        return false;
+                    }
+                }
+               return true;
+            };
+            auto smallest_new = [&](const EdgePtrList& edges, const Edge* edge)->bool {
+                Vertex* linkVert = edge->end();
+                size_t k = linkVert->coverage();
+                size_t delta = linkVert->seq().length();
+                double score = (n-k)*(log(G-delta)-log(G>2*delta ? G-2*delta : 0.001)) - k*log(2.0);
+                LOG4CXX_INFO(logger, boost::format("ChimericVisitor::vertex=%s,linkVert=%s,delta=%ld,score=%lf") % vertex->id() % linkVert->id() % delta % score);
+                if (score < _T) {
+                    return false;
+                }
+               return smallest_length(edges, edge) || smallest_coverage(edges, edge);
+            };
             // smallest?
-            bool smallest = false;
-            {
-                EdgePtrList edges = prevVert->edges(Edge::ED_SENSE);
-                for (size_t k = 0; k < edges.size(); ++k) {
-                    if (edges[k]->coord().length() > prevEdge->coord().length() && edges[k]->coord().length() - prevEdge->coord().length() >= _delta) {
-                        smallest = true;
-                    }
-                }
-            }
-            {
-                EdgePtrList edges = nextVert->edges(Edge::ED_ANTISENSE);
-                for (size_t k = 0; k < edges.size(); ++k) {
-                    if (edges[k]->coord().length() > nextEdge->coord().length() && edges[k]->coord().length() - nextEdge->coord().length() >= _delta) {
-                        smallest = true;
-                    }
-                }
-            }
-            chimeric &= smallest;
+            // bool smallest = false;
+            // {
+            //     EdgePtrList edges = prevVert->edges(Edge::ED_SENSE);
+            //     for (size_t k = 0; k < edges.size(); ++k) {
+            //         if (edges[k]->coord().length() > prevEdge->coord().length() && edges[k]->coord().length() - prevEdge->coord().length() >= _delta) {
+            //             smallest = true;
+            //         }
+            //     }
+            // }
+            // {
+            //     EdgePtrList edges = nextVert->edges(Edge::ED_ANTISENSE);
+            //     for (size_t k = 0; k < edges.size(); ++k) {
+            //         if (edges[k]->coord().length() > nextEdge->coord().length() && edges[k]->coord().length() - nextEdge->coord().length() >= _delta) {
+            //             smallest = true;
+            //         }
+            //     }
+            // }
+            chimeric &= (smallest_new(prevVert->edges(Edge::ED_SENSE), prevEdge) || smallest_new(nextVert->edges(Edge::ED_ANTISENSE), nextEdge));
+            LOG4CXX_INFO(logger, boost::format("ChimericVisitor::vertex=%s,smallest=%d,smallest=%d,chimeric=%d") % vertex->id() % smallest_new(prevVert->edges(Edge::ED_SENSE), prevEdge) % smallest_new(nextVert->edges(Edge::ED_ANTISENSE), nextEdge) % chimeric);
         }
         if (chimeric) {
             vertex->color(GC_BLACK);
@@ -130,8 +191,8 @@ bool ContainRemoveVisitor::visit(Bigraph* graph, Vertex* vertex) {
         const EdgePtrList& edges = vertex->edges();
 
         // Delete the edges from the graph
-        for (auto i = edges.begin(); i != edges.end(); ++i) {
-           Edge* edge = *i;
+        for (auto edge : edges) {
+           edge->color(GC_NONE);
            Edge* twin = edge->twin();
            Vertex* end = edge->end();
 
@@ -160,13 +221,28 @@ void ContainRemoveVisitor::postvisit(Bigraph* graph) {
 //
 bool FastaVisitor::visit(Bigraph* graph, Vertex* vertex) {
     DNASeq seq(vertex->id(), vertex->seq());
-    const std::string& index = vertex->index();
+    std::string index = vertex->index();
+    if (vertex->coverage() > 1) {
+        ASQG::IntTagValue cr(vertex->coverage());
+        if (!seq.comment.empty()) {
+            seq.comment += ' ';
+        }
+        seq.comment += cr.tostring(ASQG::COVERAGE_TAG);
+    }
     if (!index.empty()) {
         ASQG::StringTagValue bx(index);
         if (!seq.comment.empty()) {
             seq.comment += ' ';
         }
         seq.comment += bx.tostring(ASQG::BARCODE_TAG);
+    }
+    std::string ext = vertex->extension();
+    if (!ext.empty()) {
+        ASQG::StringTagValue extension(ext);
+        if (!seq.comment.empty()) {
+            seq.comment += ' ';
+        }
+        seq.comment += extension.tostring(ASQG::EXTENSION_TAG);
     }
     _stream << seq;
     return false;
@@ -335,6 +411,17 @@ private:
 };
 
 bool MaximalOverlapVisitor::visit(Bigraph* graph, Vertex* vertex) {
+    {
+        size_t n = _N > 0 ? _N : 1751447;
+        size_t G = _G > 0 ? _G : 59128983;
+        size_t k = vertex->coverage();
+        size_t delta = vertex->seq().length();
+    
+        double score = (n-k)*(log(G-delta)-log(G>2*delta ? G-2*delta : 0.001)) - k*log(2.0);
+        if (score < _T) {
+            return false;
+        }
+    }
     bool modified = false;
 
     for (size_t i = 0; i < Edge::ED_COUNT; ++i) {
@@ -560,11 +647,10 @@ bool PairedReadVisitor::visit(Bigraph* graph, Vertex* vertex1) {
 
 typedef std::unordered_map<Vertex::Id, BigraphWalk::DistanceAttr> PairedDistanceMap;
 typedef std::unordered_map<Vertex::Id, PairedDistanceMap> PairedLinkList;
-typedef std::unordered_map<Vertex::Id, BigraphWalk::NodePtr> VertexContainmentMap;
 
 class PairedVertexProcess {
 public:
-    PairedVertexProcess(Bigraph* graph, PairedReadVisitor* vistor, const VertexContainmentMap* dict = NULL) : _graph(graph), _visitor(vistor), _dict(dict) {
+    PairedVertexProcess(Bigraph* graph, PairedReadVisitor* vistor) : _graph(graph), _visitor(vistor) {
     }
     BigraphWalk::NodePtrList process(const Vertex* vertex1) {
         BigraphWalk::NodePtrList linklist;
@@ -572,6 +658,9 @@ public:
         const Vertex* paired_v1 = _graph->getVertex(PairEnd::id(vertex1->id()));
         assert(paired_v1 != NULL);
 
+        if (vertex1->id() == "ST-K00126:7:H5W53BBXX:553782:575696:10120:10533/1") {
+            assert(true);
+        }
         // BFS the adjacents of vertex1
         BigraphWalk::NodePtrList adjacents;
         if (vertex1->seq().length() > _visitor->_maxDistance) {
@@ -595,13 +684,10 @@ public:
                 }); // sort by distance
 
         // Match each virtual read with paired vertex1
-        size_t numNodes[Edge::ED_COUNT] = {0}, MAX_STEPS = 3;
         for (const auto& node1 : adjacents) {
-            size_t numIdx = node1->attr.distance >= 0 ? Edge::ED_SENSE : Edge::ED_ANTISENSE; 
-            //if (numNodes[numIdx] >= MAX_STEPS) continue;
             const Vertex* paired_v2 = _graph->getVertex(PairEnd::id(node1->vertex->id()));
             assert(paired_v2 != NULL);
-            LOG4CXX_DEBUG(logger, boost::format("vertex1: %s<->%s, vertex2: %s<->%s") % vertex1->id() % paired_v1->id() % node1->vertex->id() % paired_v2->id());
+            LOG4CXX_DEBUG(logger, boost::format("vertex1: %s<->%s, vertex2: %s<->%s, attr.distance=%d") % vertex1->id() % paired_v1->id() % node1->vertex->id() % paired_v2->id() % node1->attr.distance);
 
             BigraphWalk::NodePtrList faraways;
             for (size_t i = 0; i < Edge::ED_COUNT && faraways.empty(); ++i) {
@@ -611,15 +697,9 @@ public:
                         }, paired_v2, 0, std::abs(node1->attr.distance) + _visitor->_insertDelta*4, 1, &faraways);
             }
             for (const auto& node2 : faraways) {
-                if (_visitor->_withIndex) {
-                    if (node1->vertex->index() != node2->vertex->index()) {
-                        continue;
-                    }
-                }
                 linklist.push_back(node1);
                 LOG4CXX_DEBUG(logger, boost::format("paired_read_all\t%s\t%s\t%d\t%s\t%s\t%d") % vertex1->id() % node1->vertex->id() % node1->attr.distance % paired_v1->id() % node2->vertex->id() % node2->attr.distance);
-                ++numNodes[numIdx];
-                break;
+                //break;
             }
         }
 
@@ -628,7 +708,6 @@ public:
 private:
     Bigraph* _graph;
     PairedReadVisitor* _visitor;
-    const VertexContainmentMap* _dict;
 };
 
 class PairedVertexPostProcess {
@@ -771,163 +850,6 @@ private:
     bool _hasColor[Edge::ED_COUNT];
 };
 
-class PairedContainmentVisitor : public BigraphVisitor {
-public:
-    PairedContainmentVisitor(GraphColor white, GraphColor black, VertexContainmentMap& dict) : _white(white), _black(black), _dict(dict) {
-    }
-    void previsit(Bigraph* graph) {
-        graph->color(_white);
-
-        tableInit();
-    }
-    bool visit(Bigraph* graph, Vertex* vertex) {
-        bool modified = false;
-        if (vertex->color() != _black) {
-            BigraphWalk::NodePtrList* containment = new BigraphWalk::NodePtrList();
-            containment->push_back(
-                    BigraphWalk::NodePtr(new BigraphWalk::Node(vertex, 0, Edge::ED_SENSE, Edge::EC_SAME))
-                );
-
-            BigraphWalk::Node* curr = NULL;
-            while ((curr = simplify(graph, vertex, Edge::ED_SENSE))) {
-                containment->push_back(BigraphWalk::NodePtr(curr));
-                modified = true;
-            }
-            BigraphWalk::Node* prev = NULL;
-            while ((curr = simplify(graph, vertex, Edge::ED_ANTISENSE))) {
-                if (prev != NULL) {
-                    curr->attr.distance += prev->attr.distance;
-                }
-                containment->push_back(BigraphWalk::NodePtr(curr));
-                prev = curr;
-                modified = true;
-            }
-
-            // Translate the coordinate
-            std::sort(containment->begin(), containment->end(), [](const BigraphWalk::NodePtr& x, const BigraphWalk::NodePtr& y) -> bool {
-                return x->attr.distance < y->attr.distance;
-            });
-            int distance = (*containment)[0]->attr.distance;
-            for (auto& n : *containment) {
-                // Modify inplace
-                n->attr.distance -= distance;
-                LOG4CXX_DEBUG(logger, boost::format("PairedContainmentVisitor::visit\t%s\t%s\t%d\t%d\t%d") % vertex->id() % n->vertex->id() % n->attr.distance % n->attr.dir % n->attr.comp);
-            }
-            assert(_table.find(vertex->id()) == _table.end());
-            _table[vertex->id()] = containment;
-        }
-        return modified;
-    }
-    void postvisit(Bigraph* graph) {
-        // graph->sweepVertices(_black);
-        for (auto i = _table.begin(); i != _table.end(); ++i) {
-            for (auto& n : *i->second) {
-                _dict[n->vertex->id()] = n;
-                // Modify inplace
-                n->vertex = graph->getVertex(i->first);
-            }
-        }
-
-        tableClean();
-    }
-private:
-    BigraphWalk::Node* simplify(Bigraph* graph, Vertex* vertex, Edge::Dir dir) {
-        BigraphWalk::Node* merged = NULL;
-
-        // Get the edges for this direction
-        EdgePtrList edges = vertex->edges(dir);
-
-        // If there is a single edge in this direction, merge the vertices
-        // Don't merge singular self edges though
-        if (edges.size() == 1 && !edges[0]->isSelf()) {
-            // Check that the edge back is singular as well
-            Edge* single = edges[0];
-            Edge* twin = single->twin();
-            Vertex* end = single->end();
-            if (end->degrees(twin->dir()) == 1) {
-                int distance = 0;
-                if (dir == Edge::ED_SENSE) {    // forward
-                    const SeqCoord& coord = single->coord();
-                    distance = coord.seqlen - coord.length();
-                } else {                        // backward
-                    const SeqCoord& coord = twin->coord();
-                    distance = -(coord.seqlen - coord.length());
-                }
-                merged = new BigraphWalk::Node(end, distance, single->dir(), single->comp());
-
-                // Eat it
-                graph->merge(vertex, single);
-
-                // It is guarenteed to not be connected
-                end->color(_black);
-            }
-        }
-        return merged;
-    }
-    bool simplify(Bigraph* graph, Vertex* vertex, Edge::Dir dir, BigraphWalk::NodePtrList* containment) {
-        // Get the edges for this direction
-        EdgePtrList edges = vertex->edges(dir);
-
-        // If there is a single edge in this direction, merge the vertices
-        // Don't merge singular self edges though
-        if (edges.size() == 1 && !edges[0]->isSelf()) {
-            // Check that the edge back is singular as well
-            Edge* single = edges[0];
-            Edge* twin = single->twin();
-            Vertex* end = single->end();
-            if (end->degrees(twin->dir()) == 1) {
-                int distance = 0;
-                if (dir == Edge::ED_SENSE) {    // forward
-                    const SeqCoord& coord = single->coord();
-                    distance = coord.seqlen - coord.length();
-                } else {                        // backward
-                    const SeqCoord& coord = twin->coord();
-                    distance = -(coord.seqlen - coord.length());
-                }
-                containment->push_back(
-                        BigraphWalk::NodePtr(new BigraphWalk::Node(end, distance, single->dir(), single->comp()))
-                    );
-
-                // Eat it
-                graph->merge(vertex, single);
-
-                // It is guarenteed to not be connected
-                end->color(_black);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    void tableInit() {
-        tableClean();
-
-        for (auto i = _dict.begin(); i != _dict.end(); ++i) {
-            auto j = _table.find(i->first);
-            if (j != _table.end()) {
-                j->second->push_back(i->second);
-            } else {
-                BigraphWalk::NodePtrList* ptrlist = new BigraphWalk::NodePtrList();
-                ptrlist->push_back(i->second);
-                _table[i->first] = ptrlist;
-            }
-        }
-    }
-
-    void tableClean() {
-        for (auto i = _table.begin(); i != _table.end(); ++i) {
-            delete i->second;
-        } 
-        _table.clear();
-    }
-
-    VertexContainmentMap& _dict;
-    GraphColor _white;
-    GraphColor _black;
-
-    std::unordered_map<Vertex::Id, BigraphWalk::NodePtrList *> _table;
-};
-
 void PairedReadVisitor::postvisit(Bigraph* graph) {
     PairedLinkList links;
 
@@ -1004,7 +926,7 @@ void PairedReadVisitor::postvisit(Bigraph* graph) {
             }
             if (!hasLink) {
                 creator.create(i->first, xj.first, xj.second, GC_WHITE);
-                LOG4CXX_DEBUG(logger, boost::format("paired_read_simplify\t%s\t%s\t%d") % i->first % xj.first % xj.second.distance);
+                LOG4CXX_INFO(logger, boost::format("paired_read_simplify\t%s\t%s\t%d") % i->first % xj.first % xj.second.distance);
             }
         }
     }
@@ -1017,13 +939,51 @@ void PairedReadVisitor::postvisit(Bigraph* graph) {
     }
 
     graph->sweepEdges(GC_BLACK);
+}
 
-    //
-    VertexContainmentMap dict;
-    {
-        PairedContainmentVisitor pcVisit(GC_WHITE, GC_BLACK, dict);
-        graph->visit(&pcVisit);
+//
+// LinkedReadVisitor
+//
+
+void LinkedReadVisitor::previsit(Bigraph* graph) {
+    EdgeColorVisitor ecVisit(GC_WHITE);
+    graph->visit(&ecVisit);
+
+    _dummys = 0;
+}
+
+bool LinkedReadVisitor::visit(Bigraph* graph, Vertex* vertex) {
+    if (vertex->coverage() < _X) {
+        return false;
     }
+    bool modified = false;
+    const Vertex::IndexTable& indexTbl1 = vertex->indexTbl();
+    const EdgePtrList& edges = vertex->edges();
+    for (auto& edge : edges) {
+        if (edge->end()->coverage() < _X) {
+            continue;
+        }
+        const Vertex::IndexTable& indexTbl2 = edge->end()->indexTbl();
+
+        size_t fragment = 0;
+        for (const auto& index : indexTbl2) {
+            if (indexTbl1.find(index.first) != indexTbl1.end()) {
+                ++fragment;
+            }
+        }
+        if (fragment <= 1) {
+            edge->color(GC_BLACK);
+            edge->twin()->color(GC_BLACK);
+            LOG4CXX_INFO(logger, boost::format("LinkedReadVisitor::visit(%s, %s)") % vertex->id() % edge->end()->id());
+            ++_dummys;
+        }
+    }
+    return modified;
+}
+
+void LinkedReadVisitor::postvisit(Bigraph* graph) {
+    graph->sweepEdges(GC_BLACK);
+    LOG4CXX_INFO(logger, boost::format("[LinkedReadVisitor] Removed %d dummy edges") % _dummys);
 }
 
 //

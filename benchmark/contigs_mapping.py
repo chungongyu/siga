@@ -54,11 +54,11 @@ if __name__ == '__main__':
         contig_number += 1
         contig_total_length += len(contig)
         length_list.append(len(contig))
-        if contig_find(ref, mapping_tbl, contig) or contig_find(ref, mapping_tbl, reverse_complement(contig)):
-            matched_contig += 1
-        else:
-            unmatched_file.write('>' + name + '\n')
-            unmatched_file.write(contig + '\n')
+        #if contig_find(ref, mapping_tbl, contig) or contig_find(ref, mapping_tbl, reverse_complement(contig)):
+        #    matched_contig += 1
+        #else:
+        #    unmatched_file.write('>' + name + '\n')
+        #    unmatched_file.write(contig + '\n')
     print "contig_number: %d"%contig_number
     print "matched_contig: %d"%matched_contig
     print "unmatched_contig: %d"%(contig_number - matched_contig)

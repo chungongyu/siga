@@ -26,10 +26,20 @@ AX_CXX_COMPILE_STDCXX_11([noext],[mandatory])
 
 PKG_CHECK_MODULES([RAPIDJSON], [RapidJSON >= 1.0.0])
 PKG_CHECK_MODULES([LOG4CXX], [liblog4cxx >= 0.10.0])
-AC_ARG_WITH([tcmalloc], AS_HELP_STRING([--with-tcmalloc], [Build with the `TCMalloc`]))
+AC_ARG_WITH([tcmalloc], AS_HELP_STRING([--with-tcmalloc], [Build with the `TCMalloc` (default=no)]))
 AS_IF([test "x${with_tcmalloc}" = "xyes"], [
     PKG_CHECK_MODULES([TCMALLOC], [libtcmalloc >= 2.1])
 ])
+
+AC_ARG_ENABLE([gprof], [AS_HELP_STRING([--enable-gprof], [enable internal support for `gprof` (default=no)])],
+[case "${enableval}" in
+    yes)
+        CFLAGS="$CFLAGS -pg"
+        CXXFLAGS="$CXXFLAGS -pg"
+        ;;
+    no) ;;
+    *) AC_MSG_ERROR(bad value ${enableval} for --enable-gprof);;
+esac])
 
 # Checks for libraries.
 # FIXME: Replace `main' with a function in `-lpthread':

@@ -6,8 +6,8 @@
 BOOST_AUTO_TEST_SUITE(assembler);
 
 BOOST_AUTO_TEST_CASE(Assembler) {
-    int i = 1;
-    BOOST_CHECK(i);
+  int i = 1;
+  BOOST_CHECK(i);
 }
 
 BOOST_AUTO_TEST_SUITE_END();

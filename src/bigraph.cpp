@@ -8,6 +8,7 @@
 #include <memory>
 
 #include <boost/format.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <log4cxx/logger.h>
 
@@ -75,10 +76,53 @@ void Edge::validate() const {
 //
 // Vertex
 //
+Vertex::Vertex(const Id& id, const std::string& seq, bool contained, const std::string& index, size_t coverage, const std::string& ext) : _id(id), _seq(seq), _contained(contained), _color(GC_NONE), _coverage(coverage) {
+    {
+        std::vector<std::string> vec;
+        ASQG::tokenize(vec, index, ',');
+        for (const auto& item : vec) {
+            size_t c = 1;
+            std::string barcode = item;
+            {
+                size_t k = item.rfind('!');
+                if (k != std::string::npos) {
+                    barcode = item.substr(0, k);
+                    c = std::stoi(item.substr(k + 1));
+                }
+            }
+            auto it = _indexTbl.find(barcode);
+            if (it != _indexTbl.end()) {
+                it->second += c;
+            } else {
+                _indexTbl[barcode] = c;
+            }
+        }
+    }
+    {
+        std::vector<std::string> vec;
+        ASQG::tokenize(vec, ext, ',');
+        for (const auto& item : vec) {
+            _ext.push_back(item);
+        }
+    }
+}
+
 Vertex::~Vertex() {
     for (auto i = _edges.begin(); i != _edges.end(); ++i) {
         delete *i;
     }
+}
+
+std::string Vertex::index() const {
+    std::vector<std::string> vec;
+    for (const auto& it: _indexTbl) {
+        vec.push_back(boost::str(boost::format("%s!%u") % it.first % it.second));
+    }
+    return boost::algorithm::join(vec, ",");
+}
+
+std::string Vertex::extension() const {
+    return boost::algorithm::join(_ext, ",");
 }
 
 void Vertex::merge(Edge* edge) {
@@ -102,6 +146,21 @@ void Vertex::merge(Edge* edge) {
 
     // Update the coverage value of the vertex
     _coverage += edge->end()->coverage();
+    
+    // Update the index/barcode table of vertex
+    for (const auto& idx : edge->end()->_indexTbl) {
+        auto it = _indexTbl.find(idx.first);
+        if (it != _indexTbl.end()) {
+            it->second += idx.second;
+        } else {
+            _indexTbl[idx.first] = idx.second;
+        }
+    }
+    
+    // Update the extension attributes
+    for (const auto& attr : edge->end()->_ext) {
+        _ext.push_back(attr);
+    }
 
     ////////////////////////////////////////////////////
     // Extend match
@@ -294,6 +353,7 @@ void Bigraph::simplify(Edge::Dir dir) {
                 Edge* twin = single->twin();
                 Vertex* end = single->end();
                 if (end->degrees(twin->dir()) == 1) {
+                    if (!single->coord().isContained() && !twin->coord().isContained()) {
                     merge(i->second, single);
                     // It is guarenteed to not be connected
                     // Remove V2
@@ -301,6 +361,7 @@ void Bigraph::simplify(Edge::Dir dir) {
                     SAFE_DELETE(end);
 
                     changed = true;
+                    }
                 }
             }
         }
@@ -486,7 +547,7 @@ bool Bigraph::load(std::istream& stream, size_t minOverlap, bool allowContainmen
                 }
                 const ASQG::IntTagValue& containment = record.containment();
                 if (containment) {
-                    g->containment((int)containment);
+                    // g->containment((int)containment);
                 }
                 break;
             }
@@ -503,7 +564,7 @@ bool Bigraph::load(std::istream& stream, size_t minOverlap, bool allowContainmen
                     LOG4CXX_ERROR(logger, boost::format("Error: Unexpected vertex record found at line %s") % line);
                     return false;
                 }
-                Vertex* vertex = new Vertex(record.id, record.seq, record.substring ? (int)record.substring : false, record.barcode ? (std::string)record.barcode : "");
+                Vertex* vertex = new Vertex(record.id, record.seq, record.substring ? (int)record.substring : false, record.barcode ? (std::string)record.barcode : "", record.coverage ? (int)record.coverage : 1, record.ext ? (std::string)record.ext : "");
                 if (!g->addVertex(vertex)) {
                     LOG4CXX_ERROR(logger, boost::format("Error: Attempted to insert vertex into graph with a duplicate id: %s") % vertex->id());
                     LOG4CXX_ERROR(logger, "All reads must have a unique identifier");
@@ -568,6 +629,15 @@ bool Bigraph::save(std::ostream& stream, const Bigraph* g) {
     // Vertices
     for (auto i = g->_vertices.begin(); i != g->_vertices.end(); ++i) {
         ASQG::VertexRecord record(i->second->id(), i->second->seq());
+        std::string barcode = i->second->index();
+        if (!barcode.empty()) {
+            record.barcode = barcode;
+        }
+        record.coverage = i->second->coverage();
+        std::string ext = i->second->extension();
+        if (!ext.empty()) {
+            record.ext = ext;
+        }
         stream << record << '\n';
         if (!stream) {
             return false;

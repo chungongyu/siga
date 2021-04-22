@@ -4,7 +4,7 @@
 // Released under the GPL
 //-----------------------------------------------
 //
-// PrimerScreen - Singleton class to filter sequences 
+// PrimerScreen - Singleton class to filter sequences
 // that match a database of primer sequences
 //
 #include "primer_screen.h"
@@ -18,23 +18,23 @@
 #define ILLUMINA_SANGER_PCR_FREE_B "GATCGGAAGAGCGGTTCAGCAGGAATGC"
 
 PrimerScreen::PrimerScreen() {
-    _db = {ILLUMINA_SANGER_PCR_FREE_A, ILLUMINA_SANGER_PCR_FREE_B};
+  _db = {ILLUMINA_SANGER_PCR_FREE_A, ILLUMINA_SANGER_PCR_FREE_B};
 }
 
 // Check seq against the primer database
 bool PrimerScreen::containsPrimer(const std::string& seq) {
-    static PrimerScreen screener; // initializes singleton object if necessary
-    
-    // For now we only check if the first 14
-    // bases of seq is a perfect match to any sequence in the db
-    // This is sufficient to get rid of the vast majority of the primer
-    // contamination
-    const size_t check_size = 14;
-    std::string check = seq.substr(0, check_size);
-    for (const auto& item : screener._db) {
-        if (item.find(check) != std::string::npos) {
-            return true;
-        }
+  static PrimerScreen screener;  // initializes singleton object if necessary
+
+  // For now we only check if the first 14
+  // bases of seq is a perfect match to any sequence in the db
+  // This is sufficient to get rid of the vast majority of the primer
+  // contamination
+  const size_t check_size = 14;
+  std::string check = seq.substr(0, check_size);
+  for (const auto& item : screener._db) {
+    if (item.find(check) != std::string::npos) {
+      return true;
     }
-    return false;
+  }
+  return false;
 }
