@@ -50,10 +50,17 @@ public:
             LOG4CXX_INFO(logger, "load ok");
 
             // Visitors
-            ChimericVisitor chVisit(options.get<size_t>("min-chimeric-length", 0), options.get<size_t>("max-chimeric-delta", -1));
+            ChimericVisitor chVisit(options.get<size_t>("min-chimeric-length", 0),
+                                    options.get<size_t>("max-chimeric-delta", -1),
+                                    options.get<size_t>("num-reads", 0),
+                                    options.get<size_t>("genome-size", 0),
+                                    options.get<double>("uniq-threshold", 13.0));
             ContainRemoveVisitor containVisit;
             LoopRemoveVisitor loopVisit;
-            MaximalOverlapVisitor moVisit(options.get<size_t>("max-overlap-delta", 0));
+            MaximalOverlapVisitor moVisit(options.get<size_t>("max-overlap-delta", 0),
+                                          options.get<size_t>("num-reads", 0),
+                                          options.get<size_t>("genome-size", 0),
+                                          options.get<double>("uniq-threshold", 13.0));
             SmoothingVisitor smoothVisit;
             StatisticsVisitor statsVisit;
             TrimVisitor trimVisit(options.get<size_t>("min-branch-length", 150));
@@ -79,14 +86,23 @@ public:
                 PairedReadVisitor prVisit(options.get<size_t>("max-distance", 100), average, delta, options.get<size_t>("max-search-nodes", 100), options.get<size_t>("threads", 1), options.get<size_t>("batch-size", 1000));
                 g.visit(&prVisit);
             } else {
-                LOG4CXX_INFO(logger, "Removing contained vertices from graph");
-                while (g.containment()) {
-                    g.visit(&containVisit);
-                }
+                // LOG4CXX_INFO(logger, "Removing contained vertices from graph");
+                // while (g.containment()) {
+                //     g.visit(&containVisit);
+                // }
             }
 
             // Compact together unbranched chains of vertices
             g.simplify();
+
+            // 10x!
+            if (options.find("with-index") != options.not_found()) {
+                LinkedReadVisitor lrVisit;
+                g.visit(&lrVisit);
+
+                // Compact together unbranched chains of vertices
+                g.simplify();
+            }
 
             if (peMode == 1) {
                 // Trimming
@@ -115,6 +131,7 @@ public:
                 LOG4CXX_INFO(logger, "[Stats] After removing contained vertices:");
                 g.visit(&statsVisit);
 
+                LinkedReadVisitor lrVisit(options.get<size_t>("coverage-threshold", -1));
                 // Trimming
                 size_t trimRound = 0, numTrimRounds = options.get<size_t>("cut-terminal", 10);
                 while (trimRound < numTrimRounds) {
@@ -135,6 +152,21 @@ public:
                     if (g.visit(&trimVisit)) {
                         modified = true;
                         g.simplify();
+                    }
+                    // 10x!
+                    if (options.find("with-index") != options.not_found()) {
+                        LOG4CXX_INFO(logger, "Linked Reads");
+                        if (g.visit(&lrVisit)) {
+                            modified = true;
+                            g.simplify();
+                        }
+                    }
+
+                    if (options.get<size_t>("min-chimeric-length", 0) > 0) {
+                        LOG4CXX_INFO(logger, "removing chimerics:");
+                        if (g.visit(&chVisit)) {
+                            g.simplify();
+                        }
                     }
 
                     if (!modified) {
@@ -235,6 +267,7 @@ private:
                 "Paired reads parameters:\n"
                 "          --pe-mode=INT                0 - do not treat reads as paired (default)\n"
                 "                                       1 - treat reads as paired\n"
+                "          --with-index                 treat as 10x linked read data\n"
                 "          --max-distance=INT           treat reads as connected whose distance is less than INT (default: 100)\n"
                 "          --insert-size=INT            treat reads as paired with insert size INT (default: learned from paired reads)\n"
                 "          --insert-size-delta=INT      treat reads as paired with insert size delta INT (default: learned from paired reads)\n"
@@ -253,8 +286,8 @@ private:
     static Assembler _runner;
 };
 
-static const std::string shortopts = "c:s:p:t:m:x:n:l:a:b:d:h";
-enum { OPT_HELP = 1, OPT_BATCH_SIZE, OPT_PEMODE, OPT_MAXDIST, OPT_INSERTSIZE, OPT_INSERTSIZE_DELTA, OPT_MAXEDGES, OPT_INIT_VERTEX_CAPACITY };
+static const std::string shortopts = "c:s:p:t:m:x:n:l:a:b:d:N:G:T:X:h";
+enum { OPT_HELP = 1, OPT_BATCH_SIZE, OPT_PEMODE, OPT_WITH_IDX, OPT_MAXDIST, OPT_INSERTSIZE, OPT_INSERTSIZE_DELTA, OPT_MAXEDGES, OPT_INIT_VERTEX_CAPACITY };
 static const option longopts[] = {
     {"log4cxx",             required_argument,  NULL, 'c'}, 
     {"ini",                 required_argument,  NULL, 's'}, 
@@ -265,6 +298,7 @@ static const option longopts[] = {
     {"threads",             required_argument,  NULL, 't'}, 
     {"batch-size",          required_argument,  NULL, OPT_BATCH_SIZE}, 
     {"pe-mode",             required_argument,  NULL, OPT_PEMODE}, 
+    {"with-index",          no_argument,        NULL, OPT_WITH_IDX}, 
     {"max-distance",        required_argument,  NULL, OPT_MAXDIST}, 
     {"insert-size",         required_argument,  NULL, OPT_INSERTSIZE}, 
     {"insert-size-delta",   required_argument,  NULL, OPT_INSERTSIZE_DELTA}, 
@@ -274,6 +308,10 @@ static const option longopts[] = {
     {"cut-terminal",        required_argument,  NULL, 'x'}, 
     {"min-chimeric-length", required_argument,  NULL, 'l'}, 
     {"max-chimeric-delta",  required_argument,  NULL, 'a'}, 
+    {"num-reads",           required_argument,  NULL, 'N'}, 
+    {"genome-size",         required_argument,  NULL, 'G'}, 
+    {"uniq-threshold",      required_argument,  NULL, 'T'}, 
+    {"coverage-threshold",  required_argument,  NULL, 'X'}, 
     {"help",                no_argument,        NULL, 'h'}, 
     {NULL, 0, NULL, 0}, 
 };

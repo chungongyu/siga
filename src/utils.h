@@ -1,6 +1,7 @@
 #ifndef utils_h_
 #define utils_h_
 
+#include <cassert>
 #include <sstream>
 #include <string>
 
@@ -30,8 +31,21 @@
 #endif
 
 namespace Utils {
-    std::istream* ifstream(const std::string& filename);
-    std::ostream* ofstream(const std::string& filename);
-};
+  // random
+  void srand();
+  int rand();
+  inline int rand(int start, int stop) {
+    assert(stop > start);
+    return rand() % (stop - start) + start;
+  }
+  inline int rand(int stop) {
+    return rand(0, stop);
+  }
 
-#endif // utils_h_
+  // streams
+  std::istream* ifstream(const std::string& filename);
+  std::ostream* ofstream(const std::string& filename);
+  std::string stem(const std::string& filename);
+};  // namespace Utils
+
+#endif  // utils_h_
