@@ -10,6 +10,7 @@
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <vector>
 
 #include "utils.h"
 
@@ -111,26 +112,26 @@ void mkqs2(T* a, int n, int depth, const PrimarySorter& primarySorter, const Fin
 // subdivide the array to sort into sub jobs which can be sorted using threads.
 template <typename T>
 struct MkqsJob {
-  MkqsJob(T* p, int num, int d) : pData(p), n(num), depth(d) {
+  MkqsJob(T* p, int num, int d) : data(p), n(num), depth(d) {
   }
-  T* pData;
+  T* data;
   int n;
   int depth;
 };
 
 //
 // Perform a partial sort of the data using the mkqs algorithm
-// Iterative sort jobs are created and added to pQueue which is
+// Iterative sort jobs are created and added to queue_data which is
 // protected by queue_mutex. After addition, queue_cv is updated.
 //
 template<typename T, class PrimarySorter, class FinalSorter>
-void parallel_mkqs_process(MkqsJob<T>& job,
-               std::deque<MkqsJob<T> >* pQueue,
+void parallel_mkqs_process(const MkqsJob<T>& job,
+               std::deque<MkqsJob<T> >* queue_data,
                std::mutex* queue_mutex,
                std::condition_variable* queue_cv,
                const PrimarySorter& primarySorter,
                const FinalSorter& finalSorter) {
-  T* a = job.pData;
+  T* a = job.data;
   int n = job.n;
   int depth = job.depth;
 
@@ -176,13 +177,13 @@ void parallel_mkqs_process(MkqsJob<T>& job,
 
   if ((r = pb-pa) > 1) {
     MkqsJob<T> job(a, r, depth);
-    pQueue->push_back(job);
+    queue_data->push_back(job);
     queue_cv->notify_one();
   }
 
   if (ptr2char(a + r) != 0) {
     MkqsJob<T> job(a + r, pa-a + pn-pd-1, depth + 1);
-    pQueue->push_back(job);
+    queue_data->push_back(job);
     queue_cv->notify_one();
   } else {
     // Finalize the sort
@@ -192,7 +193,7 @@ void parallel_mkqs_process(MkqsJob<T>& job,
 
   if ((r = pd-pc) > 1) {
     MkqsJob<T> job(a + n-r, r, depth);
-    pQueue->push_back(job);
+    queue_data->push_back(job);
     queue_cv->notify_one();
   }
 }
@@ -208,17 +209,16 @@ class MkqsThread {
   };
   typedef MkqsJob<T> Job;
   typedef std::deque<Job> JobQueue;
-  MkqsThread(JobQueue* pQueue, std::mutex* queue_mutex,
+  MkqsThread(JobQueue* queue_data, std::mutex* queue_mutex,
          std::condition_variable* queue_cv, int thresholdSize,
          const PrimarySorter* pPrimarySorter,
-         const FinalSorter* pFinalSorter) : m_pQueue(pQueue),
+         const FinalSorter* pFinalSorter) : queue_data_(queue_data),
                           queue_mutex_(queue_mutex),
                           queue_cv_(queue_cv),
                           status_(kCreated),
                           m_thresholdSize(thresholdSize),
-                          m_pPrimary(pPrimarySorter),
-                          m_pFinal(pFinalSorter),
-                          m_numProcessed(0) {}
+                          primary_sorter_(pPrimarySorter),
+                          final_sorter_(pFinalSorter) {}
   ~MkqsThread() {
   }
 
@@ -248,12 +248,12 @@ class MkqsThread {
 
       // Take an item from the queue and process it
       std::unique_lock<std::mutex> lock(*queue_mutex_);
-      queue_cv_->wait(lock, [&]{ return !m_pQueue->empty() || status_ == kStopped; });
+      queue_cv_->wait(lock, [&]{ return !queue_data_->empty() || status_ == kStopped; });
       // Exit if the thread was stopped
       if (status_ == kStopped) {
         return;
       }
-      assert(!m_pQueue->empty());
+      assert(!queue_data_->empty());
 
       // Decrement the done count. Since this is done
       // while the queue is not empty and locked, the master
@@ -262,41 +262,38 @@ class MkqsThread {
       // will work to completion
       status_ = kRunning;
 
-      Job job = m_pQueue->front();
-      m_pQueue->pop_front();
+      Job job = queue_data_->front();
+      queue_data_->pop_front();
       lock.unlock();
 
       // Process the item using either the parallel algorithm (which subdivides the job further)
       // or the serial algorithm (which doesn't subdivide)
       if (job.n > m_thresholdSize) {
-        parallel_mkqs_process(job, m_pQueue, queue_mutex_, queue_cv_, *m_pPrimary, *m_pFinal);
+        parallel_mkqs_process(job, queue_data_, queue_mutex_, queue_cv_, *primary_sorter_, *final_sorter_);
       } else {
-        mkqs2(job.pData, job.n, job.depth, *m_pPrimary, *m_pFinal);
+        mkqs2(job.data, job.n, job.depth, *primary_sorter_, *final_sorter_);
       }
-      m_numProcessed += 1;
     }
   }
-  void process(Job& job);
 
   // Data
-  JobQueue* m_pQueue;  // shared
+  JobQueue* queue_data_;  // shared
   std::mutex* queue_mutex_;
   std::condition_variable* queue_cv_;
   Status status_;
 
   int m_thresholdSize;
-  const PrimarySorter* m_pPrimary;
-  const FinalSorter* m_pFinal;
+  const PrimarySorter* primary_sorter_;
+  const FinalSorter* final_sorter_;
 
   std::unique_ptr<std::thread> thread_;
-  int m_numProcessed;
 };
 
 template <typename T, typename PrimarySorter, typename FinalSorter>
-void mkqs_parallel(T* pData, int n, int numThreads, const PrimarySorter& primarySorter, const FinalSorter& finalSorter) {
+void mkqs_parallel(T* data, int n, int numThreads, const PrimarySorter& primarySorter, const FinalSorter& finalSorter) {
   typedef MkqsJob<T> Job;
   typedef std::deque<Job> JobQueue;
-  JobQueue queue = {Job(pData, n, 0)};
+  JobQueue queue = {Job(data, n, 0)};
 
   // Create the mutex that guards the queue
   std::mutex queue_mutex;
@@ -320,8 +317,8 @@ void mkqs_parallel(T* pData, int n, int numThreads, const PrimarySorter& primary
   std::condition_variable task_cv;
 
   // Create and start the threads
-  auto threads = new MkqsThread<T, PrimarySorter, FinalSorter>*[numThreads];
-  for (int i = 0; i < numThreads; ++i) {
+  std::vector<MkqsThread<T, PrimarySorter, FinalSorter>* > threads(numThreads);
+  for (size_t i = 0; i < threads.size(); ++i) {
     threads[i] = new MkqsThread<T, PrimarySorter, FinalSorter>(&queue, &queue_mutex, &queue_cv,
         threshold_size, &primarySorter, &finalSorter);
     threads[i]->start();
@@ -333,7 +330,7 @@ void mkqs_parallel(T* pData, int n, int numThreads, const PrimarySorter& primary
     // If it is and all threads are finished working (all have posted to
     // the done semaphore), then the threads can be cleaned up.
     auto waiting = [&] {
-        for (int i = 0; i < numThreads; ++i) {
+        for (size_t i = 0; i < threads.size(); ++i) {
           if (threads[i]->status() != MkqsThread<T, PrimarySorter, FinalSorter>::kWaiting) {
             return false;
           }
@@ -347,16 +344,15 @@ void mkqs_parallel(T* pData, int n, int numThreads, const PrimarySorter& primary
 
   // Signal all the threads to stop, then post to the semaphore they are waiting on
   // All threads will pick up the stop request after the posts and call pthread exit
-  for (int i = 0; i < numThreads; ++i) {
+  for (size_t i = 0; i < threads.size(); ++i) {
     threads[i]->stop();
   }
 
   // Join and destroy the threads
-  for (int i = 0; i < numThreads; ++i) {
+  for (size_t i = 0; i < threads.size(); ++i) {
     threads[i]->join();
     delete threads[i];
   }
-  SAFE_DELETE_ARRAY(threads);
 }
 
 #endif  // mkqs_h_

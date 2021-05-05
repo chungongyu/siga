@@ -4,7 +4,8 @@ EXTRA_DIST=404.html \
         _config.yml \
         favicon.png \
         index.md \
-        logo_with_text.png
+        logo_with_text.png \
+        CMakeLists.txt
 html-env:
 	bundle install --path=vendor/bundle
 html-local: html-env
