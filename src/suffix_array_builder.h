@@ -9,8 +9,9 @@ class SuffixArray;
 
 class SuffixArrayBuilder {
 public:
-  static SuffixArrayBuilder* create(const std::string& algorithm);
+  virtual ~SuffixArrayBuilder() {}
 
+  static SuffixArrayBuilder* create(const std::string& algorithm);
   virtual SuffixArray* build(const DNASeqList& sequences, size_t threads = 1) = 0;
 };
 

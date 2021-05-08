@@ -258,8 +258,12 @@ std::istream& operator>>(std::istream& stream, Hit& hit) {
 //
 class OverlapProcess {
  public:
-  OverlapProcess(const OverlapBuilder* builder, size_t minOverlap, std::ostream& stream)
-      : _builder(builder), _minOverlap(minOverlap), _stream(stream) {
+  OverlapProcess(const OverlapBuilder* builder, size_t minOverlap, const std::string& hit)
+      : _builder(builder), _minOverlap(minOverlap), _stream(Utils::ofstream(hit)) {
+    if (!_stream) {
+      LOG4CXX_FATAL(logger, boost::format("failed to create hits %s") % hit);
+      assert(false);
+    }
   }
 
   OverlapResult process(const SequenceProcessFramework::SequenceWorkItem& workItem) {
@@ -270,7 +274,7 @@ class OverlapProcess {
     //
     // Write overlap blocks out to a file
     //
-    _stream << hit << '\n';
+    *_stream << hit << '\n';
 
     return result;
   }
@@ -278,7 +282,7 @@ class OverlapProcess {
  private:
   const OverlapBuilder* _builder;
   size_t _minOverlap;
-  std::ostream& _stream;
+  std::shared_ptr<std::ostream> _stream;
 };
 
 //
@@ -422,12 +426,7 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
 
   if (threads <= 1) {  // single thread
     std::string hit = _prefix + HITS_EXT + GZIP_EXT;
-    std::shared_ptr<std::ostream> stream(Utils::ofstream(hit));
-    if (!stream) {
-      LOG4CXX_ERROR(logger, boost::format("failed to create hits %s") % hit);
-      return false;
-    }
-    OverlapProcess proc(this, minOverlap, *stream);
+    OverlapProcess proc(this, minOverlap, hit);
     OverlapPostProcess postproc(output);
 
     SequenceProcessFramework::SerialWorker<
@@ -445,17 +444,10 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
     hits.push_back(hit);
   } else {  // multi thread
 #ifdef _OPENMP
-    std::vector<std::shared_ptr<std::ostream> > streamlist(threads);
     std::vector<OverlapProcess *> proclist(threads);
     for (size_t i = 0; i < threads; ++i) {
       std::string hit = boost::str(boost::format("%s-thread%d%s%s") % _prefix % i % HITS_EXT % GZIP_EXT);
-      std::shared_ptr<std::ostream> stream(Utils::ofstream(hit));
-      if (!stream) {
-        LOG4CXX_ERROR(logger, boost::format("failed to create hits %s") % hit);
-        return false;
-      }
-      proclist[i] = new OverlapProcess(this, minOverlap, *stream);
-      streamlist[i] = stream;
+      proclist[i] = new OverlapProcess(this, minOverlap, hit);
       hits.push_back(hit);
     }
     OverlapPostProcess postproc(output);
@@ -532,21 +524,26 @@ bool OverlapBuilder::build(const std::string& input, size_t minOverlap, const st
 //
 class DuplicateRemoveProcess {
  public:
-  DuplicateRemoveProcess(const OverlapBuilder* builder, std::ostream& stream) : _builder(builder), _stream(stream) {
+  DuplicateRemoveProcess(const OverlapBuilder* builder, const std::string& hit)
+      : _builder(builder), _stream(Utils::ofstream(hit)) {
+    if (!_stream) {
+      LOG4CXX_FATAL(logger, boost::format("failed to create hits %s") % hit);
+      assert(false);
+    }
   }
 
   OverlapResult process(const SequenceProcessFramework::SequenceWorkItem& workItem) {
     Hit hit(workItem.idx);
     OverlapResult result = _builder->duplicate(workItem.read, &hit.blocks);
     hit.substring = result.substring;
-    _stream << workItem.read.name << '\t' << workItem.read.seq << '\t' << hit << '\n';
+    *_stream << workItem.read.name << '\t' << workItem.read.seq << '\t' << hit << '\n';
 
     return result;
   }
 
  private:
   const OverlapBuilder* _builder;
-  std::ostream& _stream;
+  std::shared_ptr<std::ostream> _stream;
 };
 
 //
@@ -628,12 +625,7 @@ bool OverlapBuilder::rmdup(DNASeqReader& reader, std::ostream& output, std::ostr
 
   if (threads <= 1) {  // single thread
     std::string hit = _prefix + RMDUP_EXT + HITS_EXT + GZIP_EXT;
-    std::shared_ptr<std::ostream> stream(Utils::ofstream(hit));
-    if (!stream) {
-      LOG4CXX_ERROR(logger, boost::format("failed to create hits %s") % hit);
-      return false;
-    }
-    DuplicateRemoveProcess proc(this, *stream);
+    DuplicateRemoveProcess proc(this, hit);
     DuplicateRemovePostProcess postproc;
 
     SequenceProcessFramework::SerialWorker<
@@ -650,7 +642,33 @@ bool OverlapBuilder::rmdup(DNASeqReader& reader, std::ostream& output, std::ostr
 
     hits.push_back(hit);
   } else {  // multi thread
-    assert(false);
+#ifdef _OPENMP
+    std::vector<DuplicateRemoveProcess *> proclist(threads);
+    for (size_t i = 0; i < threads; ++i) {
+      std::string hit = boost::str(boost::format("%s-thread%d%s%s") % _prefix % i % HITS_EXT % GZIP_EXT);
+      proclist[i] = new DuplicateRemoveProcess(this, hit);
+      hits.push_back(hit);
+    }
+    DuplicateRemovePostProcess postproc;
+
+    SequenceProcessFramework::ParallelWorker<
+      SequenceProcessFramework::SequenceWorkItem,
+      OverlapResult,
+      SequenceProcessFramework::SequenceWorkItemGenerator<SequenceProcessFramework::SequenceWorkItem>,
+      DuplicateRemoveProcess,
+      DuplicateRemovePostProcess
+      > worker;
+    size_t num = worker.run(reader, &proclist, &postproc);
+    if (processed != NULL) {
+      *processed = num;
+    }
+    for (size_t i = 0; i < threads; ++i) {
+      delete proclist[i];
+    }
+#else
+    LOG4CXX_ERROR(logger, "failed to load OpenMP");
+    return false;
+#endif  // _OPENMP
   }
 
   // Convert hits to fasta

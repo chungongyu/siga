@@ -31,21 +31,23 @@
 #endif
 
 namespace Utils {
-  // random
-  void srand();
-  int rand();
-  inline int rand(int start, int stop) {
-    assert(stop > start);
-    return rand() % (stop - start) + start;
-  }
-  inline int rand(int stop) {
-    return rand(0, stop);
-  }
 
-  // streams
-  std::istream* ifstream(const std::string& filename);
-  std::ostream* ofstream(const std::string& filename);
-  std::string stem(const std::string& filename);
+// random
+void srand();
+int rand();
+inline int rand(int start, int stop) {
+  assert(stop > start);
+  return rand() % (stop - start) + start;
+}
+inline int rand(int stop) {
+  return rand(0, stop);
+}
+
+// streams
+std::istream* ifstream(const std::string& filename);
+std::ostream* ofstream(const std::string& filename);
+std::string stem(const std::string& filename);
+
 };  // namespace Utils
 
 #endif  // utils_h_

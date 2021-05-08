@@ -1,6 +1,7 @@
 #ifndef suffix_array_h_
 #define suffix_array_h_
 
+#include <cstdint>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -23,8 +24,8 @@ class SuffixArray {
     operator bool() const {
       return !empty();
     }
-    size_t i;
-    size_t j;
+    uint32_t i;
+    uint32_t j;
   };
   typedef std::vector<Elem> ElemList;
 
