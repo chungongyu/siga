@@ -677,8 +677,12 @@ bool OverlapBuilder::rmdup(DNASeqReader& reader, std::ostream& output, std::ostr
 bool OverlapBuilder::rmdup(const std::string& input, const std::string& output, const std::string& duplicates,
     size_t threads, size_t* processed) const {
   // DNASeqReader
-  std::ifstream reads(input);
-  std::shared_ptr<DNASeqReader> reader(DNASeqReaderFactory::create(reads));
+  std::shared_ptr<std::istream> reads(Utils::ifstream(input));
+  if (!reads) {
+    LOG4CXX_ERROR(logger, boost::format("Failed to create stream %s") % input);
+    return false;
+  }
+  std::shared_ptr<DNASeqReader> reader(DNASeqReaderFactory::create(*reads));
   if (!reader) {
     LOG4CXX_ERROR(logger, boost::format("Failed to create DNASeqReader %s") % input);
     return false;
