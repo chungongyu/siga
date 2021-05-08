@@ -1,6 +1,5 @@
 #include "utils.h"
 
-#include <cassert>
 #include <cstdlib>
 #include <ctime>
 #include <memory>
@@ -27,12 +26,14 @@ int rand() {
   return ::rand();
 }
 
-template <typename Alloc = std::allocator<char> >
-struct basic_gzip_decompressor_delegator : boost::iostreams::basic_gzip_decompressor<Alloc> {
+// HACK: a delegator to boost gzip & bzip2 decompressor in order to make it
+// seekable to the beginning of the stream and then burn data.
+template <typename basic_decompressor>
+struct basic_decompressor_delegator {
  public:
   typedef char char_type;
-  struct category : boost::iostreams::basic_gzip_decompressor<Alloc>::category, boost::iostreams::input_seekable {};
-  basic_gzip_decompressor_delegator() : impl_(new boost::iostreams::basic_gzip_decompressor<Alloc>()) {
+  struct category : basic_decompressor::category, boost::iostreams::input_seekable {};
+  basic_decompressor_delegator() : impl_(new basic_decompressor()) {
   }
   template <typename Sink>
   std::streamsize write(Sink& snk, const char_type* s, std::streamsize n) {
@@ -53,61 +54,25 @@ struct basic_gzip_decompressor_delegator : boost::iostreams::basic_gzip_decompre
   template <typename Source>
   std::streampos seek(Source& src, boost::iostreams::stream_offset off, BOOST_IOS::seekdir way,
       BOOST_IOS::openmode which = BOOST_IOS::in | BOOST_IOS::out) {
-    assert(off == 0);
+    assert(off == 0 && way == BOOST_IOS::beg);
     src.pubseekoff(off, way);
-    impl_.reset(new boost::iostreams::basic_gzip_decompressor<Alloc>());
+    impl_.reset(new basic_decompressor());
     return 0;
   }
 
-  std::string file_name() const { return impl_->file_name(); }
-  std::string comment() const { return impl_->comment(); }
-  bool text() const { return impl_->text(); }
-  int os() const { return impl_->os(); }
-  std::time_t mtime() const { return impl_->mtime(); }
-
  private:
-  std::shared_ptr<boost::iostreams::basic_gzip_decompressor<Alloc> > impl_;
+  std::shared_ptr<basic_decompressor> impl_;
 };
 
+template <typename Alloc = std::allocator<char> >
+struct basic_gzip_decompressor_delegator : basic_decompressor_delegator<boost::iostreams::basic_gzip_decompressor<Alloc> > {
+};
 BOOST_IOSTREAMS_PIPABLE(basic_gzip_decompressor_delegator, 1)
 typedef basic_gzip_decompressor_delegator<> gzip_decompressor_delegator;
 
 template <typename Alloc = std::allocator<char> >
-struct basic_bzip2_decompressor_delegator : boost::iostreams::basic_bzip2_decompressor<Alloc> {
- public:
-  typedef char char_type;
-  struct category : boost::iostreams::basic_bzip2_decompressor<Alloc>::category, boost::iostreams::input_seekable {};
-  basic_bzip2_decompressor_delegator() : impl_(new boost::iostreams::basic_bzip2_decompressor<Alloc>()) {
-  }
-  template <typename Sink>
-  std::streamsize write(Sink& snk, const char_type* s, std::streamsize n) {
-    return impl_->write(snk, s, n);
-  }
-  template <typename Source>
-  std::streamsize read(Source& src, char_type* s, std::streamsize n) {
-    return impl_->read(src, s, n);
-  }
-  template <typename Source>
-  void close(Source& src, BOOST_IOS::openmode m) {
-    impl_->close(src, m);
-  }
-  template <typename Source>
-  void close(Source& src) {
-    this->close(src, BOOST_IOS::in);
-  }
-  template <typename Source>
-  std::streampos seek(Source& src, boost::iostreams::stream_offset off, BOOST_IOS::seekdir way,
-      BOOST_IOS::openmode which = BOOST_IOS::in | BOOST_IOS::out) {
-    assert(off == 0);
-    src.pubseekoff(off, way);
-    impl_.reset(new boost::iostreams::basic_bzip2_decompressor<Alloc>());
-    return 0;
-  }
-
- private:
-  std::shared_ptr<boost::iostreams::basic_bzip2_decompressor<Alloc> > impl_;
+struct basic_bzip2_decompressor_delegator : basic_decompressor_delegator<boost::iostreams::basic_bzip2_decompressor<Alloc> > {
 };
-
 BOOST_IOSTREAMS_PIPABLE(basic_bzip2_decompressor_delegator, 1)
 typedef basic_bzip2_decompressor_delegator<> bzip2_decompressor_delegator;
 

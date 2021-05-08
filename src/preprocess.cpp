@@ -82,7 +82,9 @@ class Preprocess : public Runner {
         if (stats.numBasesRead) {
           LOG4CXX_INFO(logger, boost::format("Bases kept:\t%d(%f)") % stats.numBasesKept % ((double)stats.numBasesKept / stats.numBasesRead));
         }
-        LOG4CXX_INFO(logger, boost::format("Number of incorrectly paired reads that were discarded: %d") % stats.numInvalidPE);
+        if (options.get<int>("pe-mode", 0) == 1) {
+          LOG4CXX_INFO(logger, boost::format("Number of incorrectly paired reads that were discarded: %d") % stats.numInvalidPE);
+        }
       }
     } else {
       LOG4CXX_ERROR(logger, "Failed to open output stream");
