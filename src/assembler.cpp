@@ -12,6 +12,7 @@
 
 #include <log4cxx/logger.h>
 
+
 static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.Assembler"));
 
 class Assembler : public Runner {
@@ -51,19 +52,21 @@ public:
 
             // Visitors
             ChimericVisitor chVisit(options.get<size_t>("min-chimeric-length", 0),
+                                    options.get<size_t>("max-chimeric-coverage", -1),
                                     options.get<size_t>("max-chimeric-delta", -1),
                                     options.get<size_t>("num-reads", 0),
                                     options.get<size_t>("genome-size", 0),
                                     options.get<double>("uniq-threshold", 13.0));
             ContainRemoveVisitor containVisit;
             LoopRemoveVisitor loopVisit;
-            MaximalOverlapVisitor moVisit(options.get<size_t>("max-overlap-delta", 0),
+            MaximumOverlapVisitor moVisit(options.get<size_t>("max-overlap-delta", 0),
+                                          options.find("max-overlap-carefully") != options.not_found(),
                                           options.get<size_t>("num-reads", 0),
                                           options.get<size_t>("genome-size", 0),
                                           options.get<double>("uniq-threshold", 13.0));
             SmoothingVisitor smoothVisit;
             StatisticsVisitor statsVisit;
-            TrimVisitor trimVisit(options.get<size_t>("min-branch-length", 150));
+            TrimVisitor trimVisit(options.get<size_t>("min-branch-length", 150), options.get<size_t>("min-branch-coverage", -1));
 
             // Pre-assembly graph stats
             LOG4CXX_INFO(logger, "[Stats] Input graph:");
@@ -94,6 +97,34 @@ public:
 
             // Compact together unbranched chains of vertices
             g.simplify();
+
+#ifdef HAVE_MLPACK
+            // std::unique_ptr<AIModel<mlpack::tree::DecisionTree<> > > model;
+            std::unique_ptr<BaggingModel<mlpack::tree::DecisionTree<> > > model;
+            // ai
+            if (options.find("ai-model") != options.not_found()) {
+                model = std::unique_ptr<BaggingModel<mlpack::tree::DecisionTree<> > >(new BaggingModel<mlpack::tree::DecisionTree<> >());
+                if (model->load(options.get<std::string>("ai-model"))) {
+                    LOG4CXX_INFO(logger, "load ai model ok");
+                    // AIVisitor aiVisit(&model, 
+                    //                 options.get<size_t>("num-reads", 0),
+                    //                 options.get<size_t>("genome-size", 0));
+                    // g.visit(&aiVisit);
+
+                    // // Compact together unbranched chains of vertices
+                    // g.simplify();
+                } else {
+                    model.reset();
+                    LOG4CXX_INFO(logger, "load ai model failed");
+                }
+            }
+            std::unique_ptr<AIVisitor> aiVisit;
+            if (model) {
+                aiVisit = std::unique_ptr<AIVisitor>(new AIVisitor(model.get(), 
+                                    options.get<size_t>("num-reads", 0),
+                                    options.get<size_t>("genome-size", 0)));
+            }
+#endif  // HAVE_MLPACK
 
             // 10x!
             if (options.find("with-index") != options.not_found()) {
@@ -131,19 +162,29 @@ public:
                 LOG4CXX_INFO(logger, "[Stats] After removing contained vertices:");
                 g.visit(&statsVisit);
 
-                LinkedReadVisitor lrVisit(options.get<size_t>("coverage-threshold", -1));
+                LinkedReadVisitor lrVisit(options.get<size_t>("min-linkedread-length", -1), options.get<size_t>("min-linkedread-coverage", -1));
                 // Trimming
                 size_t trimRound = 0, numTrimRounds = options.get<size_t>("cut-terminal", 10);
                 while (trimRound < numTrimRounds) {
                     LOG4CXX_INFO(logger, boost::format("[Trim] Trim round: %d") % (trimRound + 1));
                     bool modified = false;
 
+#ifdef HAVE_MLPACK
+                    if (aiVisit) {
+                        LOG4CXX_INFO(logger, "Removing edges by ai model");
+                        if (g.visit(aiVisit.get())) {
+                            modified = true;
+                            g.simplify();
+                        }
+                    }
+#endif  // HAVE_MLPACK
+
                     LOG4CXX_INFO(logger, "Removing loops");
                     if (g.visit(&loopVisit)) {
                         modified = true;
                         g.simplify();
                     }
-                    LOG4CXX_INFO(logger, "Removing non-maximal overlap edges from graph");
+                    LOG4CXX_INFO(logger, "Removing non-maximum overlap edges from graph");
                     if (g.visit(&moVisit)) {
                         modified = true;
                         g.simplify();
@@ -153,6 +194,7 @@ public:
                         modified = true;
                         g.simplify();
                     }
+
                     // 10x!
                     if (options.find("with-index") != options.not_found()) {
                         LOG4CXX_INFO(logger, "Linked Reads");
@@ -163,7 +205,7 @@ public:
                     }
 
                     if (options.get<size_t>("min-chimeric-length", 0) > 0) {
-                        LOG4CXX_INFO(logger, "removing chimerics:");
+                        LOG4CXX_INFO(logger, "Removing chimerics:");
                         if (g.visit(&chVisit)) {
                             g.simplify();
                         }
@@ -278,6 +320,7 @@ private:
                 "\n"
                 "Maximal overlap parameters:\n"
                 "      -d, --max-overlap-delta=LEN      remove branches only if they are less than LEN bases in length (default: 0)\n"
+                "          --max-overlap-carefully      remove branches only if they are less than LEN bases in length (default: 0)\n"
                 "\n"
                 ) % PACKAGE_NAME << std::endl;
         return 256;
@@ -286,32 +329,39 @@ private:
     static Assembler _runner;
 };
 
-static const std::string shortopts = "c:s:p:t:m:x:n:l:a:b:d:N:G:T:X:h";
-enum { OPT_HELP = 1, OPT_BATCH_SIZE, OPT_PEMODE, OPT_WITH_IDX, OPT_MAXDIST, OPT_INSERTSIZE, OPT_INSERTSIZE_DELTA, OPT_MAXEDGES, OPT_INIT_VERTEX_CAPACITY };
+static const std::string shortopts = "c:s:p:t:m:M:x:n:C:l:A:a:b:d:N:G:T:L:X:h";
+enum { OPT_HELP = 1, OPT_BATCH_SIZE, OPT_PEMODE, OPT_WITH_IDX, OPT_MAXDIST, OPT_INSERTSIZE, OPT_INSERTSIZE_DELTA, OPT_MAXEDGES, OPT_MAX_OVERLAP_CAREFULLY, OPT_INIT_VERTEX_CAPACITY };
 static const option longopts[] = {
-    {"log4cxx",             required_argument,  NULL, 'c'}, 
-    {"ini",                 required_argument,  NULL, 's'}, 
-    {"prefix",              required_argument,  NULL, 'p'}, 
-    {"min-overlap",         required_argument,  NULL, 'm'}, 
-    {"max-edges",           required_argument,  NULL, OPT_MAXEDGES}, 
-    {"init-vertex-capacity",required_argument,  NULL, OPT_INIT_VERTEX_CAPACITY}, 
-    {"threads",             required_argument,  NULL, 't'}, 
-    {"batch-size",          required_argument,  NULL, OPT_BATCH_SIZE}, 
-    {"pe-mode",             required_argument,  NULL, OPT_PEMODE}, 
-    {"with-index",          no_argument,        NULL, OPT_WITH_IDX}, 
-    {"max-distance",        required_argument,  NULL, OPT_MAXDIST}, 
-    {"insert-size",         required_argument,  NULL, OPT_INSERTSIZE}, 
-    {"insert-size-delta",   required_argument,  NULL, OPT_INSERTSIZE_DELTA}, 
-    {"bubble",              required_argument,  NULL, 'b'}, 
-    {"min-branch-length",   required_argument,  NULL, 'n'}, 
-    {"max-overlap-delta",   required_argument,  NULL, 'd'}, 
-    {"cut-terminal",        required_argument,  NULL, 'x'}, 
-    {"min-chimeric-length", required_argument,  NULL, 'l'}, 
+    {"log4cxx",              required_argument,  NULL, 'c'}, 
+    {"ini",                  required_argument,  NULL, 's'}, 
+    {"prefix",               required_argument,  NULL, 'p'}, 
+    {"min-overlap",          required_argument,  NULL, 'm'}, 
+    {"max-edges",            required_argument,  NULL, OPT_MAXEDGES}, 
+    {"init-vertex-capacity", required_argument,  NULL, OPT_INIT_VERTEX_CAPACITY}, 
+    {"threads",              required_argument,  NULL, 't'}, 
+    {"batch-size",           required_argument,  NULL, OPT_BATCH_SIZE}, 
+    {"pe-mode",              required_argument,  NULL, OPT_PEMODE}, 
+    {"with-index",           no_argument,        NULL, OPT_WITH_IDX}, 
+    {"max-distance",         required_argument,  NULL, OPT_MAXDIST}, 
+    {"insert-size",          required_argument,  NULL, OPT_INSERTSIZE}, 
+    {"insert-size-delta",    required_argument,  NULL, OPT_INSERTSIZE_DELTA}, 
+    {"bubble",               required_argument,  NULL, 'b'}, 
+    {"min-branch-length",    required_argument,  NULL, 'n'}, 
+    {"min-branch-coverage",  required_argument,  NULL, 'C'}, 
+    {"max-overlap-delta",    required_argument,  NULL, 'd'}, 
+    {"max-overlap-carefully",required_argument,  NULL, OPT_MAX_OVERLAP_CAREFULLY}, 
+    {"cut-terminal",         required_argument,  NULL, 'x'}, 
+    {"min-chimeric-length",  required_argument,  NULL, 'l'}, 
+    {"min-chimeric-coverage",required_argument, NULL, 'A'}, 
     {"max-chimeric-delta",  required_argument,  NULL, 'a'}, 
     {"num-reads",           required_argument,  NULL, 'N'}, 
     {"genome-size",         required_argument,  NULL, 'G'}, 
     {"uniq-threshold",      required_argument,  NULL, 'T'}, 
-    {"coverage-threshold",  required_argument,  NULL, 'X'}, 
+    {"min-linkedread-length",required_argument, NULL, 'L'}, 
+    {"min-linkedread-coverage",required_argument, NULL, 'X'}, 
+#ifdef HAVE_MLPACK
+    {"ai-model",            required_argument,  NULL, 'M'}, 
+#endif  // HAVE_MLPACK
     {"help",                no_argument,        NULL, 'h'}, 
     {NULL, 0, NULL, 0}, 
 };

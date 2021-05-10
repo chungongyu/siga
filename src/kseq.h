@@ -48,10 +48,18 @@ class DNASeq {
   friend std::ostream& operator << (std::ostream& os, const DNASeq& seq);
 };
 
+enum {
+  kSeqWithQuality = 0x0001,
+  kSeqWithComment = 0x0002,
+  kSeqShrink      = 0x0004,
+  kSeqWithAll     = 0xffff
+};
+
 typedef std::vector<DNASeq> DNASeqList;
-bool ReadDNASequences(std::istream& stream, DNASeqList& sequences);
-bool ReadDNASequences(const std::string& file, DNASeqList& sequences);
-bool ReadDNASequences(const std::vector<std::string>& filelist, DNASeqList& sequences);
+bool ReadDNASequences(std::istream& stream, DNASeqList& sequences, uint32_t flags = kSeqWithAll);
+bool ReadDNASequences(const std::string& file, DNASeqList& sequences, uint32_t flags = kSeqWithAll);
+bool ReadDNASequences(const std::vector<std::string>& filelist, DNASeqList& sequences,
+    uint32_t flags = kSeqWithAll);
 
 class DNASeqReader {
  public:
@@ -143,6 +151,42 @@ class FASTAReader : public DNASeqReader {
 
  private:
   std::string _name;
+};
+
+//
+// DNASeqWorkItem - Definition of the data structure used in the generic
+// functions to process a sequence
+//
+struct DNASeqWorkItem {
+  DNASeqWorkItem() : idx(0) {
+  }
+  DNASeqWorkItem(size_t idx, const DNASeq& read) : idx(idx), read(read) {
+  }
+  size_t idx;
+  DNASeq read;
+};
+
+// Genereic class to generate work items using a seq reader
+template <class Input>
+class DNASeqWorkItemGenerator {
+ public:
+  DNASeqWorkItemGenerator(DNASeqReader& reader) : _reader(reader), _consumed(0) {
+  }
+
+  bool generate(DNASeqWorkItem& item) {
+    if (_reader.read(item.read)) {
+      item.idx = _consumed;
+      ++_consumed;
+      return true;
+    }
+    return false;
+  }
+  size_t consumed() const {
+    return _consumed;
+  }
+ private:
+  DNASeqReader& _reader;
+  size_t _consumed;
 };
 
 #endif  // kseq_h_

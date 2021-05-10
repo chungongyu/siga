@@ -22,7 +22,7 @@ inline char _64to33(char c) {
 // a quality value in the range [0, 60]
 inline bool isValid(char c) {
   int p = (int)c - 33;
-  return 0 <= p && p <= 60;
+  return 0 <= p && p <= 93;
 }
 
 // Phred score transformations

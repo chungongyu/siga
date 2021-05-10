@@ -70,11 +70,11 @@ class RunnerManager {
     }
     return RunnerPtr();
   }
-  bool install(const std::string& name, RunnerPtr runner, const std::string& introduction, double weight = 0) {
+  bool install(const std::string& name, RunnerPtr runner, const std::string& introduction, int rank = 0) {
     if (_runners.find(name) != _runners.end()) {
       return false;
     }
-    _runners[name] = std::make_tuple(runner, introduction, weight);
+    _runners[name] = std::make_tuple(runner, introduction, rank);
     return true;
   }
   bool uninstall(const std::string& name) {
@@ -96,22 +96,34 @@ class RunnerManager {
 
     {
       size_t max_name_length = 0;
-      typedef std::vector<std::tuple<std::string, double> > _RunnerList_;
+      typedef std::vector<std::tuple<std::string, int> > _RunnerList_;
       _RunnerList_ runners;
       {
         for (auto i = _runners.begin(); i != _runners.end(); ++i) {
-          max_name_length = std::max(max_name_length, i->first.length());
-          runners.push_back(std::make_tuple(i->first, std::get<2>(i->second)));
+          if (std::get<2>(i->second) != kUnknown) {
+            max_name_length = std::max(max_name_length, i->first.length());
+            runners.push_back(std::make_tuple(i->first, std::get<2>(i->second)));
+          }
         }
       }
-      std::sort(runners.begin(), runners.end(), Cmp());
+      // sort by runner's rank
+      std::sort(runners.begin(), runners.end(),
+          [&](const std::tuple<std::string, int>& l, const std::tuple<std::string, int>& r) {
+            auto x = std::get<1>(l), y = std::get<1>(r);
+            if (x != y) {
+              return x < y;
+            }
+            return std::get<0>(l) < std::get<0>(r);
+          });
       max_name_length += 2;
       for (auto i = runners.begin(); i != runners.end(); ++i) {
-        std::string cmd = std::get<0>(*i);
-        auto info = _runners.find(cmd);
-        assert(info != _runners.end());
-        cmd.resize(max_name_length, ' ');
-        std::cout << boost::format("   %s%s") % cmd % std::get<1>(info->second) << std::endl;
+        if (std::get<1>(*i) != kUnknown) {
+          std::string cmd = std::get<0>(*i);
+          auto info = _runners.find(cmd);
+          assert(info != _runners.end());
+          cmd.resize(max_name_length, ' ');
+          std::cout << boost::format("   %s%s") % cmd % std::get<1>(info->second) << std::endl;
+        }
       }
     }
 
@@ -143,16 +155,7 @@ class RunnerManager {
   }
 
  private:
-  struct Cmp {
-    bool operator()(const std::tuple<std::string, double>& l, const std::tuple<std::string, double>& r) const {
-      double x = std::get<1>(l), y = std::get<1>(r);
-      if (x != y) {
-        return x < y;
-      }
-      return std::get<0>(l) < std::get<0>(r);
-    }
-  };
-  typedef std::tuple<RunnerPtr, std::string, double> RunnerInfo;
+  typedef std::tuple<RunnerPtr, std::string, int> RunnerInfo;
   typedef std::map<std::string, RunnerInfo> RunnerList;
   RunnerList _runners;
 };
