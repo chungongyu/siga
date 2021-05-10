@@ -15,10 +15,12 @@ find_package(RapidJSON REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(LOG4CXX REQUIRED liblog4cxx>=0.10.0)
 pkg_check_modules(TCMalloc QUIET libtcmalloc>=2.1)
+pkg_check_modules(MLPACK REQUIRED mlpack>=3.2.1)
 
 find_program(HELP2MAN NAMES help2man)
 find_program(BUNDLE NAMES bundle)
 
+add_compile_definitions(HAVE_CONFIG_H)
 configure_file(siga.h.in config.h @ONLY)
 enable_testing()
 

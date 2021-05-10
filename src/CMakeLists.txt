@@ -24,6 +24,7 @@ add_library(libsiga
     mkqs.h
     overlap_builder.cpp
     overlap_builder.h
+    parallel_framework.h
     primer_screen.cpp
     primer_screen.h
     quality.h
@@ -39,8 +40,9 @@ add_library(libsiga
     utils.cpp
     utils.h
   )
-target_include_directories(libsiga PUBLIC ${CMAKE_BINARY_DIR} ${LOG4CXX_CFLAGS})
-target_link_libraries(libsiga 3rdparty ${LOG4CXX_LDFLAGS} Boost::filesystem Boost::iostreams Boost::program_options)
+target_include_directories(libsiga PUBLIC ${CMAKE_BINARY_DIR} ${LOG4CXX_INCLUDE_DIRS} ${MLPACK_INCLUDE_DIRS})
+target_compile_options(libsiga PUBLIC ${OpenMP_CXX_FLAGS})
+target_link_libraries(libsiga 3rdparty ${LOG4CXX_LIBRARIES} ${MLPACK_LIBRARIES} OpenMP::OpenMP_CXX Boost::filesystem Boost::iostreams Boost::program_options)
 if(TCMalloc_FOUND)
   target_include_directories(libsiga PUBLIC ${TCMalloc_CFLAGS})
   target_link_libraries(libsiga ${TCMalloc_LDFLAGS})

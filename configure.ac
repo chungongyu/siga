@@ -19,6 +19,7 @@ AM_CONDITIONAL([HELP2MAN], [test "x${with_help2man}" = "xyes"])
 AX_BOOST_BASE([1.41], [], AC_MSG_ERROR([Could not find a useful version of boost]))
 AX_BOOST_FILESYSTEM
 AX_BOOST_IOSTREAMS
+AX_BOOST_REGEX
 AX_BOOST_SYSTEM
 AX_BOOST_UNIT_TEST_FRAMEWORK
 
@@ -30,6 +31,7 @@ AC_ARG_WITH([tcmalloc], AS_HELP_STRING([--with-tcmalloc], [Build with the `TCMal
 AS_IF([test "x${with_tcmalloc}" = "xyes"], [
     PKG_CHECK_MODULES([TCMALLOC], [libtcmalloc >= 2.1])
 ])
+PKG_CHECK_MODULES([MLPACK], [mlpack >= 2.2.5])
 
 AC_ARG_ENABLE([gprof], [AS_HELP_STRING([--enable-gprof], [enable internal support for `gprof` (default=no)])],
 [case "${enableval}" in
