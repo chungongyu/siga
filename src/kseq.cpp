@@ -132,6 +132,7 @@ DNASeqReader* DNASeqReaderFactory::create(std::istream& stream) {
     } else if (c == '>') {
       return new FASTAReader(stream);
     }
+    LOG4CXX_ERROR(logger, boost::format("failed to create dna reader: %c") % c);
   }
   return nullptr;
 }

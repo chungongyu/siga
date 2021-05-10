@@ -90,19 +90,22 @@ Vertex::Vertex(const Id& id, const std::string& seq, bool contained, const std::
                     c = std::stoi(item.substr(k + 1));
                 }
             }
-            auto it = _indexTbl.find(barcode);
-            if (it != _indexTbl.end()) {
-                it->second += c;
-            } else {
-                _indexTbl[barcode] = c;
-            }
+            _indexTbl.insert(std::make_pair(barcode, c));
+            // auto it = _indexTbl.find(barcode);
+            // if (it != _indexTbl.end()) {
+            //     it->second += c;
+            // } else {
+            //     _indexTbl[barcode] = c;
+            // }
         }
     }
     {
         std::vector<std::string> vec;
         ASQG::tokenize(vec, ext, ',');
         for (const auto& item : vec) {
-            _ext.push_back(item);
+            if (!item.empty()) {
+                _ext.push_back(item);
+            }
         }
     }
 }
@@ -149,12 +152,13 @@ void Vertex::merge(Edge* edge) {
     
     // Update the index/barcode table of vertex
     for (const auto& idx : edge->end()->_indexTbl) {
-        auto it = _indexTbl.find(idx.first);
-        if (it != _indexTbl.end()) {
-            it->second += idx.second;
-        } else {
-            _indexTbl[idx.first] = idx.second;
-        }
+        _indexTbl.insert(std::make_pair(idx.first, idx.second));
+        // auto it = _indexTbl.find(idx.first);
+        // if (it != _indexTbl.end()) {
+        //     it->second += idx.second;
+        // } else {
+        //     _indexTbl[idx.first] = idx.second;
+        // }
     }
     
     // Update the extension attributes

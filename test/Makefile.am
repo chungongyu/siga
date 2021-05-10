@@ -56,3 +56,5 @@ utils_test_SOURCES=\
             utils_test.cpp
 
 TESTS=${check_PROGRAMS}
+
+EXTRA_DIST=CMakeLists.txt

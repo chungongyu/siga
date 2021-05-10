@@ -88,5 +88,5 @@ else
 man_MANS=
 endif !HELP2MAN
 
-EXTRA_DIST=log4cxx.properties
-
+EXTRA_DIST=log4cxx.properties \
+            CMakeLists.txt
