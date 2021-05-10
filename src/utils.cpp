@@ -11,6 +11,8 @@
 #include <boost/iostreams/filter/bzip2.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 
+#include <sys/resource.h>
+
 #include <log4cxx/logger.h>
 
 #include "constant.h"
@@ -24,6 +26,22 @@ void srand() {
 }
 int rand() {
   return ::rand();
+}
+
+double cputime() {
+  struct rusage r;
+  getrusage(RUSAGE_SELF, &r);
+  return r.ru_utime.tv_sec + r.ru_stime.tv_sec + 1e-6 * (r.ru_utime.tv_usec + r.ru_stime.tv_usec);
+}
+
+double maxrss() {
+  struct rusage r;
+  getrusage(RUSAGE_SELF, &r);
+#ifdef __linux__
+  return (r.ru_maxrss * 1024)/1073741824.0;
+#else
+  return r.ru_maxrss/1073741824.0;
+#endif  // __linux__
 }
 
 // HACK: a delegator to boost gzip & bzip2 decompressor in order to make it

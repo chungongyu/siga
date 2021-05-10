@@ -2,8 +2,10 @@
 #define bigraph_h_
 
 #include <cassert>
+#include <deque>
 #include <iostream>
 #include <string>
+#include <map>
 #include <unordered_map>
 #include <vector>
 
@@ -111,8 +113,8 @@ typedef std::vector<Edge *> EdgePtrList;
 class Vertex {
  public:
   typedef std::string Id;
-  typedef std::unordered_multimap<std::string, size_t> IndexTable;
-  typedef std::vector<std::string> ExtList;
+  typedef std::multimap<std::string, size_t> IndexTable;
+  typedef std::deque<std::string> ExtList;
 
   Vertex(const Id& id, const std::string& seq, bool contained=false, const std::string& index="", size_t coverage=1, const std::string& ext="");
   ~Vertex();

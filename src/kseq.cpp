@@ -227,29 +227,38 @@ bool FASTAReader::read(DNASeq& sequence) {
   return false;
 }
 
-bool ReadDNASequences(std::istream& stream, DNASeqList& sequences) {
+bool ReadDNASequences(std::istream& stream, DNASeqList& sequences, uint32_t flags) {
   std::shared_ptr<DNASeqReader> reader(DNASeqReaderFactory::create(stream));
   if (!reader) {
     return false;
   }
   DNASeq seq;
   while (reader->read(seq)) {
+    if (!(flags & kSeqWithQuality)) {
+      seq.quality.clear();
+    }
+    if (!(flags & kSeqWithComment)) {
+      seq.comment.clear();
+    }
     sequences.push_back(seq);
+  }
+  if (flags & kSeqShrink) {
+    sequences.shrink_to_fit();
   }
   return true;
 }
 
-bool ReadDNASequences(const std::string& file, DNASeqList& sequences) {
+bool ReadDNASequences(const std::string& file, DNASeqList& sequences, uint32_t flags) {
   std::shared_ptr<std::istream> stream(Utils::ifstream(file));
   if (stream) {
-    return ReadDNASequences(*stream, sequences);
+    return ReadDNASequences(*stream, sequences, flags);
   }
   return false;
 }
 
-bool ReadDNASequences(const std::vector<std::string>& filelist, DNASeqList& sequences) {
+bool ReadDNASequences(const std::vector<std::string>& filelist, DNASeqList& sequences, uint32_t flags) {
   for (const auto& file : filelist) {
-    if (!ReadDNASequences(file, sequences)) {
+    if (!ReadDNASequences(file, sequences, flags)) {
       return false;
     }
   }

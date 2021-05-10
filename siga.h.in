@@ -1,4 +1,12 @@
 #cmakedefine OpenMP_FOUND
+#ifdef OpenMP_FOUND
+#define HAVE_OMP_H
+#endif  // OpenMP_FOUND
+
+#cmakedefine MLPack_FOUND
+#ifdef MLPack_FOUND
+#define HAVE_MLPACK_H
+#endif  // MLPack_FOUND
 
 #define PACKAGE "@PROJECT_NAME@"
 #define PACKAGE_NAME "@PROJECT_NAME@"

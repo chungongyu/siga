@@ -2,13 +2,15 @@
 
 #include <cstring>
 #include <numeric>
+#include <iterator>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 
-#include <bcr.h>
-
 #include <log4cxx/logger.h>
+
+#include <bcr.h>
+#include <sais.hxx>
 
 #include "alphabet.h"
 #include "mkqs.h"
@@ -238,6 +240,177 @@ class SAISBuilder : public SuffixArrayBuilder {
 
 unsigned char SAISBuilder::_MASK[8] = {0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
 
+class NewSAISBuilder : public SuffixArrayBuilder {
+ public:
+  SuffixArray* build(const DNASeqList& reads, size_t /*threads = 1*/) {
+    assert(!reads.empty());
+
+    Helper h(reads);
+    return h.build();
+  }
+
+ private:
+  struct Helper {
+    typedef int64_t MyInt;
+
+    Helper(const DNASeqList& reads) : _reads(reads) {
+      size_t suffixes = 0;
+
+      for (size_t i = 0; i < _reads.size(); ++i) {
+        suffixes += _reads[i].seq.length() + 1;
+      }
+
+      LOG4CXX_INFO(logger, boost::format("initialize index, strings: %lu, suffixes: %lu") % _reads.size() % suffixes);
+      size_t k = 0;
+      _indices.resize(suffixes);
+      for (size_t i = 0; i < _reads.size(); ++i) {
+        const auto& read = _reads[i];
+        for (size_t j = 0; j < read.seq.length() + 1; ++j) {
+          auto& elem = _indices[k++];
+          elem.i = i;
+          elem.j = j;
+        }
+      }
+      assert(k == suffixes);
+    }
+
+    SuffixArray* build() {
+      size_t n = _indices.size();
+      Iterator T(this);
+      std::vector<MyInt> S(n);
+      int r = saisxx(T, &S[0], (MyInt)n, (MyInt)DNAAlphabet::ALL_SIZE);
+      LOG4CXX_INFO(logger, boost::format("saisxx: %d") % r);
+      if (r != 0) {
+        return nullptr;
+      }
+      SuffixArray* sa = new SuffixArray(_reads.size(), _indices.size());
+      for (size_t i = 0; i < n; ++i) {
+        (*sa)[i] = _indices[S[i]];
+      }
+      return sa;
+    }
+
+   private:
+    struct DNA {
+      DNA(const Helper* h = nullptr, MyInt idx = 0) : _h(h), _e(nullptr) {
+        if (_h != nullptr) {
+          _e = &_h->_indices[idx];
+        }
+      }
+      bool operator==(const DNA& o) const {
+        if (_e == o._e) {
+          return true;
+        }
+        char x = tochar(), y = o.tochar();
+        return x == y && x != '\0';
+      }
+      bool operator!=(const DNA& o) const {
+        return !(*this == o);
+      }
+      bool operator<(const DNA& o) const {
+        int x = DNAAlphabet::torank(tochar()), y = DNAAlphabet::torank(o.tochar());
+        return x < y || (x == 0 && _e->i < o._e->i);
+      }
+      bool operator>(const DNA& o) const {
+        int x = DNAAlphabet::torank(tochar()), y = DNAAlphabet::torank(o.tochar());
+        return x > y || (y == 0 && _e->i > o._e->i);
+      }
+      bool operator<=(const DNA& o) const {
+        return !(*this > o);
+      }
+      bool operator>=(const DNA& o) const {
+        return !(*this < o);
+      }
+      operator size_t() const {
+        assert((_h && _e) || (!_h && !_e));
+        if (_h != nullptr) {
+          return DNAAlphabet::torank(tochar());
+        }
+        return 0;
+      }
+
+     private:
+      char tochar() const {
+        if (_h != nullptr) {
+          assert(_e != nullptr);
+          assert(_e->i < _h->_reads.size());
+          const auto& read = _h->_reads[_e->i];
+          if (_e->j < read.seq.length()) {
+            return read.seq[_e->j];
+          }
+          assert(_e->j == read.seq.length());
+        }
+        return '\0';
+      }
+
+      const Helper* _h;
+      const SuffixArray::Elem* _e;
+    };
+
+    class Iterator : public std::iterator<std::random_access_iterator_tag, DNA, MyInt, MyInt*, DNA> {
+     public:
+      Iterator(const Helper* h = nullptr, MyInt idx = 0) : _h(h), _idx(idx) {
+      }
+
+      reference operator*() const {
+        return DNA(_h, _idx);
+      }
+      bool operator==(const Iterator& o) const {
+        return _idx == o._idx;
+      }
+      bool operator!=(const Iterator& o) const {
+        return !(*this == o);
+      }
+
+      // Forward iterator requirements
+      Iterator& operator++() {
+        ++_idx;
+        return *this;
+      }
+      Iterator operator++(int) {
+        Iterator o = *this;
+        ++(*this);
+        return o;
+      }
+      // Bidirectional iterator requirements
+      Iterator& operator--() {
+        --_idx;
+        return *this;
+      }
+      Iterator operator--(int) {
+        Iterator o = *this;
+        --(*this);
+        return o;
+      }
+      // Random access iterator requirements
+      reference operator[](const difference_type& n) const {
+        return DNA(_h, _idx + n);
+      }
+      Iterator operator+=(const difference_type& n) {
+        _idx += n;
+        return *this;
+      }
+      Iterator operator+(const difference_type& n) const {
+        return Iterator(_h, _idx + n);
+      }
+      Iterator operator-=(const difference_type& n) {
+        _idx -= n;
+        return *this;
+      }
+      Iterator operator-(const difference_type& n) const {
+        return Iterator(_h, _idx - n);
+      }
+
+     private:
+      const Helper* _h;
+      MyInt _idx;
+    };
+
+    const DNASeqList& _reads;
+    std::vector<SuffixArray::Elem> _indices;
+  };
+};
+
 class RopeBuilder : public SuffixArrayBuilder {
  public:
   SuffixArray* build(const DNASeqList& reads, size_t threads = 1) {
@@ -249,6 +422,8 @@ class RopeBuilder : public SuffixArrayBuilder {
 SuffixArrayBuilder* SuffixArrayBuilder::create(const std::string& algorithm) {
   if (boost::algorithm::iequals(algorithm, "sais")) {
     return new SAISBuilder();
+  } else if (boost::algorithm::iequals(algorithm, "sais2")) {
+    return new NewSAISBuilder();
   } else if (boost::algorithm::iequals(algorithm, "rope")) {
     return new RopeBuilder();
   }

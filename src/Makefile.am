@@ -6,17 +6,20 @@ libsiga_la_LIBADD=\
             ${top_builddir}/3rdparty/lib3rdparty.la
 libsiga_la_CXXFLAGS=\
             ${LOG4CXX_CFLAGS} \
+            ${MLPACK_CFLAGS} \
             ${OPENMP_CFLAGS} \
             ${RAPIDJSON_CFLAGS} \
             ${TCMALLOC_CFLAGS}
 libsiga_la_LDFLAGS=\
             ${BOOST_LDFLAGS} \
             ${LOG4CXX_LIBS} \
+            ${MLPACK_LIBS} \
             ${OPENMP_LIBS} \
             ${RAPIDJSON_LIBS} \
             ${TCMALLOC_LIBS} \
             ${BOOST_FILESYSTEM_LIB} \
             ${BOOST_IOSTREAMS_LIB} \
+            ${BOOST_REGEX_LIB} \
             ${BOOST_SYSTEM_LIB}
 libsiga_la_SOURCES=\
             alphabet.h \
@@ -44,6 +47,7 @@ libsiga_la_SOURCES=\
             mkqs.h \
             overlap_builder.cpp \
             overlap_builder.h \
+            parallel_framework.h \
             primer_screen.cpp \
             primer_screen.h \
             quality.h \
@@ -51,7 +55,6 @@ libsiga_la_SOURCES=\
             reads.h \
             rlstring.h \
             runner.h \
-            sequence_process_framework.h \
             suffix_array.cpp \
             suffix_array.h \
             suffix_array_builder.cpp \
@@ -64,6 +67,7 @@ siga_SOURCES=\
             assembler.cpp \
             correct.cpp \
             indexer.cpp \
+            gan.cpp \
             match.cpp \
             overlap.cpp \
             preprocess.cpp \

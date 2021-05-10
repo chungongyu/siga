@@ -16,8 +16,8 @@
 
 #include "asqg.h"
 #include "constant.h"
+#include "parallel_framework.h"
 #include "reads.h"
-#include "sequence_process_framework.h"
 #include "suffix_array.h"
 #include "utils.h"
 
@@ -266,7 +266,7 @@ class OverlapProcess {
     }
   }
 
-  OverlapResult process(const SequenceProcessFramework::SequenceWorkItem& workItem) {
+  OverlapResult operator()(const DNASeqWorkItem& workItem) {
     Hit hit(workItem.idx);
     OverlapResult result = _builder->overlap(workItem.read, _minOverlap, &hit.blocks);
     hit.substring = result.substring;
@@ -290,10 +290,15 @@ class OverlapProcess {
 //
 class OverlapPostProcess {
  public:
-  OverlapPostProcess(std::ostream& stream) : _stream(stream) {
+  OverlapPostProcess(std::ostream& stream, size_t batch) : _stream(stream), _batch(batch), _consumed(0) {
+  }
+  virtual ~OverlapPostProcess() {
+    if (_consumed % _batch != 0) {
+      LOG4CXX_INFO(logger, boost::format("processed %lu sequences") % _consumed);
+    }
   }
 
-  void process(const SequenceProcessFramework::SequenceWorkItem& workItem, const OverlapResult& result) {
+  void operator()(const DNASeqWorkItem& workItem, const OverlapResult& result) {
     ASQG::VertexRecord record(workItem.read.name, workItem.read.seq);
     record.substring = result.substring ? 1 : 0;
     if (!workItem.read.comment.empty()) {
@@ -310,10 +315,17 @@ class OverlapPostProcess {
       }
     }
     _stream << record << '\n';
+
+    if (++_consumed % _batch == 0) {
+      LOG4CXX_INFO(logger, boost::format("processed %lu sequences") % _consumed);
+    }
   }
 
  private:
   std::ostream& _stream;
+
+  size_t _batch;
+  size_t _consumed;
 };
 
 class Hit2OverlapConverter {
@@ -424,52 +436,29 @@ bool OverlapBuilder::build(DNASeqReader& reader, size_t minOverlap, std::ostream
     output << record << '\n';
   }
 
-  if (threads <= 1) {  // single thread
-    std::string hit = _prefix + HITS_EXT + GZIP_EXT;
-    OverlapProcess proc(this, minOverlap, hit);
-    OverlapPostProcess postproc(output);
+  // Process overlap parallel
+  {
+    threads = parallel::threads(threads);
+    assert(threads > 0);
 
-    SequenceProcessFramework::SerialWorker<
-      SequenceProcessFramework::SequenceWorkItem,
-      OverlapResult,
-      SequenceProcessFramework::SequenceWorkItemGenerator<SequenceProcessFramework::SequenceWorkItem>,
-      OverlapProcess,
-      OverlapPostProcess
-      > worker;
-    size_t num = worker.run(reader, &proc, &postproc);
-    if (processed != NULL) {
-      *processed = num;
-    }
-
-    hits.push_back(hit);
-  } else {  // multi thread
-#ifdef _OPENMP
+    DNASeqWorkItemGenerator<DNASeqWorkItem> generator(reader);
     std::vector<OverlapProcess *> proclist(threads);
     for (size_t i = 0; i < threads; ++i) {
       std::string hit = boost::str(boost::format("%s-thread%d%s%s") % _prefix % i % HITS_EXT % GZIP_EXT);
       proclist[i] = new OverlapProcess(this, minOverlap, hit);
       hits.push_back(hit);
     }
-    OverlapPostProcess postproc(output);
+    OverlapPostProcess postproc(output, threads*batch);
 
-    SequenceProcessFramework::ParallelWorker<
-      SequenceProcessFramework::SequenceWorkItem,
-      OverlapResult,
-      SequenceProcessFramework::SequenceWorkItemGenerator<SequenceProcessFramework::SequenceWorkItem>,
-      OverlapProcess,
-      OverlapPostProcess
-      > worker;
-    size_t num = worker.run(reader, &proclist, &postproc, batch);
-    if (processed != NULL) {
-      *processed = num;
-    }
+    parallel::foreach<DNASeqWorkItem, OverlapResult>(generator,
+        [&](int tid, const DNASeqWorkItem& it) {
+          assert(tid < threads);
+          return (*proclist[tid])(it);
+        }, postproc, threads, batch);
+
     for (size_t i = 0; i < threads; ++i) {
       delete proclist[i];
     }
-#else
-    LOG4CXX_ERROR(logger, "failed to load OpenMP");
-    return false;
-#endif  // _OPENMP
   }
 
   // Convert hits to ASQG
@@ -532,7 +521,7 @@ class DuplicateRemoveProcess {
     }
   }
 
-  OverlapResult process(const SequenceProcessFramework::SequenceWorkItem& workItem) {
+  OverlapResult process(const DNASeqWorkItem& workItem) {
     Hit hit(workItem.idx);
     OverlapResult result = _builder->duplicate(workItem.read, &hit.blocks);
     hit.substring = result.substring;
@@ -551,11 +540,23 @@ class DuplicateRemoveProcess {
 //
 class DuplicateRemovePostProcess {
  public:
-  DuplicateRemovePostProcess() {
+  DuplicateRemovePostProcess(size_t batch) : _batch(batch), _consumed(0) {
+  }
+  virtual ~DuplicateRemovePostProcess() {
+    if (_consumed % _batch != 0) {
+      LOG4CXX_INFO(logger, boost::format("processed %lu sequences") % _consumed);
+    }
   }
 
-  void process(const SequenceProcessFramework::SequenceWorkItem& workItem, const OverlapResult& result) {
+  void operator()(const DNASeqWorkItem& workItem, const OverlapResult& result) {
+    if (++_consumed % _batch == 0) {
+      LOG4CXX_INFO(logger, boost::format("processed %lu sequences") % _consumed);
+    }
   }
+
+ private:
+  size_t _batch;
+  size_t _consumed;
 };
 
 class Hits2FastaConverter {
@@ -623,52 +624,30 @@ bool OverlapBuilder::rmdup(DNASeqReader& reader, std::ostream& output, std::ostr
     size_t threads, size_t* processed) const {
   std::vector<std::string> hits;
 
-  if (threads <= 1) {  // single thread
-    std::string hit = _prefix + RMDUP_EXT + HITS_EXT + GZIP_EXT;
-    DuplicateRemoveProcess proc(this, hit);
-    DuplicateRemovePostProcess postproc;
+  // Process rmdup parallel
+  {
+    size_t batch = 1000;
+    threads = parallel::threads(threads);
+    assert(threads > 0);
 
-    SequenceProcessFramework::SerialWorker<
-      SequenceProcessFramework::SequenceWorkItem,
-      OverlapResult,
-      SequenceProcessFramework::SequenceWorkItemGenerator<SequenceProcessFramework::SequenceWorkItem>,
-      DuplicateRemoveProcess,
-      DuplicateRemovePostProcess
-      > worker;
-    size_t num = worker.run(reader, &proc, &postproc);
-    if (processed != NULL) {
-      *processed = num;
-    }
-
-    hits.push_back(hit);
-  } else {  // multi thread
-#ifdef _OPENMP
+    DNASeqWorkItemGenerator<DNASeqWorkItem> generator(reader);
     std::vector<DuplicateRemoveProcess *> proclist(threads);
     for (size_t i = 0; i < threads; ++i) {
-      std::string hit = boost::str(boost::format("%s-thread%d%s%s") % _prefix % i % HITS_EXT % GZIP_EXT);
+      std::string hit = boost::str(boost::format("%s-thread%d%s%s%s") % _prefix % i % RMDUP_EXT % HITS_EXT % GZIP_EXT);
       proclist[i] = new DuplicateRemoveProcess(this, hit);
       hits.push_back(hit);
     }
-    DuplicateRemovePostProcess postproc;
+    DuplicateRemovePostProcess postproc(threads*batch);
 
-    SequenceProcessFramework::ParallelWorker<
-      SequenceProcessFramework::SequenceWorkItem,
-      OverlapResult,
-      SequenceProcessFramework::SequenceWorkItemGenerator<SequenceProcessFramework::SequenceWorkItem>,
-      DuplicateRemoveProcess,
-      DuplicateRemovePostProcess
-      > worker;
-    size_t num = worker.run(reader, &proclist, &postproc);
-    if (processed != NULL) {
-      *processed = num;
-    }
+    parallel::foreach<DNASeqWorkItem, OverlapResult>(generator,
+        [&](int tid, const DNASeqWorkItem& it) {
+          assert(tid < threads);
+          return proclist[tid]->process(it);
+        }, postproc, threads);
+
     for (size_t i = 0; i < threads; ++i) {
       delete proclist[i];
     }
-#else
-    LOG4CXX_ERROR(logger, "failed to load OpenMP");
-    return false;
-#endif  // _OPENMP
   }
 
   // Convert hits to fasta

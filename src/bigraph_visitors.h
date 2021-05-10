@@ -4,6 +4,12 @@
 #include <iostream>
 #include <unordered_map>
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif  // HAVE_CONFIG_H
+#ifdef HAVE_MLPACK
+#include "mlpack.h"
+#endif  // HAVE_MLPACK
 #include "bigraph.h"
 
 class BigraphVisitor {
@@ -19,13 +25,14 @@ class BigraphVisitor {
 // when they are less than minLength in size
 class ChimericVisitor : public BigraphVisitor {
  public:
-  ChimericVisitor(size_t minLength, size_t delta, size_t N, size_t G, double T = 13.0) : _minLength(minLength), _delta(delta), _N(N), _G(G), _T(T) {
+  ChimericVisitor(size_t minLength, size_t minCoverage, size_t delta, size_t N, size_t G, double T = 13.0) : _minLength(minLength), _minCoverage(minCoverage), _delta(delta), _N(N), _G(G), _T(T) {
   }
   void previsit(Bigraph* graph);
   bool visit(Bigraph* graph, Vertex* vertex);
   void postvisit(Bigraph* graph);
  private:
   size_t _minLength;
+  size_t _minCoverage;
   size_t _N; // num of reads
   size_t _G; // genome size
   double _T; // threshold
@@ -80,20 +87,22 @@ class LoopRemoveVisitor : public BigraphVisitor {
   std::vector<Vertex *> _loops;
 };
 
-// Run the YU LIN's maximal overlap algorithm on each node
-class MaximalOverlapVisitor : public BigraphVisitor {
+// Run the YU LIN's maximum overlap algorithm on each node
+class MaximumOverlapVisitor : public BigraphVisitor {
  public:
-  MaximalOverlapVisitor(size_t delta, size_t N, size_t G, double T = 13.0) : _delta(delta), _N(N), _G(G), _T(T), _dummys(0) {
+  MaximumOverlapVisitor(size_t delta, bool carefully, size_t N, size_t G, double T = 13.0) : _delta(delta), _carefully(carefully), _N(N), _G(G), _T(T), _dummys(0) {
   }
   void previsit(Bigraph* graph);
   bool visit(Bigraph* graph, Vertex* vertex);
   void postvisit(Bigraph* graph);
  private:
   size_t _delta;
+  size_t _dummys;
+  bool _carefully;
+
   size_t _N; // num of reads
   size_t _G; // genome size
   double _T; // threshold
-  size_t _dummys;
 };
 
 // Visit each paired node to estimate insert size variant under normal distribution assumption.
@@ -136,13 +145,14 @@ class PairedReadVisitor : public BigraphVisitor {
 // Visit each node via 10x linked read
 class LinkedReadVisitor : public BigraphVisitor {
  public:
-  LinkedReadVisitor(size_t X = -1) : _X(X), _dummys(0) {
+  LinkedReadVisitor(size_t minLength = -1, size_t minCoverage = -1) : _minLength(minLength), _minCoverage(minCoverage), _dummys(0) {
   }
   void previsit(Bigraph* graph);
   bool visit(Bigraph* graph, Vertex* vertex);
   void postvisit(Bigraph* graph);
  private:
-  size_t _X;
+  size_t _minLength;
+  size_t _minCoverage;
   size_t _dummys;
 };
 
@@ -192,16 +202,79 @@ class TransitiveReductionVisitor : public BigraphVisitor {
 // when they are less than minLength in size
 class TrimVisitor : public BigraphVisitor {
  public:
-  TrimVisitor(size_t minLength) : _minLength(minLength) {
+  TrimVisitor(size_t minLength, size_t minCoverage) : _minLength(minLength), _minCoverage(minCoverage) {
   }
   void previsit(Bigraph* graph);
   bool visit(Bigraph* graph, Vertex* vertex);
   void postvisit(Bigraph* graph);
  private:
   size_t _minLength;
+  size_t _minCoverage;
 
   size_t _island;
   size_t _terminal;
+};
+
+#ifdef HAVE_MLPACK
+// Detects and removes all false positive edges from the graph
+class AIVisitor : public BigraphVisitor {
+ public:
+  AIVisitor(void* model, size_t n, size_t G) : _model(model), _n(n), _G(G), _blacks(0), _whites(0), _grays(0) {
+  }
+  void previsit(Bigraph* graph);
+  bool visit(Bigraph* graph, Vertex* vertex);
+  void postvisit(Bigraph* graph);
+
+ private:
+  template <typename T>
+  T* model() {
+    if (_model != nullptr) {
+      return &((AIModel<T> *)_model)->model;
+    }
+    return nullptr;
+  }
+  void* _model;
+  size_t _n;
+  size_t _G;
+
+  size_t _blacks;
+  size_t _whites;
+  size_t _grays;
+};
+#endif  // HAVE_MLPACK
+
+class UnitigVisitor : public BigraphVisitor {
+ public:
+  UnitigVisitor(size_t n, size_t G, size_t T) : _n(n), _G(G), _T(T), _unitigs(0) {
+  }
+  void previsit(Bigraph* graph);
+  bool visit(Bigraph* graph, Vertex* vertex);
+  void postvisit(Bigraph* graph);
+
+ private:
+  size_t _n;
+  size_t _G;
+  double _T; // threshold
+
+  size_t _unitigs;
+};
+
+class FMIndex;
+
+class GANVisitor : public BigraphVisitor {
+ public:
+  GANVisitor(std::ostream& stream, FMIndex* ref = nullptr) : _stream(stream), _ref(ref), _blacks(0), _whites(0), _grays(0) {
+  }
+  void previsit(Bigraph* graph);
+  bool visit(Bigraph* graph, Vertex* vertex);
+  void postvisit(Bigraph* graph);
+
+ private:
+  std::ostream& _stream;
+  FMIndex* _ref;
+  size_t _blacks;
+  size_t _whites;
+  size_t _grays;
 };
 
 #endif  // bigraph_visitors_h_

@@ -38,27 +38,32 @@ class Indexer : public Runner {
     }
     LOG4CXX_INFO(logger, boost::format("output: %s.(%s|%s|%s|%s)") % output % SAI_EXT % BWT_EXT % RSAI_EXT % RBWT_EXT);
 
-    std::string algorithm = options.get<std::string>("algorithm", "sais");
+    std::string algorithm = options.get<std::string>("algorithm", "sais2");
     LOG4CXX_INFO(logger, boost::format("algorithm: %s") % algorithm);
 
+    LOG4CXX_INFO(logger, boost::format("loading reads: %s") % input);
     DNASeqList reads;
-    if (ReadDNASequences(input, reads)) {
+    if (ReadDNASequences(input, reads, (~kSeqWithQuality)&(~kSeqWithComment))) {  // Strip Qualit & Comment
       std::shared_ptr<SuffixArrayBuilder> builder(SuffixArrayBuilder::create(algorithm));
       if (builder) {
         size_t threads = options.get<size_t>("threads", 1);
+
         // forward
         if (options.find("no-forward") == options.not_found()) {
+          LOG4CXX_INFO(logger, boost::format("building forward index using %d threads") % threads);
           build(builder.get(), reads, threads, output + SAI_EXT, output + BWT_EXT);
         }
 
         // reverse
         if (options.find("no-reverse") == options.not_found()) {
+          LOG4CXX_INFO(logger, boost::format("building reverse index using %d threads") % threads);
           for (auto& read : reads) {
             read.make_reverse();
           }
 
           build(builder.get(), reads, threads, output + RSAI_EXT, output + RBWT_EXT);
         }
+        LOG4CXX_INFO(logger, boost::format("cpu: %.3f sec, max rss: %.3f% GB") % Utils::cputime() % Utils::maxrss());
       } else {
         LOG4CXX_ERROR(logger, boost::format("Failed to create suffix array builder algorithm %s") % algorithm);
         r = -1;
@@ -116,14 +121,13 @@ class Indexer : public Runner {
         "      -h, --help                       display this help and exit\n"
         "\n"
         "      -a, --algorithm=STR              BWT construction algorithm. STR can be:\n"
-        "                                       sais - induced sort algorithm, slower but works for very long sequences (default)\n"
+        "                                       sais - induced sort algorithm, slower but works for very long sequences\n"
+        "                                       sais2 - very fast and works for very long sequences (default)\n"
         "                                       ropebwt - very fast and memory efficient. use this for short (<200bp) reads\n"
         "      -t, --threads=NUM                use NUM threads to construct the index (default: 1)\n"
-        "      -c, --check                      validate that the suffix array/bwt is correct\n"
         "      -p, --prefix=PREFIX              write index to file using PREFIX instead of prefix of READSFILE\n"
-        "          --no-reverse                 suppress construction of the reverse BWT. Use this option when building the index\n"
-        "                                       for reads that will be error corrected using the k-mer corrector, which only needs the forward index\n"
-        "          --no-forward                 suppress construction of the forward BWT. Use this option when building the forward and reverse index separately\n"
+        "          --no-forward                 suppress construction of the forward BWT.\n"
+        "          --no-reverse                 suppress construction of the reverse BWT.\n"
         "\n"
         ) % PACKAGE_NAME << std::endl;
     return 256;

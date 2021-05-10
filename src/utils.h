@@ -43,6 +43,9 @@ inline int rand(int stop) {
   return rand(0, stop);
 }
 
+double cputime();
+double maxrss();
+
 // streams
 std::istream* ifstream(const std::string& filename);
 std::ostream* ofstream(const std::string& filename);
