@@ -162,8 +162,10 @@ void Vertex::merge(Edge* edge) {
     }
     
     // Update the extension attributes
-    for (const auto& attr : edge->end()->_ext) {
-        _ext.push_back(attr);
+    if (prepend) {
+        std::copy(edge->end()->_ext.rbegin(), edge->end()->_ext.rend(), std::front_inserter(_ext));
+    } else {
+        std::copy(edge->end()->_ext.begin(), edge->end()->_ext.end(), std::back_inserter(_ext));
     }
 
     ////////////////////////////////////////////////////

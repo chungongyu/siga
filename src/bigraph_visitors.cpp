@@ -1,10 +1,4 @@
 #include "bigraph_visitors.h"
-#include "asqg.h"
-#include "bigraph_search.h"
-#include "kseq.h"
-#include "reads.h"
-#include "sequence_process_framework.h"
-#include "utils.h"
 
 #include <functional>
 
@@ -12,10 +6,42 @@
 #include <boost/accumulators/statistics.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/regex.hpp>
 
 #include <log4cxx/logger.h>
 
+#include <ssw_cpp.h>
+
+#include "asqg.h"
+#include "bigraph_search.h"
+#include "fmindex.h"
+#include "kseq.h"
+#include "parallel_framework.h"
+#include "reads.h"
+#include "utils.h"
+
 static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.BigraphVisitor"));
+
+//
+// Helpers
+//
+namespace Repeatness {
+  double calc(const Vertex* vertex, size_t n, size_t G) {
+    double delta = (double)vertex->seq().length();
+    double k = (double)vertex->coverage();
+    return delta*n/G - k*std::log(2.0);
+  }
+};  // namespace Repeatness
+
+namespace Point {
+  double avg(size_t c, size_t l) {
+    return (double)(std::max(c, (size_t)1) - 1)/std::max(l, (size_t)1);
+  }
+  double avg(const Vertex* vertex) {
+    return avg(vertex->coverage(), vertex->seq().length());
+  }
+};  // namespace Point
 
 //
 // EdgeColorVisitor
@@ -62,7 +88,7 @@ void ChimericVisitor::previsit(Bigraph* graph) {
 bool ChimericVisitor::visit(Bigraph* graph, Vertex* vertex) {
     // Check if this node is chimeric
     const std::string& seq = vertex->seq();
-    if (vertex->degrees(Edge::ED_SENSE) == 1 && vertex->degrees(Edge::ED_ANTISENSE) == 1 && seq.length() <= _minLength) {
+    if (vertex->degrees(Edge::ED_SENSE) == 1 && vertex->degrees(Edge::ED_ANTISENSE) == 1 && seq.length() <= _minLength && Point::avg(vertex) <= Point::avg(_minCoverage, _minLength)) {
         Edge* prevEdge = vertex->edges(Edge::ED_ANTISENSE)[0];
         Edge* nextEdge = vertex->edges(Edge::ED_SENSE)[0];
         Vertex* prevVert = prevEdge->end();
@@ -79,7 +105,7 @@ bool ChimericVisitor::visit(Bigraph* graph, Vertex* vertex) {
             size_t k = prevVert->coverage();
             size_t delta = prevVert->seq().length();
             double score = (n-k)*(log(G-delta)-log(G>2*delta ? G-2*delta : 0.001)) - k*log(2.0);
-            LOG4CXX_INFO(logger, boost::format("ChimericVisitor::vertex=%s,prevVert=%s,delta=%ld,score=%lf") % vertex->id() % prevVert->id() % delta % score);
+            //LOG4CXX_INFO(logger, boost::format("ChimericVisitor::vertex=%s,prevVert=%s,delta=%ld,score=%lf") % vertex->id() % prevVert->id() % delta % score);
             //chimeric &= (score >= _T);
         }
         if (chimeric) {
@@ -89,7 +115,7 @@ bool ChimericVisitor::visit(Bigraph* graph, Vertex* vertex) {
             size_t k = nextVert->coverage();
             size_t delta = nextVert->seq().length();
             double score = (n-k)*(log(G-delta)-log(G>2*delta ? G-2*delta : 0.001)) - k*log(2.0);
-            LOG4CXX_INFO(logger, boost::format("ChimericVisitor::vertex=%s,nextVert=%s,delta=%ld,score=%lf") % vertex->id() % nextVert->id() % delta % score);
+            //LOG4CXX_INFO(logger, boost::format("ChimericVisitor::vertex=%s,nextVert=%s,delta=%ld,score=%lf") % vertex->id() % nextVert->id() % delta % score);
             //chimeric &= (score > _T);
         }
         if (chimeric) {
@@ -107,7 +133,7 @@ bool ChimericVisitor::visit(Bigraph* graph, Vertex* vertex) {
                         continue;
                     }
                     if (edges[k]->end()->seq().length() <= seq.length() + _delta) {
-                        LOG4CXX_INFO(logger, boost::format("ChimericVisitor::vertex=%s,xx=%s,seq.length=%d,xx.length=%d,delta=%ld") % vertex->id() % edges[k]->end()->id() % seq.length() % edges[k]->end()->seq().length() % _delta);
+                        //LOG4CXX_INFO(logger, boost::format("ChimericVisitor::vertex=%s,xx=%s,seq.length=%d,xx.length=%d,delta=%ld") % vertex->id() % edges[k]->end()->id() % seq.length() % edges[k]->end()->seq().length() % _delta);
                         return false;
                     }
                 }
@@ -119,7 +145,7 @@ bool ChimericVisitor::visit(Bigraph* graph, Vertex* vertex) {
                         continue;
                     }
                     if (edges[k]->end()->coverage() <= vertex->coverage() + 3) {
-                        LOG4CXX_INFO(logger, boost::format("ChimericVisitor::smallest_coverage::vertex=%s,xx=%s,seq.length=%d,xx.length=%d,delta=%ld,xx.coverage=%ld,seq.coverage=%ld") % vertex->id() % edges[k]->end()->id() % seq.length() % edges[k]->end()->seq().length() % _delta % edges[k]->end()->coverage() % vertex->coverage());
+                        //LOG4CXX_INFO(logger, boost::format("ChimericVisitor::smallest_coverage::vertex=%s,xx=%s,seq.length=%d,xx.length=%d,delta=%ld,xx.coverage=%ld,seq.coverage=%ld") % vertex->id() % edges[k]->end()->id() % seq.length() % edges[k]->end()->seq().length() % _delta % edges[k]->end()->coverage() % vertex->coverage());
                         return false;
                     }
                 }
@@ -130,7 +156,7 @@ bool ChimericVisitor::visit(Bigraph* graph, Vertex* vertex) {
                 size_t k = linkVert->coverage();
                 size_t delta = linkVert->seq().length();
                 double score = (n-k)*(log(G-delta)-log(G>2*delta ? G-2*delta : 0.001)) - k*log(2.0);
-                LOG4CXX_INFO(logger, boost::format("ChimericVisitor::vertex=%s,linkVert=%s,delta=%ld,score=%lf") % vertex->id() % linkVert->id() % delta % score);
+                //LOG4CXX_INFO(logger, boost::format("ChimericVisitor::vertex=%s,linkVert=%s,delta=%ld,score=%lf") % vertex->id() % linkVert->id() % delta % score);
                 if (score < _T) {
                     return false;
                 }
@@ -155,7 +181,7 @@ bool ChimericVisitor::visit(Bigraph* graph, Vertex* vertex) {
             //     }
             // }
             chimeric &= (smallest_new(prevVert->edges(Edge::ED_SENSE), prevEdge) || smallest_new(nextVert->edges(Edge::ED_ANTISENSE), nextEdge));
-            LOG4CXX_INFO(logger, boost::format("ChimericVisitor::vertex=%s,smallest=%d,smallest=%d,chimeric=%d") % vertex->id() % smallest_new(prevVert->edges(Edge::ED_SENSE), prevEdge) % smallest_new(nextVert->edges(Edge::ED_ANTISENSE), nextEdge) % chimeric);
+            //LOG4CXX_INFO(logger, boost::format("ChimericVisitor::vertex=%s,smallest=%d,smallest=%d,chimeric=%d") % vertex->id() % smallest_new(prevVert->edges(Edge::ED_SENSE), prevEdge) % smallest_new(nextVert->edges(Edge::ED_ANTISENSE), nextEdge) % chimeric);
         }
         if (chimeric) {
             vertex->color(GC_BLACK);
@@ -379,101 +405,110 @@ void LoopRemoveVisitor::postvisit(Bigraph* graph) {
 }
 
 //
-// MaximalOverlapVisitor
+// MaximumOverlapVisitor
 //
-void MaximalOverlapVisitor::previsit(Bigraph* graph) {
-    // The graph must not have containments
-    assert(!graph->containment());
+void MaximumOverlapVisitor::previsit(Bigraph* graph) {
+  // The graph must not have containments
+  assert(!graph->containment());
 
-    // Set all the edges in the graph to "vacant"
-    EdgeColorVisitor ecVisit(GC_WHITE);
-    graph->visit(&ecVisit);
+  // Set all the edges in the graph to "vacant"
+  EdgeColorVisitor ecVisit(GC_WHITE, true);
+  graph->visit(&ecVisit);
 
-    _dummys = 0;
+  _dummys = 0;
 }
 
 class OverlapCmp {
-public:
-    bool operator()(const Edge* x, const Edge* y) const {
-        return x->coord().length() > y->coord().length();
-    }
+ public:
+  bool operator()(const Edge* x, const Edge* y) const {
+    return x->coord().length() > y->coord().length();
+  }
 };
 
 class EdgeDirCmp {
-public:
-    EdgeDirCmp(const Edge* edge) : _edge(edge) {
-    }
-    bool operator()(const Edge* edge) const {
-        return _edge->twin()->dir() == (edge->dir() + 1) % Edge::ED_COUNT;
-    }
-private:
-    const Edge* _edge;
+ public:
+  EdgeDirCmp(const Edge* edge) : _edge(edge) {
+  }
+  bool operator()(const Edge* edge) const {
+    return _edge->twin()->dir() == (edge->dir() + 1) % Edge::ED_COUNT;
+  }
+ private:
+  const Edge* _edge;
 };
 
-bool MaximalOverlapVisitor::visit(Bigraph* graph, Vertex* vertex) {
-    {
-        size_t n = _N > 0 ? _N : 1751447;
-        size_t G = _G > 0 ? _G : 59128983;
-        size_t k = vertex->coverage();
-        size_t delta = vertex->seq().length();
-    
-        double score = (n-k)*(log(G-delta)-log(G>2*delta ? G-2*delta : 0.001)) - k*log(2.0);
-        if (score < _T) {
-            return false;
-        }
+bool MaximumOverlapVisitor::visit(Bigraph* graph, Vertex* vertex) {
+  {
+    size_t n = _N > 0 ? _N : 1751447;
+    size_t G = _G > 0 ? _G : 59128983;
+    size_t k = vertex->coverage();
+    size_t delta = vertex->seq().length();
+  
+    double score = (n-k)*(log(G-delta)-log(G>2*delta ? G-2*delta : 0.001)) - k*log(2.0);
+    if (score < _T) {
+        return false;
     }
-    bool modified = false;
+  }
+  bool modified = false;
+  for (size_t i = 0; i < Edge::ED_COUNT; ++i) {
+    Edge::Dir dir = Edge::EDGE_DIRECTIONS[i];
+    EdgePtrList fwdlist = vertex->edges(dir);
 
-    for (size_t i = 0; i < Edge::ED_COUNT; ++i) {
-        Edge::Dir dir = Edge::EDGE_DIRECTIONS[i];
-        EdgePtrList fwdlist = vertex->edges(dir);
+    std::sort(fwdlist.begin(), fwdlist.end(), OverlapCmp());
 
-        std::sort(fwdlist.begin(), fwdlist.end(), OverlapCmp());
+    for (size_t j = 1; j < fwdlist.size(); ++j) {
+      if (fwdlist[j]->color() == GC_BLACK) {
+        continue;
+      }
 
-        for (size_t j = 1; j < fwdlist.size(); ++j) {
-            if (fwdlist[j]->color() == GC_BLACK) {
-                continue;
+      if (fwdlist[0]->coord().length() - fwdlist[j]->coord().length() < _delta) {
+        continue;
+      }
+
+      if (_carefully) {
+        if (!fwdlist[j]->isSelf()) {  // Not a self
+          EdgePtrList revlist = fwdlist[j]->end()->edges();
+          auto last = std::remove_if(revlist.begin(), revlist.end(), EdgeDirCmp(fwdlist[j]));
+          if (last != revlist.end()) {
+            revlist.resize(std::distance(revlist.begin(), last));
+          }
+          assert(!revlist.empty());
+
+          std::sort(revlist.begin(), revlist.end(), OverlapCmp());
+
+          bool largest = revlist[0]->end() == vertex;
+          for (size_t k = 1; k < revlist.size() && !largest; ++k) {
+            if (revlist[0]->coord().length() - revlist[k]->coord().length() < _delta) {
+              largest = revlist[k]->end() == vertex; 
             }
-
-            if (fwdlist[0]->coord().length() - fwdlist[j]->coord().length() < _delta) {
-                continue;
-            }
-
-            EdgePtrList revlist = fwdlist[j]->end()->edges();
-            auto last = std::remove_if(revlist.begin(), revlist.end(), EdgeDirCmp(fwdlist[j]));
-            if (last != revlist.end()) {
-                revlist.resize(std::distance(revlist.begin(), last));
-            }
-            assert(!revlist.empty());
-
-            std::sort(revlist.begin(), revlist.end(), OverlapCmp());
-
-            bool largest = revlist[0]->end() == vertex;
-            for (size_t k = 1; k < revlist.size() && revlist[k]->coord().length() - revlist[0]->coord().length() < _delta && !largest; ++k) {
-                largest = revlist[k]->end() == vertex; 
-            }
-            if (largest) {
-                continue;
-            }
-
-            if (dir == Edge::ED_SENSE) {
-                LOG4CXX_INFO(logger, boost::format("[MaximalOverlapVisitor] remove edge %s->%s (%d)") % fwdlist[j]->start()->id() % fwdlist[j]->end()->id() % fwdlist[j]->coord().length());
-            } else {
-                LOG4CXX_INFO(logger, boost::format("[MaximalOverlapVisitor] remove edge %s->%s (%d)") % fwdlist[j]->end()->id() % fwdlist[j]->start()->id() % fwdlist[j]->coord().length());
-            }
-            fwdlist[j]->color(GC_BLACK);
-            fwdlist[j]->twin()->color(GC_BLACK);
-            ++_dummys;
-            modified = true;
+          }
+          if (largest) {
+            continue;
+          }
+        } else if (fwdlist[0]->isSelf()) {
+          continue;
         }
-    }
+      }
 
-    return modified;
+      if (dir == Edge::ED_SENSE) {
+        LOG4CXX_INFO(logger, boost::format("[MaximumOverlapVisitor] remove edge %s->%s (%d)") % fwdlist[j]->start()->id() % fwdlist[j]->end()->id() % fwdlist[j]->coord().length());
+      } else {
+        LOG4CXX_INFO(logger, boost::format("[MaximumOverlapVisitor] remove edge %s->%s (%d)") % fwdlist[j]->end()->id() % fwdlist[j]->start()->id() % fwdlist[j]->coord().length());
+      }
+
+      fwdlist[j]->color(GC_BLACK);
+      fwdlist[j]->twin()->color(GC_BLACK);
+
+      ++_dummys;
+      modified = true;
+    }
+  }
+
+  return modified;
 }
 
-void MaximalOverlapVisitor::postvisit(Bigraph* graph) {
-    graph->sweepEdges(GC_BLACK);
-    LOG4CXX_INFO(logger, boost::format("[MaximalOverlapVisitor] Removed %d dummy edges") % _dummys);
+void MaximumOverlapVisitor::postvisit(Bigraph* graph) {
+  graph->sweepEdges(GC_BLACK);
+  LOG4CXX_INFO(logger, boost::format("[MaximumOverlapVisitor] Removed %d dummy edges") % _dummys);
 }
 
 // 
@@ -652,6 +687,9 @@ class PairedVertexProcess {
 public:
     PairedVertexProcess(Bigraph* graph, PairedReadVisitor* vistor) : _graph(graph), _visitor(vistor) {
     }
+    BigraphWalk::NodePtrList operator()(int tid, const Vertex* vertex1) {
+        return process(vertex1);
+    }
     BigraphWalk::NodePtrList process(const Vertex* vertex1) {
         BigraphWalk::NodePtrList linklist;
 
@@ -713,6 +751,9 @@ private:
 class PairedVertexPostProcess {
 public:
     PairedVertexPostProcess(PairedLinkList* links) : _links(links) {
+    }
+    void operator()(std::vector<const Vertex*>::iterator it, BigraphWalk::NodePtrList& linklist) {
+        process(*it, linklist);
     }
     void process(const Vertex* vertex1, BigraphWalk::NodePtrList& linklist) {
         std::sort(linklist.begin(), linklist.end(), [](const BigraphWalk::NodePtr& x, const BigraphWalk::NodePtr& y) -> bool {
@@ -853,37 +894,23 @@ private:
 void PairedReadVisitor::postvisit(Bigraph* graph) {
     PairedLinkList links;
 
-    SequenceProcessFramework::VectorWorkItemGenerator<const Vertex *> generator(_vertices);
-    std::vector<PairedVertexProcess *> proclist(_threads);
-    PairedVertexPostProcess postproc(&links);
-    for (size_t i = 0; i < proclist.size(); ++i) {
-        proclist[i] = new PairedVertexProcess(graph, this);
-    }
-#ifdef _OPENMP
-    if (_threads > 1) {
-        SequenceProcessFramework::ParallelWorker<
-            const Vertex*, 
-            BigraphWalk::NodePtrList, 
-            SequenceProcessFramework::VectorWorkItemGenerator<const Vertex *>, 
-            PairedVertexProcess, 
-            PairedVertexPostProcess
-            > worker;
-        size_t num = worker.run(generator, &proclist, &postproc, _batch);
-    } else { // single thread
-#endif // _OPENMP
-        SequenceProcessFramework::SerialWorker<
-            const Vertex*, 
-            BigraphWalk::NodePtrList, 
-            SequenceProcessFramework::VectorWorkItemGenerator<const Vertex *>, 
-            PairedVertexProcess, 
-            PairedVertexPostProcess
-            > worker;
-        size_t num = worker.run(generator, proclist[0], &postproc);
-#ifdef _OPENMP
-    }
-#endif // _OPENMP
-    for (size_t i = 0; i < proclist.size(); ++i) {
-        delete proclist[i];
+    {
+        size_t threads = parallel::threads(_threads);
+        std::vector<PairedVertexProcess *> proclist(_threads);
+        for (size_t i = 0; i < proclist.size(); ++i) {
+            proclist[i] = new PairedVertexProcess(graph, this);
+        }
+        PairedVertexPostProcess postproc(&links);
+
+        parallel::foreach<BigraphWalk::NodePtrList>(_vertices.begin(), _vertices.end(),
+            [&](int tid, std::vector<const Vertex*>::iterator it) {
+                assert(tid < threads);
+                return proclist[tid]->process(*it);
+            }, postproc, threads);
+
+        for (size_t i = 0; i < proclist.size(); ++i) {
+            delete proclist[i];
+        }
     }
 
     ///////////////////////////////////////////
@@ -953,16 +980,20 @@ void LinkedReadVisitor::previsit(Bigraph* graph) {
 }
 
 bool LinkedReadVisitor::visit(Bigraph* graph, Vertex* vertex) {
-    if (vertex->coverage() < _X) {
+    if (vertex->seq().length() < _minLength || vertex->coverage() < _minCoverage) {
         return false;
     }
     bool modified = false;
-    const Vertex::IndexTable& indexTbl1 = vertex->indexTbl();
+    const auto& indexTbl1 = vertex->indexTbl();
+    auto check = [&](Edge::Dir dir) {
+        for (auto& edge : vertex->edges(dir)) {
+            for (const auto& index : edge->end()->indexTbl()) {
+                auto it = indexTbl1.equal_range(index.first);
+            }
+        }
+    };
     const EdgePtrList& edges = vertex->edges();
     for (auto& edge : edges) {
-        if (edge->end()->coverage() < _X) {
-            continue;
-        }
         const Vertex::IndexTable& indexTbl2 = edge->end()->indexTbl();
 
         size_t fragment = 0;
@@ -1061,6 +1092,27 @@ bool TransitiveReductionVisitor::visit(Bigraph* graph, Vertex* vertex) {
 void TransitiveReductionVisitor::postvisit(Bigraph* graph) {
 }
 
+namespace SeqAlign {
+  double align(const std::string& x, const std::string& y, double match = 0.0, double mismatch = 1.0, double gap = 2.0) {
+    std::vector<std::vector<double> > scores(x.length() + 1);
+    for (size_t i = 0; i <= x.length(); ++i) {
+      scores[i].resize(y.length() + 1);
+      scores[i][0] = i*gap;
+    }
+    for (size_t j = 0; j <= y.length(); ++j) {
+      scores[0][j] = j*gap;
+    }
+    for (size_t i = 0; i < x.length(); ++i) {
+      for (size_t j = 0; j < y.length(); ++j) {
+        scores[i+1][j+1] = scores[i][j] + (x[i] == y[j] ? match : mismatch);
+        scores[i+1][j+1] = std::min(scores[i+1][j+1], scores[i+1][j] + gap);
+        scores[i+1][j+1] = std::min(scores[i+1][j+1], scores[i][j+1] + gap);
+      }
+    }
+    return scores[x.length()][y.length()];
+  }
+};  // SeqAlign
+
 //
 // TrimVisitor
 //
@@ -1073,11 +1125,15 @@ void TrimVisitor::previsit(Bigraph* graph) {
 bool TrimVisitor::visit(Bigraph* graph, Vertex* vertex) {
     bool modified = false;
 
+    auto similarity = [&](const std::string& x, const std::string& y) {
+        return 0.0;
+      };
+
     const std::string& seq = vertex->seq();
     if (vertex->degrees() == 0) {
         // Is an island, remove if the sequence length is less than the threshold
-        if (seq.length() <= _minLength) {
-            LOG4CXX_TRACE(logger, boost::format("[TrimVisitor] island %s %d") % vertex->id() % seq.length());
+        if (seq.length() <= _minLength && Point::avg(vertex) <= Point::avg(_minCoverage, _minLength)) {
+            LOG4CXX_TRACE(logger, boost::format("[TrimVisitor] island %s length=%d coverage=%d") % vertex->id() % seq.length() % vertex->coverage());
             vertex->color(GC_BLACK);
             ++_island;
             modified = true;
@@ -1086,8 +1142,8 @@ bool TrimVisitor::visit(Bigraph* graph, Vertex* vertex) {
         // Check if this node is a dead-end
         for (size_t idx = 0; idx < Edge::ED_COUNT; idx++) {
             Edge::Dir dir = Edge::EDGE_DIRECTIONS[idx];
-            if (vertex->degrees(dir) == 0 && seq.length() <= _minLength) {
-                LOG4CXX_TRACE(logger, boost::format("[TrimVisitor] terminal %s %d") % vertex->id() % seq.length());
+            if (vertex->degrees(dir) == 0 && seq.length() <= _minLength && Point::avg(vertex) <= Point::avg(_minCoverage, _minLength)) {
+                LOG4CXX_TRACE(logger, boost::format("[TrimVisitor] terminal %s length=%d coverage=%d") % vertex->id() % seq.length() % vertex->coverage());
                 vertex->color(GC_BLACK);
                 ++_terminal;
                 modified = true;
@@ -1102,4 +1158,541 @@ bool TrimVisitor::visit(Bigraph* graph, Vertex* vertex) {
 void TrimVisitor::postvisit(Bigraph* graph) {
     graph->sweepVertices(GC_BLACK);
     LOG4CXX_INFO(logger, boost::format("[TrimVisitor] Removed %d island and %d dead-end short vertices") % _island % _terminal);
+}
+
+namespace AIFeat {
+
+class HiFiParser {
+ public:
+  HiFiParser(const Vertex* start, const Vertex* end) : _start(start), _end(end) {
+  }
+
+  bool operator()(const std::map<std::string, double>* feats) const {
+    size_t cnt[kFields] = {0};
+
+    const auto& x = _start->indexTbl();
+    const auto& y = _end->indexTbl();
+    auto i = x.begin(), j = y.begin();
+    while (i != x.end() && j != y.end()) {
+      if (i->first < j->first) {
+        ++i;
+        ++cnt[kLinkAllX];
+      } else if (i->first > j->first) {
+        ++j;
+        ++cnt[kLinkAllY];
+      } else {
+        Vertex::IndexTable::key_type key = i->first;
+        Vertex::IndexTable::mapped_type vmin = i->second, vmax = i->second;
+        while (i != x.end() && i->first == key) {
+          ++i;
+          ++cnt[kLinkAllX];
+          ++cnt[kLinkCommonX];
+          vmin = std::min(vmin, i->second);
+          vmax = std::max(vmax, i->second);
+        }
+        while (j != y.end() && j->first == key) {
+          ++j;
+          ++cnt[kLinkAllY];
+          ++cnt[kLinkCommonY];
+          if (j->second < vmin) {
+            ++cnt[kLinkMin];
+          } else if (vmax < j->second) {
+            ++cnt[kLinkMax];
+          } else {
+            ++cnt[kLinkMid];
+          }
+        }
+      }
+    }
+    while (i != x.end()) {
+      ++i;
+      ++cnt[kLinkAllX];
+    }
+    while (j != y.end()) {
+      ++j;
+      ++cnt[kLinkAllY];
+    }
+
+    // (*feats)[] = cnt[kLinkAllX];
+    return true;
+  }
+ private:
+  enum {
+    kLinkAllX = 0, 
+    kLinkAllY,
+    kLinkCommonX, 
+    kLinkCommonY,
+    kLinkMin, 
+    kLinkMax,
+    kLinkMid,
+    kFields
+  };
+  const Vertex* _start;
+  const Vertex* _end;
+};
+
+bool extract(const Edge* edge) {
+  return true;
+};
+
+};  // namespace AIFeat
+
+namespace HiFiParser {
+ 
+enum {
+  kLinkAllX = 0, 
+  kLinkAllY,
+  kLinkCommonX, 
+  kLinkCommonY,
+  kLinkMin, 
+  kLinkMax,
+  kLinkMid,
+  kFields
+};
+
+void parse(const Vertex* start, const Vertex* end, size_t* cnt) {
+  const auto& x = start->indexTbl();
+  const auto& y = end->indexTbl();
+  auto i = x.begin(), j = y.begin();
+  while (i != x.end() && j != y.end()) {
+    if (i->first < j->first) {
+      ++i;
+      ++cnt[kLinkAllX];
+    } else if (i->first > j->first) {
+      ++j;
+      ++cnt[kLinkAllY];
+    } else {
+      Vertex::IndexTable::key_type key = i->first;
+      Vertex::IndexTable::mapped_type vmin = i->second, vmax = i->second;
+      while (i != x.end() && i->first == key) {
+        ++i;
+        ++cnt[kLinkAllX];
+        ++cnt[kLinkCommonX];
+        vmin = std::min(vmin, i->second);
+        vmax = std::max(vmax, i->second);
+      }
+      while (j != y.end() && j->first == key) {
+        ++j;
+        ++cnt[kLinkAllY];
+        ++cnt[kLinkCommonY];
+        if (j->second < vmin) {
+          ++cnt[kLinkMin];
+        } else if (vmax < j->second) {
+          ++cnt[kLinkMax];
+        } else {
+          ++cnt[kLinkMid];
+        }
+      }
+    }
+  }
+  while (i != x.end()) {
+    ++i;
+    ++cnt[kLinkAllX];
+  }
+  while (j != y.end()) {
+    ++j;
+    ++cnt[kLinkAllY];
+  }
+}
+
+void parse(const Edge* edge, size_t* cnt) {
+  parse(edge->start(), edge->end(), cnt);
+}
+
+void parse(const Vertex* vertex, Edge::Dir dir, size_t* cnt) {
+  auto sequenced = [&](const size_t* cnt) {
+      return cnt[kLinkMin] + cnt[kLinkMid] + cnt[kLinkMax];
+    };
+  for (const auto& edge : vertex->edges(dir)) {
+    size_t tmp[kFields] = {0};
+    parse(edge, tmp);
+    if (sequenced(tmp) >= sequenced(cnt)) {
+      std::copy(tmp, tmp + kFields, cnt);
+    }
+  }
+}
+
+double linkr(size_t c, size_t x, size_t y) {
+  if (x == 0 || y == 0) {
+    return 0.0;
+  }
+  return (double)c/std::min(x, y);
+}
+
+};  // namespace HiFiParser
+
+#ifdef HAVE_MLPACK
+//
+// AIVisitor
+//
+void AIVisitor::previsit(Bigraph* graph) {
+  EdgeColorVisitor ecVist(GC_GRAY, true);
+  graph->visit(&ecVist);
+
+  _blacks = 0;
+  _whites = 0;
+  _grays = 0;
+}
+
+bool AIVisitor::visit(Bigraph* graph, Vertex* vertex) {
+  bool modified = false;
+
+  auto m = (BaggingModel<mlpack::tree::DecisionTree<> > *)_model;
+  auto edges = vertex->edges(Edge::ED_SENSE);
+  std::sort(edges.begin(), edges.end(), OverlapCmp());
+  for (size_t i = 0; i < edges.size(); ++i) {
+    Edge* edge = edges[i];
+    const Vertex* end = edge->end();
+
+    size_t j = 0, k = 0;
+    {
+      for (auto e : end->edges(Edge::ED_ANTISENSE)) {
+        if (e != edge->twin()) {
+          if (e->coord().length() >= edge->coord().length()) {
+            ++j;
+          }
+          if (e->start()->seq().length() >= vertex->seq().length()) {
+            ++k;
+          }
+        }
+      }
+    }
+
+    size_t v2xcnt[HiFiParser::kFields] = {0}, x2ycnt[HiFiParser::kFields] = {0}, y2wcnt[HiFiParser::kFields] = {0};
+    HiFiParser::parse(vertex, Edge::ED_ANTISENSE, v2xcnt);
+    HiFiParser::parse(vertex, end, x2ycnt);
+    HiFiParser::parse(end, Edge::ED_SENSE, y2wcnt);
+
+    std::vector<double> vec = {
+        (double)vertex->seq().length(),  // lenx
+        (double)vertex->coverage(),      // coveragex
+        Repeatness::calc(vertex, _n, _G),// repeatx
+        (double)vertex->degrees(Edge::ED_ANTISENSE),  // indegreex
+        (double)vertex->degrees(Edge::ED_SENSE),  // outdegreex
+        (double)i,                       // orankx
+        (double)end->seq().length(),     // leny
+        (double)end->coverage(),         // coveragey
+        Repeatness::calc(end, _n, _G),   // repeaty
+        (double)end->degrees(Edge::ED_ANTISENSE),  // indegreey
+        (double)end->degrees(Edge::ED_SENSE),  // outdegreey
+        (double)j,                       // oranky
+        (double)v2xcnt[HiFiParser::kLinkAllX], // alinkx
+        (double)v2xcnt[HiFiParser::kLinkAllY], // alinky
+        (double)v2xcnt[HiFiParser::kLinkCommonX], // clinkx
+        (double)v2xcnt[HiFiParser::kLinkCommonY], // clinky
+        (double)v2xcnt[HiFiParser::kLinkMin], // minlink
+        (double)v2xcnt[HiFiParser::kLinkMax], // maxlink
+        (double)v2xcnt[HiFiParser::kLinkMid], // midlink
+        HiFiParser::linkr(v2xcnt[HiFiParser::kLinkMin], v2xcnt[HiFiParser::kLinkCommonX], v2xcnt[HiFiParser::kLinkCommonY]), 
+        HiFiParser::linkr(v2xcnt[HiFiParser::kLinkMax], v2xcnt[HiFiParser::kLinkCommonX], v2xcnt[HiFiParser::kLinkCommonY]), 
+        HiFiParser::linkr(v2xcnt[HiFiParser::kLinkMid], v2xcnt[HiFiParser::kLinkCommonX], v2xcnt[HiFiParser::kLinkCommonY]), 
+        (double)x2ycnt[HiFiParser::kLinkAllX], // alinkx
+        (double)x2ycnt[HiFiParser::kLinkAllY], // alinky
+        (double)x2ycnt[HiFiParser::kLinkCommonX], // clinkx
+        (double)x2ycnt[HiFiParser::kLinkCommonY], // clinky
+        (double)x2ycnt[HiFiParser::kLinkMin], // minlink
+        (double)x2ycnt[HiFiParser::kLinkMax], // maxlink
+        (double)x2ycnt[HiFiParser::kLinkMid], // midlink
+        HiFiParser::linkr(x2ycnt[HiFiParser::kLinkMin], x2ycnt[HiFiParser::kLinkCommonX], x2ycnt[HiFiParser::kLinkCommonY]), 
+        HiFiParser::linkr(x2ycnt[HiFiParser::kLinkMax], x2ycnt[HiFiParser::kLinkCommonX], x2ycnt[HiFiParser::kLinkCommonY]), 
+        HiFiParser::linkr(x2ycnt[HiFiParser::kLinkMid], x2ycnt[HiFiParser::kLinkCommonX], x2ycnt[HiFiParser::kLinkCommonY]), 
+        (double)y2wcnt[HiFiParser::kLinkAllX], // alinkx
+        (double)y2wcnt[HiFiParser::kLinkAllY], // alinky
+        (double)y2wcnt[HiFiParser::kLinkCommonX], // clinkx
+        (double)y2wcnt[HiFiParser::kLinkCommonY], // clinky
+        (double)y2wcnt[HiFiParser::kLinkMin], // minlink
+        (double)y2wcnt[HiFiParser::kLinkMax], // maxlink
+        (double)y2wcnt[HiFiParser::kLinkMid], // midlink
+        HiFiParser::linkr(y2wcnt[HiFiParser::kLinkMin], y2wcnt[HiFiParser::kLinkCommonX], y2wcnt[HiFiParser::kLinkCommonY]), 
+        HiFiParser::linkr(y2wcnt[HiFiParser::kLinkMax], y2wcnt[HiFiParser::kLinkCommonX], y2wcnt[HiFiParser::kLinkCommonY]), 
+        HiFiParser::linkr(y2wcnt[HiFiParser::kLinkMid], y2wcnt[HiFiParser::kLinkCommonX], y2wcnt[HiFiParser::kLinkCommonY]), 
+        (double)k,                       // sranky
+        (double)edge->coord().length(),  // overlap between x and y
+        Point::avg(vertex),              // pointx
+        Point::avg(end)                  // pointy
+      };
+    size_t l = m->Classify(vec);
+    // LOG4CXX_INFO(logger, boost::format("[AIVisitor] start=%s end=%s label=%lu") % vertex->id() % end->id() % l);
+    if (l < 1) {
+      ++_blacks;
+      edge->color(GC_BLACK);
+      edge->twin()->color(GC_BLACK);
+      modified = true;
+    } else if (l > m->Size()/2) {
+      ++_whites;
+      edge->color(GC_WHITE);
+      edge->twin()->color(GC_WHITE);
+      // modified = true;
+    } else {
+      ++_grays;
+    }
+  }
+
+  return modified;
+}
+
+void AIVisitor::postvisit(Bigraph* graph) {
+  graph->sweepEdges(GC_BLACK);
+  LOG4CXX_INFO(logger, boost::format("[AIVisitor]: Removed %d edges: whites=%lu, gray=%lu") % _blacks % _whites % _grays);
+}
+#endif  // HAVE_MLPACK
+
+//
+// UnitigVisitor
+//
+void UnitigVisitor::previsit(Bigraph* graph) {
+  _unitigs = 0;
+}
+
+bool UnitigVisitor::visit(Bigraph* graph, Vertex* vertex) {
+  bool modified = false;
+  if (Repeatness::calc(vertex, _n, _G) >= _T) {
+    for (size_t i = 0; i < Edge::ED_COUNT; ++i) {
+      auto edges = vertex->edges(Edge::EDGE_DIRECTIONS[i]);
+      if (edges.size() == 1 and Repeatness::calc(edges[0]->end(), _n, _G) < Repeatness::calc(vertex, _n, _G)) {
+        Vertex* end = edges[0]->end();
+        if (end->degrees(Edge::ED_SENSE) <= 1 and end->degrees(Edge::ED_ANTISENSE) <= 1) {
+          continue;
+        }
+
+        size_t x2ycnt[HiFiParser::kFields] = {0};
+        HiFiParser::parse(vertex, end, x2ycnt);
+
+        Vertex tmp(end->id() + "_copy", end->seq(), end->contained(), end->index(), end->coverage(), end->extension());
+        for (auto edge : end->edges(Edge::EDGE_DIRECTIONS[i])) {
+          Vertex* verts[2] = {&tmp, edge->end()};
+          Edge* arr[2] = {edge, edge->twin()};
+          Edge* vec[2];
+          for (size_t j = 0; j < 2; ++j) {
+            vec[j] = new Edge(verts[1 - j], arr[j]->dir(), arr[j]->comp(), arr[j]->coord());
+            vec[j]->color(arr[j]->color());
+          }
+          vec[0]->twin(vec[1]);
+          vec[1]->twin(vec[0]);
+
+          graph->addEdge(verts[0], vec[0]);
+          graph->addEdge(verts[1], vec[1]);
+        }
+
+        Vertex* verts[2] = {vertex, &tmp};
+        Edge* arr[2] = {edges[0], edges[0]->twin()};
+        Edge* vec[2];
+        for (size_t j = 0; j < 2; ++j) {
+          vec[j] = new Edge(verts[1 - j], arr[j]->dir(), arr[j]->comp(), arr[j]->coord());
+          vec[j]->color(arr[j]->color());
+        }
+        vec[0]->twin(vec[1]);
+        vec[1]->twin(vec[0]);
+
+        graph->addEdge(verts[0], vec[0]);
+        graph->addEdge(verts[1], vec[1]);
+
+        vertex->removeEdge(edges[0]);
+        Edge* twin = edges[0]->twin();
+        end->removeEdge(twin);
+        SAFE_DELETE(edges[0]);
+        SAFE_DELETE(twin);
+
+        LOG4CXX_INFO(logger, boost::format("[UnitigVisitor] vertex: %s, length: %lu, end: %s, length: %lu, dir: %d, degree: %lu alinkx:%lu alinky:%lu clinkx:%lu clinky:%lu minlink:%lu maxlink:%lu midlink:%lu") % vertex->id() % vertex->seq().length() % end->id() % end->seq().length() % i % end->degrees(Edge::EDGE_DIRECTIONS[i])
+                % x2ycnt[HiFiParser::kLinkAllX] % x2ycnt[HiFiParser::kLinkAllY] % x2ycnt[HiFiParser::kLinkCommonX] % x2ycnt[HiFiParser::kLinkCommonY] % x2ycnt[HiFiParser::kLinkMin] % x2ycnt[HiFiParser::kLinkMax] % x2ycnt[HiFiParser::kLinkMid]);
+
+        assert(vertex->degrees(Edge::EDGE_DIRECTIONS[i]) == 1);
+        graph->merge(vertex, vec[0]);
+
+        ++_unitigs;
+        modified = true;
+      }
+    }
+  }
+  return modified;
+}
+
+void UnitigVisitor::postvisit(Bigraph* graph) {
+  LOG4CXX_INFO(logger, boost::format("[UnitigVisitor]: Walked %lu unitigs") % _unitigs);
+}
+
+//
+// GANVisitor
+//
+void GANVisitor::previsit(Bigraph* graph) {
+  EdgeColorVisitor ecVist(GC_GRAY, true);
+  graph->visit(&ecVist);
+
+  _blacks = 0;
+  _whites = 0;
+  _grays = 0;
+}
+
+bool GANVisitor::visit(Bigraph* graph, Vertex* vertex) {
+  bool modified = false;
+
+  static boost::regex cigar("^(\\d*)=$");
+  typedef std::tuple<std::string, std::string, size_t, size_t> Alignment;
+  auto AlignmentParser = [&](const std::string& text, Alignment* align) {
+      std::vector<std::string> vec;
+      boost::algorithm::split(vec, text, boost::is_any_of("|"));
+      if (vec.size() < 4) {
+        return false;
+      }
+      *align = std::make_tuple(vec[0], vec[1], boost::lexical_cast<size_t>(vec[2]), boost::lexical_cast<size_t>(vec[3]));
+      return true;
+    };
+  auto AlignmentSorter = [&](const Alignment& x, const Alignment& y, size_t offsetx = 0, size_t offsety = 0) {
+      if (std::get<1>(x) == std::get<1>(y)) {
+        return std::get<2>(x) + offsetx < std::get<2>(y) + offsety;
+      }
+      return std::get<1>(x) < std::get<1>(y);
+    };
+  auto AlignmentMatcher = [&](const Edge* edge, const std::vector<Alignment>& curr, const std::vector<Alignment>& next, 
+        std::vector<std::pair<Alignment, Alignment> >* mathes) {
+      size_t i = 0, j = 0, x = vertex->seq().length(), y = edge->coord().length();
+      while (i < curr.size() && j < next.size()) {
+        if (AlignmentSorter(curr[i], next[j], x, y)) {
+          ++i;
+        } else if (AlignmentSorter(next[j], curr[i], y, x)) {
+          ++j;
+        } else {
+          mathes->push_back(std::make_pair(curr[i], next[j]));
+          ++i;
+          ++j;
+        }
+      }
+    };
+  auto ExtParser = [&](const std::string& text, std::vector<Alignment>* alignments) {
+      std::vector<std::string> vec;
+      boost::algorithm::split(vec, text, boost::is_any_of(","));
+      for (const auto& item : vec) {
+        if (!item.empty()) {
+          Alignment alignment;
+          if (!AlignmentParser(item, &alignment)) {
+            return false;
+          }
+          alignments->push_back(alignment);
+        }
+      }
+      return true;
+    };
+  auto LabelParser = [&](std::pair<Alignment, Alignment>& m) {
+      return boost::regex_match(std::get<0>(m.first), cigar) && boost::regex_match(std::get<0>(m.second), cigar);
+    };
+
+  auto RefMatcher = [&](const Edge* edge, size_t maxLength = -1) {
+      if (_ref) {
+        const std::string& start = edge->start()->seq();
+        const std::string& end = edge->end()->seq();
+        size_t overlap = edge->coord().length();
+        assert(overlap <= start.length() && overlap <= end.length());
+        std::string seq;
+        if (start.length() > std::max(maxLength, overlap)) {
+          seq += start.substr(start.length() - std::max(maxLength, overlap));
+        } else {
+          seq += start;
+        }
+        if (end.length() > std::max(maxLength, overlap)) {
+          seq += end.substr(overlap, std::max(maxLength, overlap) - overlap);
+        } else {
+          seq += end.substr(overlap);
+        }
+        return FMIndex::Interval::occurrences(seq, _ref) > 0;
+      }
+      return false;
+    };
+
+  std::vector<Alignment> curralignments;
+  if (!ExtParser(vertex->extension(), &curralignments)) {
+    LOG4CXX_ERROR(logger, boost::format("[GANVisitor] ExtParser this id=%s") % vertex->id());
+    return false;
+  }
+  // assert(!curralignments.empty());
+  std::sort(curralignments.begin(), curralignments.end(), AlignmentSorter);
+
+  auto edges = vertex->edges(Edge::ED_SENSE);
+  std::sort(edges.begin(), edges.end(), OverlapCmp());
+  size_t i = 0;
+  for (size_t p = 0; p < edges.size(); ++p) {
+    Edge* edge = edges[p];
+    const Vertex* end = edge->end();
+
+    if (p > 0 && edge->coord().length() < edges[p - 1]->coord().length()) {
+      ++i;
+    }
+
+    size_t j = 0, k = 0;
+    {
+      for (auto e : end->edges(Edge::ED_ANTISENSE)) {
+        if (e != edge->twin()) {
+          if (e->coord().length() > edge->coord().length()) {
+            ++j;
+          }
+          if (e->start()->seq().length() > vertex->seq().length()) {
+            ++k;
+          }
+        }
+      }
+    }
+
+    std::vector<Alignment> nextalignments;
+    if (!ExtParser(end->extension(), &nextalignments)) {
+      LOG4CXX_ERROR(logger, boost::format("[GANVisitor] ExtParser next id=%s") % end->id());
+      continue;
+    }
+    // assert(!nextalignments.empty());
+    std::sort(nextalignments.begin(), nextalignments.end(), AlignmentSorter);
+
+    std::vector<std::pair<Alignment, Alignment> > pairs;
+    AlignmentMatcher(edge, curralignments, nextalignments, &pairs);
+    std::string seq = vertex->seq() + end->seq().substr(edge->coord().length());
+
+    int label = 0;
+    if (std::any_of(pairs.begin(), pairs.end(), LabelParser)) {
+      label = 1;
+    } else if (_ref && FMIndex::Interval::occurrences(seq, _ref) > 0) {
+      label = 1;
+    } else if (RefMatcher(edge, 1000)) {
+      //label = 1;
+    }
+    if (label == 0) {
+      if (Utils::rand(1000) < 1001) {
+        ++_blacks;
+        edge->color(GC_BLACK);
+        edge->twin()->color(GC_BLACK);
+      } else {
+        ++_grays;
+      }
+      modified = true;
+    } else if (label == 1) {
+      ++_whites;
+      edge->color(GC_WHITE);
+      edge->twin()->color(GC_WHITE);
+    }
+    size_t v2xcnt[HiFiParser::kFields] = {0}, x2ycnt[HiFiParser::kFields] = {0}, y2wcnt[HiFiParser::kFields] = {0};
+
+    HiFiParser::parse(vertex, Edge::ED_ANTISENSE, v2xcnt);
+    HiFiParser::parse(vertex, end, x2ycnt);
+    HiFiParser::parse(end, Edge::ED_SENSE, y2wcnt);
+
+    LOG4CXX_INFO(logger, boost::format("[GANVisitor] %d %s %s lenx:%lu coveragex:%lu indegreex:%lu outdegreex:%lu orankx:%lu cigarx:%s chrx:%s leny:%lu coveragey:%lu indegreey:%lu outdegreey:%lu oranky:%lu sranky:%lu cigary:%s chry:%s is_self:%d overlap:%lu seq:%s alinkvx:%lu alinvy:%lu clinkvx:%lu clinkvy:%lu minlinkv:%lu maxlinkv:%lu midlinkv:%lu alinkx:%lu alinky:%lu clinkx:%lu clinky:%lu minlink:%lu maxlink:%lu midlink:%lu alinkwx:%lu alinkwy:%lu clinkwx:%lu clinkwy:%lu minlinkw:%lu maxlinkw:%lu midlinkw:%lu %lu %lu %lu %lu %lu %s %s %s %s") % label % vertex->id() % end->id()
+        % vertex->seq().length() % vertex->coverage() % vertex->degrees(Edge::ED_ANTISENSE) % vertex->degrees(Edge::ED_SENSE) % i % (!curralignments.empty() ? std::get<0>(curralignments[0]) : "-") % (!curralignments.empty() ? std::get<1>(curralignments[0]) : "0")
+        % end->seq().length() % end->coverage() % end->degrees(Edge::ED_ANTISENSE) % end->degrees(Edge::ED_SENSE) % j % k % (!nextalignments.empty() ? std::get<0>(nextalignments[0]) : "-") % (!nextalignments.empty() ? std::get<1>(nextalignments[0]) : "0")
+        % edge->isSelf() % edge->coord().length()% seq
+        % v2xcnt[HiFiParser::kLinkAllX] % v2xcnt[HiFiParser::kLinkAllY] % v2xcnt[HiFiParser::kLinkCommonX] % v2xcnt[HiFiParser::kLinkCommonY] % v2xcnt[HiFiParser::kLinkMin] % v2xcnt[HiFiParser::kLinkMax] % v2xcnt[HiFiParser::kLinkMid]
+        % x2ycnt[HiFiParser::kLinkAllX] % x2ycnt[HiFiParser::kLinkAllY] % x2ycnt[HiFiParser::kLinkCommonX] % x2ycnt[HiFiParser::kLinkCommonY] % x2ycnt[HiFiParser::kLinkMin] % x2ycnt[HiFiParser::kLinkMax] % x2ycnt[HiFiParser::kLinkMid]
+        % y2wcnt[HiFiParser::kLinkAllX] % y2wcnt[HiFiParser::kLinkAllY] % y2wcnt[HiFiParser::kLinkCommonX] % y2wcnt[HiFiParser::kLinkCommonY] % y2wcnt[HiFiParser::kLinkMin] % y2wcnt[HiFiParser::kLinkMax] % y2wcnt[HiFiParser::kLinkMid]
+        % (!curralignments.empty() ? std::get<3>(curralignments[0]) : 0)
+        % (!nextalignments.empty() ? std::get<3>(nextalignments[0]) : 0)
+        % curralignments.size()
+        % nextalignments.size()
+        % pairs.size()
+        % vertex->extension()
+        % end->extension()
+        % vertex->seq()
+        % end->seq()
+      );
+  }
+  return modified;
+}
+
+void GANVisitor::postvisit(Bigraph* graph) {
+  graph->sweepEdges(GC_BLACK);
+  LOG4CXX_INFO(logger, boost::format("[GANVisitor2]: Removed %d edges: whites=%lu, gray=%lu") % _blacks % _whites % _grays);
 }

@@ -14,11 +14,11 @@ class SAWriter {
   SAWriter(std::ostream& stream) : _stream(stream) {
   }
   bool write(const SuffixArray& sa) {
-    if (!writeHeader(sa._strings, sa._strings)) {
+    if (!writeHeader(sa.strings(), sa.strings())) {
       return false;
     }
-    for (const auto& elem : sa._elems) {
-      if (!writeElem(elem)) {
+    for (size_t i = 0; i < sa.size(); ++i) {
+      if (!writeElem(sa[i])) {
         return false;
       }
     }

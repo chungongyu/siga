@@ -21,7 +21,7 @@ class BWT {
     return _runs;
   }
   size_t length() const {
-    return _suffixes;
+    return (size_t)_suffixes;
   }
 
  private:
@@ -31,8 +31,8 @@ class BWT {
   friend class BWTWriter;
 
   RLString _runs;   // The run-length encoded string
-  size_t _strings;  // The number of strings in the collection
-  size_t _suffixes;   // The total length of the bw string
+  uint64_t _strings;  // The number of strings in the collection
+  uint64_t _suffixes;   // The total length of the bw string
 };
 
 #endif  // bwt_h_

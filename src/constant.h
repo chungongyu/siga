@@ -26,7 +26,7 @@ enum {
   kRmDup,
   kPreQC,
   kMatch,
-  kUnkown = 1000
+  kUnknown = 1000
 };
 
 #endif  // constant_h_

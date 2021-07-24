@@ -1,13 +1,18 @@
 #include "bwt.h"
+
+#include <memory>
+
 #include "suffix_array.h"
 
-BWT::BWT(const SuffixArray& sa, const DNASeqList& sequences) : _strings(sa.strings()), _suffixes(sa.size()) {
+BWT::BWT(const SuffixArray& sa, const DNASeqList& sequences)
+    : _strings(sa.strings()), _suffixes(0) {
   RLUnit run;
-  for (size_t i = 0; i < _suffixes; ++i) {
-    const SuffixArray::Elem& elem = sa[i];
-    const DNASeq& read = sequences[elem.i];
-    char c = (elem.j == 0 ? '$' : read.seq[elem.j - 1]);
 
+  char c = '\0';
+  std::unique_ptr<SuffixArray::BWTTraveller> travel(sa.travel());
+  assert(travel);
+  while (travel->next(c)) {
+    ++_suffixes;
     if (run.initialized()) {
       if (run == c && !run.full()) {
         ++run;
@@ -44,11 +49,11 @@ class BWTReader {
   bool read(BWT& bwt);
 
  private:
-  bool readHeader(size_t& num_strings, size_t& num_suffixes, BWFlag& flag);
-  bool readRuns(RLString& runs, size_t numRuns);
+  bool readHeader(uint64_t& num_strings, uint64_t& num_suffixes, BWFlag& flag);
+  bool readRuns(RLString& runs, uint64_t numRuns);
 
   std::istream& _stream;
-  size_t _numRuns;
+  uint64_t _numRuns;
 };
 
 bool BWTReader::read(BWT& bwt) {
@@ -62,7 +67,7 @@ bool BWTReader::read(BWT& bwt) {
   return true;
 }
 
-bool BWTReader::readHeader(size_t& num_strings, size_t& num_suffixes, BWFlag& flag) {
+bool BWTReader::readHeader(uint64_t& num_strings, uint64_t& num_suffixes, BWFlag& flag) {
   uint16_t magic;
   if (!_stream.read((char *)&magic, sizeof(magic)) || magic != BWT_FILE_MAGIC) {
     return false;
@@ -82,7 +87,7 @@ bool BWTReader::readHeader(size_t& num_strings, size_t& num_suffixes, BWFlag& fl
   return true;
 }
 
-bool BWTReader::readRuns(RLString& runs, size_t numRuns) {
+bool BWTReader::readRuns(RLString& runs, uint64_t numRuns) {
   runs.resize(numRuns);
   if (!runs.empty()) {
     if (!_stream.read((char *)&runs[0], numRuns * sizeof(runs[0]))) {
@@ -103,18 +108,18 @@ class BWTWriter {
   bool write(const BWT& bwt);
 
  private:
-  bool writeHeader(size_t num_strings, size_t num_suffixes, BWFlag flag);
+  bool writeHeader(uint64_t num_strings, uint64_t num_suffixes, BWFlag flag);
   bool writeRun(const RLUnit& run);
   bool finalize();
 
-  size_t _numRuns;
-  std::streampos _posRun;
+  uint64_t _numRuns;
+  uint64_t _posRun;
 
   std::ostream& _stream;
 };
 
 bool BWTWriter::write(const BWT& bwt) {
-  size_t num_strings = bwt._strings, num_suffixes = bwt._suffixes;
+  uint64_t num_strings = bwt._strings, num_suffixes = bwt._suffixes;
   if (!writeHeader(num_strings, num_suffixes, BWF_NOFMI)) {
     return false;
   }
@@ -129,7 +134,7 @@ bool BWTWriter::write(const BWT& bwt) {
   return true;
 }
 
-bool BWTWriter::writeHeader(size_t num_strings, size_t num_suffixes, BWFlag flag) {
+bool BWTWriter::writeHeader(uint64_t num_strings, uint64_t num_suffixes, BWFlag flag) {
   if (!_stream.write((const char *)&BWT_FILE_MAGIC, sizeof(BWT_FILE_MAGIC))) {
     return false;
   }

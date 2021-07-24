@@ -1,3 +1,8 @@
+add_executable(parallel_test parallel_test.cpp)
+target_include_directories(parallel_test PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(parallel_test libsiga Boost::unit_test_framework)
+add_test(NAME parallel_test COMMAND parallel_test)
+
 add_executable(preprocess_test preprocess_test.cpp)
 target_include_directories(preprocess_test PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(preprocess_test libsiga Boost::unit_test_framework)

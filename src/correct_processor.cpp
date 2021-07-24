@@ -11,7 +11,8 @@
 
 #include <log4cxx/logger.h>
 
-#include "sequence_process_framework.h"
+#include "overlap_builder.h"
+#include "parallel_framework.h"
 #include "utils.h"
 
 static log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("arcs.CorrectProcessor"));
@@ -56,7 +57,7 @@ class AbstractCorrector {
  public:
   virtual ~AbstractCorrector() {
   }
-  virtual CorrectResult process(const SequenceProcessFramework::SequenceWorkItem& iterm) const = 0;
+  virtual CorrectResult process(const DNASeqWorkItem& iterm) const = 0;
 
   static AbstractCorrector* create(const FMIndex& index, const CorrectProcessor::Options& options);
  protected:
@@ -77,7 +78,7 @@ class KmerCorrector : public AbstractCorrector {
     CorrectThreshold::get()->minSupport(options.get<int>("kmer-threshold", kCorrectKmerThreshold));
   }
 
-  CorrectResult process(const SequenceProcessFramework::SequenceWorkItem& item) const {
+  CorrectResult process(const DNASeqWorkItem& item) const {
     CorrectResult r;
 
     // check read length
@@ -232,7 +233,7 @@ class OverlapCorrector : public AbstractCorrector {
   OverlapCorrector(const FMIndex& index, const CorrectProcessor::Options& options)
       : AbstractCorrector(index, options) {
   }
-  CorrectResult process(const SequenceProcessFramework::SequenceWorkItem& item) const {
+  CorrectResult process(const DNASeqWorkItem& item) const {
     CorrectResult r;
     return r;
   }
@@ -253,7 +254,7 @@ class PostCorrector {
   PostCorrector(std::ostream& stream, std::ostream* discard = nullptr)
       : _stream(stream), _discard(discard) {
   }
-  void process(const SequenceProcessFramework::SequenceWorkItem& workItem, const CorrectResult& result) {
+  void operator()(const DNASeqWorkItem& workItem, const CorrectResult& result) {
     if (result.validQC) {
       DNASeq read = workItem.read;
       read.seq = result.seq;
@@ -268,58 +269,29 @@ class PostCorrector {
 
 bool CorrectProcessor::process(const FMIndex& index, DNASeqReader& reader, std::ostream& output,
       size_t threads, size_t* processed) const {
-  if (threads <= 1) {
-    std::shared_ptr<AbstractCorrector> proc(AbstractCorrector::create(index, _options));
-    if (!proc) {
-      return false;
-    }
-
-    PostCorrector postproc(output);
-    SequenceProcessFramework::SerialWorker<
-      SequenceProcessFramework::SequenceWorkItem,
-      CorrectResult,
-      SequenceProcessFramework::SequenceWorkItemGenerator<SequenceProcessFramework::SequenceWorkItem>,
-      AbstractCorrector,
-      PostCorrector
-      > worker;
-    size_t num = worker.run(reader, proc.get(), &postproc);
-    if (processed != NULL) {
-      *processed = num;
-    }
-    return true;
-  } else {
-#ifdef _OPENMP
+  {
+    threads = parallel::threads(threads);
+    DNASeqWorkItemGenerator<DNASeqWorkItem> generator(reader);
     std::vector<AbstractCorrector *> proclist(threads);
     for (size_t i = 0; i < threads; ++i) {
       proclist[i] = AbstractCorrector::create(index, _options);
-      if (proclist[i] == NULL) {
+      if (proclist[i] == nullptr) {
         return false;
       }
     }
 
     PostCorrector postproc(output);
-    SequenceProcessFramework::ParallelWorker<
-      SequenceProcessFramework::SequenceWorkItem,
-      CorrectResult,
-      SequenceProcessFramework::SequenceWorkItemGenerator<SequenceProcessFramework::SequenceWorkItem>,
-      AbstractCorrector,
-      PostCorrector
-      > worker;
-    size_t num = worker.run(reader, &proclist, &postproc);
-    if (processed != NULL) {
-      *processed = num;
-    }
+    parallel::foreach<DNASeqWorkItem, CorrectResult>(generator,
+        [&](int tid, const DNASeqWorkItem& it) {
+          assert(tid < threads);
+          return proclist[tid]->process(it);
+        }, postproc, threads);
 
     for (size_t i = 0; i < threads; ++i) {
       delete proclist[i];
     }
-    return true;
-#else
-    LOG4CXX_ERROR(logger, "failed to load OpenMP");
-    assert(false);
-#endif  // _OPENMP
   }
-  return false;
+  return true;
 }
 
 bool CorrectProcessor::process(const FMIndex& index, const std::string& input, const std::string& output,

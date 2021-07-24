@@ -24,14 +24,29 @@ class SuffixArray {
     operator bool() const {
       return !empty();
     }
+    bool operator==(const Elem& o) const {
+      return i == o.i && j == o.j;
+    }
+    bool operator!=(const Elem& o) {
+      return !(*this == o);
+    }
     uint32_t i;
     uint32_t j;
   };
   typedef std::vector<Elem> ElemList;
 
+  class BWTTraveller {
+   public:
+    virtual ~BWTTraveller() {}
+    virtual bool next(char& c) = 0;
+    virtual void reset() = 0;
+  };
+
   SuffixArray() : _strings(0) {
   }
   SuffixArray(size_t strings, size_t suffixes) : _strings(strings), _elems(suffixes) {
+  }
+  virtual ~SuffixArray() {
   }
 
   size_t strings() const {
@@ -47,10 +62,14 @@ class SuffixArray {
     return _elems[i];
   }
 
+  virtual BWTTraveller* travel() const {
+    return nullptr;
+  }
+
   static SuffixArray* load(const std::string& filename);
   static SuffixArray* load(std::istream& stream);
 
- private:
+ protected:
   friend std::ostream& operator<<(std::ostream& stream, const SuffixArray& sa);
   friend std::istream& operator>>(std::istream& stream, SuffixArray& sa);
   friend class SAReader;

@@ -162,14 +162,14 @@ void FMIndex::initialize() {
 
 void FMIndex::info() const {
   const RLString& runs = _bwt.str();
-  LOG4CXX_INFO(logger, "FMIndex info:");
-  LOG4CXX_INFO(logger, boost::format("Large Sample rate: %d") % DEFAULT_SAMPLE_RATE_LARGE);
-  LOG4CXX_INFO(logger, boost::format("Small Sample rate: %d") % _sampleRate);
-  LOG4CXX_INFO(logger, boost::format("Contains %d symbols in %d runs (%1.4lf symbols per run)")
+  LOG4CXX_INFO(logger, "fm-index info:");
+  LOG4CXX_INFO(logger, boost::format("large sample rate: %d") % DEFAULT_SAMPLE_RATE_LARGE);
+  LOG4CXX_INFO(logger, boost::format("small sample rate: %d") % _sampleRate);
+  LOG4CXX_INFO(logger, boost::format("contains %lu symbols in %lu runs (%1.4lf symbols per run)")
       % _bwt.length() % runs.size()
       % (runs.empty() ? 0 : ((double)_bwt.length() / runs.size())));
-  LOG4CXX_INFO(logger, boost::format("Marker Memory -- Small Markers: %d (%.1lf MB) Large Markers: %d (%.1lf MB)")
-      % _smarkers.size() % 0 % _lmarkers.size() % 0);
+  LOG4CXX_INFO(logger, boost::format("marker memory -- small markers: %lu, large markers: %lu")
+      % _smarkers.size() % _lmarkers.size());
 }
 
 //

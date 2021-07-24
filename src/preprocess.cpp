@@ -402,6 +402,8 @@ class Preprocess : public Runner {
       record.comment = boost::str(boost::format("%s%s") % record.comment % bx.tostring(ASQG::BARCODE_TAG));
     }
 
+    boost::algorithm::to_upper(record.seq);
+
     // Ensure sequence is entirely ACGT
     if (record.seq.find_first_not_of("ACGT") != std::string::npos) {
       LOG4CXX_DEBUG(logger, boost::format("%s is not entirely ACGT") % record.name);

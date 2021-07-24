@@ -1,4 +1,19 @@
-check_PROGRAMS=index_test preprocess_test overlap_test assemble_test utils_test
+check_PROGRAMS=parallel_test preprocess_test index_test overlap_test assemble_test utils_test
+
+parallel_test_CPPFLAGS=\
+            -I$(top_srcdir)/src \
+	        ${OPENMP_CFLAGS} \
+            ${BOOST_CPPFLAGS}
+parallel_test_LDADD=\
+            ${top_builddir}/src/libsiga.la
+parallel_test_CXXFLAGS=\
+	        ${OPENMP_CFLAGS}
+parallel_test_LDFLAGS=\
+	        ${OPENMP_LIBS} \
+            ${BOOST_LDFLAGS} \
+            ${BOOST_UNIT_TEST_FRAMEWORK_LIB}
+parallel_test_SOURCES=\
+            parallel_test.cpp
 
 preprocess_test_CPPFLAGS=\
             -I$(top_srcdir)/src \
@@ -12,6 +27,7 @@ preprocess_test_SOURCES=\
             preprocess_test.cpp
 
 index_test_CPPFLAGS=\
+            -I$(top_srcdir)/3rdparty \
             -I$(top_srcdir)/src \
             ${BOOST_CPPFLAGS}
 index_test_LDADD=\
