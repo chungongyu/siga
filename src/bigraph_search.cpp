@@ -5,6 +5,33 @@
 
 #include <boost/algorithm/string.hpp>
 
+void BigraphWalk::walk(EdgePtrQueue& Q, std::function<bool(const Step&, const Edge*)>& visitor, size_t step) {
+  while (!Q.empty()) {
+    auto it = Q.front();
+    Q.pop_front();
+    
+    for (auto edge : it.second->end()->edges()) {
+      if ((it.second->twin()->dir() == edge->dir()) || !visitor(Step(it.first, step), edge)) {
+        continue;
+      }
+      Q.push_back(std::make_pair(step++, edge));
+    }
+  }
+}
+
+void BigraphWalk::walk(const Vertex* start, Edge::Dir dir, std::function<bool(const Step&, const Edge*)>& visitor) {
+  EdgePtrQueue Q;
+
+  size_t step = 0;
+  for (auto edge : start->edges(dir)) {
+    if (edge->dir() != dir || !visitor(Step(-1, step), edge)) {
+      continue;
+    }
+    Q.push_back(std::make_pair(step++, edge));
+  }
+  walk(Q, visitor, step);
+}
+
 size_t BigraphWalk::build(NodePtrQueue& Q, const Vertex* end, size_t minDistance, size_t maxDistance, size_t maxNodes, NodePtrList* leaves) {
     size_t num = 0;
     std::unordered_set<NodePtr, NodePtrHash<NodePtr>, NodePtrCmp> visited;

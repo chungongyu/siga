@@ -67,7 +67,7 @@ class FMIndex {
     static Interval get(const std::string& w, const FMIndex* index) {
       Interval interval;
 
-      size_t j = w.size();
+      size_t j = w.length();
       if (j > 0) {
         interval.init(w[j - 1], index);
         while (--j > 0 && interval.valid()) {
@@ -80,12 +80,15 @@ class FMIndex {
     static size_t occurrences(const std::string& w, const FMIndex* index) {
       Interval interval = get(w, index);
       if (interval.valid()) {
-        return interval.upper - interval.lower + 1;
+        return interval.length();
       }
       return 0;
     }
     bool valid() const {
       return upper != -1 && upper >= lower;
+    }
+    size_t length() const {
+      return upper - lower + 1;
     }
     void init(char c, const FMIndex* index) {
       lower = index->getPC(c);

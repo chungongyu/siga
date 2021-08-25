@@ -205,6 +205,9 @@ class Bigraph {
   Vertex* getVertex(const Vertex::Id& id) const;
   void removeVertex(Vertex* vertex);
   size_t sweepVertices(GraphColor c);
+  size_t numVertices() const {
+    return _vertices.size();
+  }
 
   void addEdge(Vertex* vertex, Edge* edge);
   size_t sweepEdges(GraphColor c);

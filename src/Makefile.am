@@ -66,6 +66,7 @@ bin_PROGRAMS=siga
 siga_SOURCES=\
             assembler.cpp \
             correct.cpp \
+            dump.cpp \
             indexer.cpp \
             gan.cpp \
             match.cpp \

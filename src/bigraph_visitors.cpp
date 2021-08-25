@@ -11,7 +11,7 @@
 
 #include <log4cxx/logger.h>
 
-#include <ssw_cpp.h>
+#include <edlib.h>
 
 #include "asqg.h"
 #include "bigraph_search.h"
@@ -47,42 +47,44 @@ namespace Point {
 // EdgeColorVisitor
 //
 class EdgeColorVisitor : public BigraphVisitor {
-public:
-    EdgeColorVisitor(GraphColor c, bool twin=false) : _color(c), _twin(twin) {
-    }
-    EdgeColorVisitor(GraphColor c, std::function<bool(const Vertex*, const Edge* edge)> filter, bool twin=false) : _color(c), _filter(filter), _twin(twin) {
-    }
+ public:
+  EdgeColorVisitor(GraphColor c, bool twin=false) : _color(c), _twin(twin) {
+  }
+  EdgeColorVisitor(GraphColor c, std::function<bool(const Vertex*, const Edge* edge)> filter,
+      bool twin=false) : _color(c), _filter(filter), _twin(twin) {
+  }
 
-    void previsit(Bigraph* graph) {
-    }
-    bool visit(Bigraph* graph, Vertex* vertex) {
-        bool modified = false;
-        const EdgePtrList& edges = vertex->edges();
-        for (auto& edge : edges) {
-            if (!_filter || _filter(vertex, edge)) {
-                edge->color(_color);
-                if (_twin) {
-                    edge->twin()->color(_color);
-                }
-                modified = true;
-            }
+  void previsit(Bigraph* graph) {
+  }
+  bool visit(Bigraph* graph, Vertex* vertex) {
+    bool modified = false;
+    const EdgePtrList& edges = vertex->edges();
+    for (auto& edge : edges) {
+      if (!_filter || _filter(vertex, edge)) {
+        edge->color(_color);
+        if (_twin) {
+          edge->twin()->color(_color);
         }
-        return modified;
+        modified = true;
+      }
     }
-    void postvisit(Bigraph* graph) {
-    }
-private:
-    GraphColor _color;
-    bool _twin;
-    std::function<bool(const Vertex*, const Edge*)> _filter;
+    return modified;
+  }
+  void postvisit(Bigraph* graph) {
+  }
+
+ private:
+  GraphColor _color;
+  bool _twin;
+  std::function<bool(const Vertex*, const Edge*)> _filter;
 };
 
 //
 // ChimericVisitor
 //
 void ChimericVisitor::previsit(Bigraph* graph) {
-    _chimeric = 0;
-    graph->color(GC_WHITE);
+  _chimeric = 0;
+  graph->color(GC_WHITE);
 }
 
 bool ChimericVisitor::visit(Bigraph* graph, Vertex* vertex) {
@@ -94,29 +96,12 @@ bool ChimericVisitor::visit(Bigraph* graph, Vertex* vertex) {
         Vertex* prevVert = prevEdge->end();
         Vertex* nextVert = nextEdge->end();
 
-        size_t n = _N > 0 ? _N : 1751447;
-        size_t G = _G > 0 ? _G : 59128983;
-
         bool chimeric = true;
         if (chimeric) {
             chimeric &= (prevVert->degrees(Edge::ED_SENSE) >= 2);
         }
         if (chimeric) {
-            size_t k = prevVert->coverage();
-            size_t delta = prevVert->seq().length();
-            double score = (n-k)*(log(G-delta)-log(G>2*delta ? G-2*delta : 0.001)) - k*log(2.0);
-            //LOG4CXX_INFO(logger, boost::format("ChimericVisitor::vertex=%s,prevVert=%s,delta=%ld,score=%lf") % vertex->id() % prevVert->id() % delta % score);
-            //chimeric &= (score >= _T);
-        }
-        if (chimeric) {
             chimeric &= (nextVert->degrees(Edge::ED_ANTISENSE) >= 2);
-        }
-        if (chimeric) {
-            size_t k = nextVert->coverage();
-            size_t delta = nextVert->seq().length();
-            double score = (n-k)*(log(G-delta)-log(G>2*delta ? G-2*delta : 0.001)) - k*log(2.0);
-            //LOG4CXX_INFO(logger, boost::format("ChimericVisitor::vertex=%s,nextVert=%s,delta=%ld,score=%lf") % vertex->id() % nextVert->id() % delta % score);
-            //chimeric &= (score > _T);
         }
         if (chimeric) {
             auto smallest = [&](const EdgePtrList& edges, const Edge* edge)->bool {
@@ -152,14 +137,6 @@ bool ChimericVisitor::visit(Bigraph* graph, Vertex* vertex) {
                return true;
             };
             auto smallest_new = [&](const EdgePtrList& edges, const Edge* edge)->bool {
-                Vertex* linkVert = edge->end();
-                size_t k = linkVert->coverage();
-                size_t delta = linkVert->seq().length();
-                double score = (n-k)*(log(G-delta)-log(G>2*delta ? G-2*delta : 0.001)) - k*log(2.0);
-                //LOG4CXX_INFO(logger, boost::format("ChimericVisitor::vertex=%s,linkVert=%s,delta=%ld,score=%lf") % vertex->id() % linkVert->id() % delta % score);
-                if (score < _T) {
-                    return false;
-                }
                return smallest_length(edges, edge) || smallest_coverage(edges, edge);
             };
             // smallest?
@@ -200,208 +177,208 @@ void ChimericVisitor::postvisit(Bigraph* graph) {
 // ContainRemoveVisitor
 //
 void ContainRemoveVisitor::previsit(Bigraph* graph) {
-    graph->color(GC_WHITE);
+  graph->color(GC_WHITE);
 
-    // Clear the containment flag, if any containments are added
-    // during this algorithm the flag will be reset and another
-    // round must be re-run
-    graph->containment(false);
+  // Clear the containment flag, if any containments are added
+  // during this algorithm the flag will be reset and another
+  // round must be re-run
+  graph->containment(false);
 
-    _contained = 0;
+  _contained = 0;
 }
 
 bool ContainRemoveVisitor::visit(Bigraph* graph, Vertex* vertex) {
-    if (vertex->contained()) {
-        // Add any new irreducible edges that exist when pToRemove is deleted
-        // from the graph
-        const EdgePtrList& edges = vertex->edges();
+  if (vertex->contained()) {
+    // Add any new irreducible edges that exist when pToRemove is deleted
+    // from the graph
+    const EdgePtrList& edges = vertex->edges();
 
-        // Delete the edges from the graph
-        for (auto edge : edges) {
-           edge->color(GC_NONE);
-           Edge* twin = edge->twin();
-           Vertex* end = edge->end();
+    // Delete the edges from the graph
+    for (auto edge : edges) {
+      edge->color(GC_NONE);
+      Edge* twin = edge->twin();
+      Vertex* end = edge->end();
 
-           end->removeEdge(twin);
-           vertex->removeEdge(edge);
+      end->removeEdge(twin);
+      vertex->removeEdge(edge);
 
-           SAFE_DELETE(twin);
-           SAFE_DELETE(edge);
-        }
-
-        vertex->color(GC_BLACK);
-        ++_contained;
-
-        return true;
+      SAFE_DELETE(twin);
+      SAFE_DELETE(edge);
     }
-    return false;
+
+    vertex->color(GC_BLACK);
+    ++_contained;
+
+    return true;
+  }
+  return false;
 }
 
 void ContainRemoveVisitor::postvisit(Bigraph* graph) {
-    graph->sweepVertices(GC_BLACK);
-    LOG4CXX_INFO(logger, boost::format("[ContainRemoveVisitor] Removed %d containment vertices") % _contained);
+  graph->sweepVertices(GC_BLACK);
+  LOG4CXX_INFO(logger, boost::format("[ContainRemoveVisitor] Removed %d containment vertices") % _contained);
 }
 
 //
 // FastaVisitor
 //
 bool FastaVisitor::visit(Bigraph* graph, Vertex* vertex) {
-    DNASeq seq(vertex->id(), vertex->seq());
-    std::string index = vertex->index();
-    if (vertex->coverage() > 1) {
-        ASQG::IntTagValue cr(vertex->coverage());
-        if (!seq.comment.empty()) {
-            seq.comment += ' ';
-        }
-        seq.comment += cr.tostring(ASQG::COVERAGE_TAG);
+  DNASeq seq(vertex->id(), vertex->seq());
+  std::string index = vertex->index();
+  if (vertex->coverage() > 1) {
+    ASQG::IntTagValue cr(vertex->coverage());
+    if (!seq.comment.empty()) {
+      seq.comment += ' ';
     }
-    if (!index.empty()) {
-        ASQG::StringTagValue bx(index);
-        if (!seq.comment.empty()) {
-            seq.comment += ' ';
-        }
-        seq.comment += bx.tostring(ASQG::BARCODE_TAG);
+    seq.comment += cr.tostring(ASQG::COVERAGE_TAG);
+  }
+  if (!index.empty()) {
+    ASQG::StringTagValue bx(index);
+    if (!seq.comment.empty()) {
+      seq.comment += ' ';
     }
-    std::string ext = vertex->extension();
-    if (!ext.empty()) {
-        ASQG::StringTagValue extension(ext);
-        if (!seq.comment.empty()) {
-            seq.comment += ' ';
-        }
-        seq.comment += extension.tostring(ASQG::EXTENSION_TAG);
+    seq.comment += bx.tostring(ASQG::BARCODE_TAG);
+  }
+  std::string ext = vertex->extension();
+  if (!ext.empty()) {
+    ASQG::StringTagValue extension(ext);
+    if (!seq.comment.empty()) {
+      seq.comment += ' ';
     }
-    _stream << seq;
-    return false;
+    seq.comment += extension.tostring(ASQG::EXTENSION_TAG);
+  }
+  _stream << seq;
+  return false;
 }
 
 //
 // IdenticalRemoveVisitor
 //
 void IdenticalRemoveVisitor::previsit(Bigraph* graph) {
-    graph->color(GC_WHITE);
-    _count = 0;
+  graph->color(GC_WHITE);
+  _count = 0;
 }
 
 bool IdenticalRemoveVisitor::visit(Bigraph* graph, Vertex* vertex) {
-    bool modified = false;
-    if (vertex->contained()) {
-        // Check if this vertex is identical to any other vertex
-        const EdgePtrList& edges = vertex->edges();
-        for (const auto& edge : edges) {
-            Vertex* other = edge->end();
-            if (vertex->seq().length() != other->seq().length()) {
-                continue;
-            }
-            Overlap ovr(edge->start()->id(), edge->end()->id(), edge->match());
-            if (!ovr.isContainment() || ovr.containedIdx() != 0) {
-                continue;
-            }
-            if (vertex->seq() == other->seq()) {
-                vertex->color(GC_BLACK);
-                LOG4CXX_DEBUG(logger, boost::format("[IdenticalRemoveVisitor] Remove identical vertex: %s/%s") % vertex->id() % other->id());
-                ++_count;
-                break;
-            }
-        }
+  bool modified = false;
+  if (vertex->contained()) {
+    // Check if this vertex is identical to any other vertex
+    const EdgePtrList& edges = vertex->edges();
+    for (const auto& edge : edges) {
+      Vertex* other = edge->end();
+      if (vertex->seq().length() != other->seq().length()) {
+        continue;
+      }
+      Overlap ovr(edge->start()->id(), edge->end()->id(), edge->match());
+      if (!ovr.isContainment() || ovr.containedIdx() != 0) {
+        continue;
+      }
+      if (vertex->seq() == other->seq()) {
+        vertex->color(GC_BLACK);
+        LOG4CXX_DEBUG(logger, boost::format("[IdenticalRemoveVisitor] Remove identical vertex: %s/%s") % vertex->id() % other->id());
+        ++_count;
+        break;
+      }
     }
-    return modified;
+  }
+  return modified;
 }
 
 void IdenticalRemoveVisitor::postvisit(Bigraph* graph) {
-    graph->sweepVertices(GC_BLACK);
-    LOG4CXX_INFO(logger, boost::format("[IdenticalRemoveVisitorRemoveVisitor] Removed %lu identical vertices") % _count);
+  graph->sweepVertices(GC_BLACK);
+  LOG4CXX_INFO(logger, boost::format("[IdenticalRemoveVisitorRemoveVisitor] Removed %lu identical vertices") % _count);
 }
 
 //
 // LoopRemoveVisitor
 //
 void LoopRemoveVisitor::previsit(Bigraph* graph) {
-    _loops.clear();
+  _loops.clear();
 }
 
 bool LoopRemoveVisitor::visit(Bigraph* graph, Vertex* vertex) {
-    bool modified = false;
-    if (vertex->degrees(Edge::ED_SENSE) == 1 && vertex->degrees(Edge::ED_ANTISENSE) == 1) {
-        Edge* prevEdge = vertex->edges(Edge::ED_ANTISENSE)[0];
-        Edge* nextEdge = vertex->edges(Edge::ED_SENSE)[0];
-        Vertex* prevVert = prevEdge->end();
-        Vertex* nextVert = nextEdge->end();
-        if (!prevEdge->isSelf() && !nextEdge->isSelf() && prevVert == nextVert) {
-            //vertex->color(GC_BLACK);
-            _loops.push_back(vertex);
-            modified = true;
-        }
+  bool modified = false;
+  if (vertex->degrees(Edge::ED_SENSE) == 1 && vertex->degrees(Edge::ED_ANTISENSE) == 1) {
+    Edge* prevEdge = vertex->edges(Edge::ED_ANTISENSE)[0];
+    Edge* nextEdge = vertex->edges(Edge::ED_SENSE)[0];
+    Vertex* prevVert = prevEdge->end();
+    Vertex* nextVert = nextEdge->end();
+    if (!prevEdge->isSelf() && !nextEdge->isSelf() && prevVert == nextVert) {
+      //vertex->color(GC_BLACK);
+      _loops.push_back(vertex);
+      modified = true;
     }
-    return modified;
+  }
+  return modified;
 }
 
 void LoopRemoveVisitor::postvisit(Bigraph* graph) {
+  /////////////////////////////////////////
+  // R4 is a Loop node
+  //
+  //   R1-->R2-->R3
+  //      /  \
+  //      \  /
+  //       R4
+  //
+  // We change it to:
+  //   R1-->R2-->R4-->R2-->R3
+  //
+  /////////////////////////////////////////
+  for (auto& vertex : _loops) {
+    assert(vertex->degrees(Edge::ED_SENSE) == 1 && vertex->degrees(Edge::ED_ANTISENSE) == 1);
+    Edge* prevEdge = vertex->edges(Edge::ED_ANTISENSE)[0];
+    Edge* nextEdge = vertex->edges(Edge::ED_SENSE)[0];
+    Vertex* prevVert = prevEdge->end();
+    Vertex* nextVert = nextEdge->end();
+    assert(prevVert == nextVert);
+
+    LOG4CXX_INFO(logger, boost::format("[LoopRemoveVisitor] Remove loop vertex: id=%s, coverage=%d, seq=%d, prev vertex: id=%s, coverage=%d, seq=%d") % vertex->id() % vertex->coverage() % vertex->seq().length() % prevVert->id() % prevVert->coverage() % prevVert->seq().length());
+
     /////////////////////////////////////////
-    // R4 is a Loop node
     //
-    //   R1-->R2-->R3
-    //      /  \
-    //      \  /
-    //       R4
+    // R1-->R2-->R3
+    //       \
+    //        R4-->R2
     //
-    // We change it to:
+    ////////////////////////////////////////
+    Edge* nextTwin = nextEdge->twin();
+    vertex->merge(nextEdge);
+    vertex->removeEdge(nextEdge);
+    SAFE_DELETE(nextEdge);
+    nextVert->removeEdge(nextTwin);
+    SAFE_DELETE(nextTwin);
+
+    /////////////////////////////////////////
+    //
     //   R1-->R2-->R4-->R2-->R3
     //
     /////////////////////////////////////////
-    for (auto& vertex : _loops) {
-        assert(vertex->degrees(Edge::ED_SENSE) == 1 && vertex->degrees(Edge::ED_ANTISENSE) == 1);
-        Edge* prevEdge = vertex->edges(Edge::ED_ANTISENSE)[0];
-        Edge* nextEdge = vertex->edges(Edge::ED_SENSE)[0];
-        Vertex* prevVert = prevEdge->end();
-        Vertex* nextVert = nextEdge->end();
-        assert(prevVert == nextVert);
-
-        LOG4CXX_INFO(logger, boost::format("[LoopRemoveVisitor] Remove loop vertex: id=%s, coverage=%d, seq=%d, prev vertex: id=%s, coverage=%d, seq=%d") % vertex->id() % vertex->coverage() % vertex->seq().length() % prevVert->id() % prevVert->coverage() % prevVert->seq().length());
-
-        /////////////////////////////////////////
-        //
-        // R1-->R2-->R3
-        //       \
-        //        R4-->R2
-        //
-        ////////////////////////////////////////
-        Edge* nextTwin = nextEdge->twin();
-        vertex->merge(nextEdge);
-        vertex->removeEdge(nextEdge);
-        SAFE_DELETE(nextEdge);
-        nextVert->removeEdge(nextTwin);
-        SAFE_DELETE(nextTwin);
-
-        /////////////////////////////////////////
-        //
-        //   R1-->R2-->R4-->R2-->R3
-        //
-        /////////////////////////////////////////
-        Edge* prevTwin = prevEdge->twin();
-        std::string label = prevTwin->label();
-        bool prepend = false;
-        if (prevTwin->dir() == Edge::ED_ANTISENSE) {
-            prepend = true;
-        }
-        prevVert->merge(prevTwin);
-        {
-            EdgePtrList transEdges = prevVert->edges(Edge::EDGE_DIRECTIONS[Edge::ED_COUNT - prevEdge->dir() - 1]);
-            for (auto& transEdge : transEdges) {
-                if (transEdge != prevTwin && !prepend) {
-                    SeqCoord& coord = transEdge->coord();
-                    coord.interval.offset(label.length());
-                }
-            }
-        }
-        prevVert->removeEdge(prevTwin);
-        SAFE_DELETE(prevTwin);
-        vertex->removeEdge(prevEdge);
-        SAFE_DELETE(prevEdge);
-
-        graph->removeVertex(vertex);
-        SAFE_DELETE(vertex);
+    Edge* prevTwin = prevEdge->twin();
+    std::string label = prevTwin->label();
+    bool prepend = false;
+    if (prevTwin->dir() == Edge::ED_ANTISENSE) {
+      prepend = true;
     }
-    LOG4CXX_INFO(logger, boost::format("[LoopRemoveVisitor] Removed %lu loop vertices") % _loops.size());
+    prevVert->merge(prevTwin);
+    {
+      EdgePtrList transEdges = prevVert->edges(Edge::EDGE_DIRECTIONS[Edge::ED_COUNT - prevEdge->dir() - 1]);
+      for (auto& transEdge : transEdges) {
+        if (transEdge != prevTwin && !prepend) {
+          SeqCoord& coord = transEdge->coord();
+          coord.interval.offset(label.length());
+        }
+      }
+    }
+    prevVert->removeEdge(prevTwin);
+    SAFE_DELETE(prevTwin);
+    vertex->removeEdge(prevEdge);
+    SAFE_DELETE(prevEdge);
+
+    graph->removeVertex(vertex);
+    SAFE_DELETE(vertex);
+  }
+  LOG4CXX_INFO(logger, boost::format("[LoopRemoveVisitor] Removed %lu loop vertices") % _loops.size());
 }
 
 //
@@ -437,17 +414,6 @@ class EdgeDirCmp {
 };
 
 bool MaximumOverlapVisitor::visit(Bigraph* graph, Vertex* vertex) {
-  {
-    size_t n = _N > 0 ? _N : 1751447;
-    size_t G = _G > 0 ? _G : 59128983;
-    size_t k = vertex->coverage();
-    size_t delta = vertex->seq().length();
-  
-    double score = (n-k)*(log(G-delta)-log(G>2*delta ? G-2*delta : 0.001)) - k*log(2.0);
-    if (score < _T) {
-        return false;
-    }
-  }
   bool modified = false;
   for (size_t i = 0; i < Edge::ED_COUNT; ++i) {
     Edge::Dir dir = Edge::EDGE_DIRECTIONS[i];
@@ -1021,61 +987,61 @@ void LinkedReadVisitor::postvisit(Bigraph* graph) {
 // SmoothingVisitor
 //
 void SmoothingVisitor::previsit(Bigraph* graph) {
-    graph->color(GC_WHITE);
-    _simple = 0;
-    _complex = 0;
+  graph->color(GC_WHITE);
+  _simple = 0;
+  _complex = 0;
 }
 
 bool SmoothingVisitor::visit(Bigraph* graph, Vertex* vertex) {
-    return false;
+  return false;
 }
 
 void SmoothingVisitor::postvisit(Bigraph* graph) {
-    graph->sweepVertices(GC_RED);
-    LOG4CXX_INFO(logger, boost::format("[SmoothingVisitor] Removed %s simple and %d complex bubbles") % _simple % _complex);
+  graph->sweepVertices(GC_RED);
+  LOG4CXX_INFO(logger, boost::format("[SmoothingVisitor] Removed %s simple and %d complex bubbles") % _simple % _complex);
 }
 
 // 
 // StatisticsVisitor
 //
 void StatisticsVisitor::previsit(Bigraph*) {
-    _terminal = 0;
-    _island = 0;
-    _monobranch = 0;
-    _dibranch = 0;
-    _simple = 0;
-    _edges = 0;
-    _vertics = 0;
+  _terminal = 0;
+  _island = 0;
+  _monobranch = 0;
+  _dibranch = 0;
+  _simple = 0;
+  _edges = 0;
+  _vertics = 0;
 }
 
 bool StatisticsVisitor::visit(Bigraph* graph, Vertex* vertex) {
-    size_t fdegrees = vertex->degrees(Edge::ED_SENSE);
-    size_t rdegrees = vertex->degrees(Edge::ED_ANTISENSE);
+  size_t fdegrees = vertex->degrees(Edge::ED_SENSE);
+  size_t rdegrees = vertex->degrees(Edge::ED_ANTISENSE);
 
-    if (fdegrees == 0 && rdegrees == 0) {
-        ++_island;
-    } else if (fdegrees == 0 || rdegrees == 0) {
-        ++_terminal;
-    }
+  if (fdegrees == 0 && rdegrees == 0) {
+    ++_island;
+  } else if (fdegrees == 0 || rdegrees == 0) {
+    ++_terminal;
+  }
 
-    if (fdegrees > 1 && rdegrees > 1) {
-        ++_dibranch;
-    } else if (fdegrees > 1 || rdegrees > 1) {
-        ++_monobranch;
-    }
+  if (fdegrees > 1 && rdegrees > 1) {
+    ++_dibranch;
+  } else if (fdegrees > 1 || rdegrees > 1) {
+    ++_monobranch;
+  }
 
-    if (fdegrees == 1 || rdegrees == 1) {
-        ++_simple;
-    }
+  if (fdegrees == 1 || rdegrees == 1) {
+    ++_simple;
+  }
 
-    _edges += fdegrees + rdegrees;
-    ++_vertics;
+  _edges += fdegrees + rdegrees;
+  ++_vertics;
 
-    return false;
+  return false;
 }
 
 void StatisticsVisitor::postvisit(Bigraph*) {
-    LOG4CXX_INFO(logger, boost::format("[StatisticsVisitor] Vertices: %d Edges: %d Islands: %d Tips: %d Monobranch: %d Dibranch: %d Simple: %d") % _vertics % _edges % _island % _terminal % _monobranch % _dibranch % _simple);
+  LOG4CXX_INFO(logger, boost::format("[StatisticsVisitor] Vertices: %d Edges: %d Islands: %d Tips: %d Monobranch: %d Dibranch: %d Simple: %d") % _vertics % _edges % _island % _terminal % _monobranch % _dibranch % _simple);
 }
 
 //
@@ -1085,79 +1051,176 @@ void TransitiveReductionVisitor::previsit(Bigraph* graph) {
 }
 
 bool TransitiveReductionVisitor::visit(Bigraph* graph, Vertex* vertex) {
-    bool modified = false;
-    return modified;
+  bool modified = false;
+  return modified;
 }
 
 void TransitiveReductionVisitor::postvisit(Bigraph* graph) {
 }
 
-namespace SeqAlign {
-  double align(const std::string& x, const std::string& y, double match = 0.0, double mismatch = 1.0, double gap = 2.0) {
-    std::vector<std::vector<double> > scores(x.length() + 1);
-    for (size_t i = 0; i <= x.length(); ++i) {
-      scores[i].resize(y.length() + 1);
-      scores[i][0] = i*gap;
-    }
-    for (size_t j = 0; j <= y.length(); ++j) {
-      scores[0][j] = j*gap;
-    }
-    for (size_t i = 0; i < x.length(); ++i) {
-      for (size_t j = 0; j < y.length(); ++j) {
-        scores[i+1][j+1] = scores[i][j] + (x[i] == y[j] ? match : mismatch);
-        scores[i+1][j+1] = std::min(scores[i+1][j+1], scores[i+1][j] + gap);
-        scores[i+1][j+1] = std::min(scores[i+1][j+1], scores[i][j+1] + gap);
-      }
-    }
-    return scores[x.length()][y.length()];
-  }
-};  // SeqAlign
-
 //
 // TrimVisitor
 //
 void TrimVisitor::previsit(Bigraph* graph) {
-    _island = 0;
-    _terminal = 0;
-    graph->color(GC_WHITE);
+  _island = 0;
+  _terminal = 0;
+  graph->color(GC_WHITE);
+  EdgeColorVisitor ecVisit(GC_WHITE, true);
 }
 
 bool TrimVisitor::visit(Bigraph* graph, Vertex* vertex) {
-    bool modified = false;
+  bool modified = false;
 
-    auto similarity = [&](const std::string& x, const std::string& y) {
-        return 0.0;
-      };
+  double errorRate = 0.03;
+  auto similarity = [&](const std::string& x, const std::string& y) {
+      EdlibAlignConfig config = edlibNewAlignConfig(
+          std::max<int>(x.length()*errorRate, 2), EDLIB_MODE_HW, EDLIB_TASK_DISTANCE, nullptr, 0);
+      auto r = edlibAlign(x.c_str(), x.length(), y.c_str(), y.length(), &config);
+      if (r.status == EDLIB_STATUS_OK && 0 <= r.editDistance && r.editDistance <= config.k) {
+        return true;
+      }
+      return false;
+    };
 
-    const std::string& seq = vertex->seq();
-    if (vertex->degrees() == 0) {
-        // Is an island, remove if the sequence length is less than the threshold
-        if (seq.length() <= _minLength && Point::avg(vertex) <= Point::avg(_minCoverage, _minLength)) {
-            LOG4CXX_TRACE(logger, boost::format("[TrimVisitor] island %s length=%d coverage=%d") % vertex->id() % seq.length() % vertex->coverage());
-            vertex->color(GC_BLACK);
-            ++_island;
-            modified = true;
-        }
-    } else {
-        // Check if this node is a dead-end
-        for (size_t idx = 0; idx < Edge::ED_COUNT; idx++) {
-            Edge::Dir dir = Edge::EDGE_DIRECTIONS[idx];
-            if (vertex->degrees(dir) == 0 && seq.length() <= _minLength && Point::avg(vertex) <= Point::avg(_minCoverage, _minLength)) {
-                LOG4CXX_TRACE(logger, boost::format("[TrimVisitor] terminal %s length=%d coverage=%d") % vertex->id() % seq.length() % vertex->coverage());
-                vertex->color(GC_BLACK);
-                ++_terminal;
-                modified = true;
-                break;
+  auto walkable = [&](const std::string& labelx, const Edge* root) {
+      bool found = false;
+      std::unordered_map<size_t, std::string> paths;
+      double walkRatio = 0.05;
+      size_t maxSteps = std::max<size_t>(graph->numVertices() * walkRatio, 10);
+      
+      std::function<bool(const BigraphWalk::Step&, const Edge*)> visitor = [&](const BigraphWalk::Step& step, const Edge* edge) {
+          if (found || edge->coord().isContained() || edge->end()->id() == root->start()->id()) {
+            return false;
+          }
+          // walk one step
+          std::string labely;
+          {
+            std::string label = edge->label();
+            auto it = paths.find(step.parent);
+            if (it != paths.end()) {
+              labely = it->second;
             }
-        }
-    }
+            if (root->twin()->dir() == Edge::ED_ANTISENSE) {
+              labely = label + labely;
+            } else {
+              labely += label;
+            }
+          }
+          if (labelx.length() <= labely.length()) {
+            if (similarity(labelx, labely)) {
+              found = true;
+            }
+            return false;
+          } else if (!similarity(labely, labelx)) {
+            return false;
+          }
+          paths[step.current] = labely;
+          return step.current < maxSteps;
+        };
+      BigraphWalk::walk(root->end(), root->twin()->dir(), visitor);
+      return found;
+    };
 
-    return modified;
+  auto collapsible = [&](const Edge* edge) {
+      std::string label = edge->twin()->label();
+      if (walkable(label, edge)) {
+        return true;
+      }
+      return false;
+    };
+
+  auto diamond = [&](const Edge* w, const Edge* v) {
+      auto xedges = w->end()->edges(w->twin()->dir());
+      auto yedges = v->end()->edges(v->twin()->dir());
+      std::string labelx = w->twin()->label();
+      for (auto x : xedges) {
+        if (x->end() != vertex) {
+          for (auto y : yedges) {
+            if (x->end() == y->end() && vertex->coverage() < x->end()->coverage()) {
+              std::string labely = x->label();
+              if ((labelx.length() <= labely.length() && similarity(labelx, labely)) || similarity(labely, labelx)) {
+                return true;
+              }
+            }
+          }
+        }
+      }
+      return false;
+    };
+
+  auto shortest = [&](const Edge* edge) {
+      auto edges = edge->end()->edges(edge->twin()->dir());
+      // assert(edges.size() > 1);
+      for (auto e : edges) {
+        if (e->end() != vertex && e->coord().length() < edge->coord().length()) {
+          return false;
+        }
+      }
+      return edges.size() > 1;
+    };
+
+  const std::string& seq = vertex->seq();
+  size_t indegrees = vertex->degrees(Edge::ED_ANTISENSE), outdegrees = vertex->degrees(Edge::ED_SENSE);
+  if (indegrees == 0 && outdegrees == 0) {
+    // Is an island, remove if the sequence length is less than the threshold
+    if (seq.length() <= _minLength || Point::avg(vertex) <= Point::avg(_minCoverage, _minLength)) {
+      LOG4CXX_TRACE(logger, boost::format("[TrimVisitor] island %s length=%d coverage=%d") % vertex->id() % seq.length() % vertex->coverage());
+      vertex->color(GC_BLACK);
+      ++_island;
+      modified = true;
+    }
+  } else if (indegrees == 0 || outdegrees == 0) {
+    Edge::Dir dir = (indegrees == 0 ? Edge::ED_SENSE : Edge::ED_ANTISENSE);
+    auto edges = vertex->edges(dir);
+    // This node is a dead-end
+    if (seq.length() <= _minLength || Point::avg(vertex) <= Point::avg(_minCoverage, _minLength) || std::any_of(edges.begin(), edges.end(), collapsible)) {
+      LOG4CXX_TRACE(logger, boost::format("[TrimVisitor] terminal %s length=%d coverage=%d") % vertex->id() % seq.length() % vertex->coverage());
+      vertex->color(GC_BLACK);
+      ++_terminal;
+      modified = true;
+    } else {
+      for (auto e : edges) {
+        if (shortest(e)) {
+          e->color(GC_BLACK);
+          e->twin()->color(GC_BLACK);
+          modified = true;
+        }
+      }
+    }
+  } else if (indegrees == 1 && outdegrees == 1) {
+    auto w = vertex->edges(Edge::ED_ANTISENSE)[0], v = vertex->edges(Edge::ED_SENSE)[0];
+    if (!w->isSelf() && !v->isSelf()) {
+      bool x = shortest(w), y = shortest(v);
+      if (x && y) {
+        if ((seq.length() <= _minLength || Point::avg(vertex) <= Point::avg(_minCoverage, _minLength) || collapsible(w) || collapsible(v))) {
+          LOG4CXX_TRACE(logger, boost::format("[TrimVisitor] terminal %s length=%d coverage=%d") % vertex->id() % seq.length() % vertex->coverage());
+          vertex->color(GC_BLACK);
+          ++_terminal;
+        } else {
+          w->color(GC_BLACK);
+          w->twin()->color(GC_BLACK);
+          v->color(GC_BLACK);
+          v->twin()->color(GC_BLACK);
+        }
+        modified = true;
+      } else if (x || y) {
+        if (diamond(w, v)) {
+          LOG4CXX_TRACE(logger, boost::format("[TrimVisitor] terminal %s length=%d coverage=%d") % vertex->id() % seq.length() % vertex->coverage());
+          vertex->color(GC_BLACK);
+          ++_terminal;
+          modified = true;
+        }
+      }
+    }
+  }
+
+  return modified;
 }
 
 void TrimVisitor::postvisit(Bigraph* graph) {
-    graph->sweepVertices(GC_BLACK);
-    LOG4CXX_INFO(logger, boost::format("[TrimVisitor] Removed %d island and %d dead-end short vertices") % _island % _terminal);
+  graph->sweepVertices(GC_BLACK);
+  graph->sweepEdges(GC_BLACK);
+  LOG4CXX_INFO(logger, boost::format("[TrimVisitor] Removed %d island and %d dead-end short vertices") % _island % _terminal);
 }
 
 namespace AIFeat {
@@ -1366,13 +1429,11 @@ bool AIVisitor::visit(Bigraph* graph, Vertex* vertex) {
     std::vector<double> vec = {
         (double)vertex->seq().length(),  // lenx
         (double)vertex->coverage(),      // coveragex
-        Repeatness::calc(vertex, _n, _G),// repeatx
         (double)vertex->degrees(Edge::ED_ANTISENSE),  // indegreex
         (double)vertex->degrees(Edge::ED_SENSE),  // outdegreex
         (double)i,                       // orankx
         (double)end->seq().length(),     // leny
         (double)end->coverage(),         // coveragey
-        Repeatness::calc(end, _n, _G),   // repeaty
         (double)end->degrees(Edge::ED_ANTISENSE),  // indegreey
         (double)end->degrees(Edge::ED_SENSE),  // outdegreey
         (double)j,                       // oranky
@@ -1436,80 +1497,6 @@ void AIVisitor::postvisit(Bigraph* graph) {
   LOG4CXX_INFO(logger, boost::format("[AIVisitor]: Removed %d edges: whites=%lu, gray=%lu") % _blacks % _whites % _grays);
 }
 #endif  // HAVE_MLPACK
-
-//
-// UnitigVisitor
-//
-void UnitigVisitor::previsit(Bigraph* graph) {
-  _unitigs = 0;
-}
-
-bool UnitigVisitor::visit(Bigraph* graph, Vertex* vertex) {
-  bool modified = false;
-  if (Repeatness::calc(vertex, _n, _G) >= _T) {
-    for (size_t i = 0; i < Edge::ED_COUNT; ++i) {
-      auto edges = vertex->edges(Edge::EDGE_DIRECTIONS[i]);
-      if (edges.size() == 1 and Repeatness::calc(edges[0]->end(), _n, _G) < Repeatness::calc(vertex, _n, _G)) {
-        Vertex* end = edges[0]->end();
-        if (end->degrees(Edge::ED_SENSE) <= 1 and end->degrees(Edge::ED_ANTISENSE) <= 1) {
-          continue;
-        }
-
-        size_t x2ycnt[HiFiParser::kFields] = {0};
-        HiFiParser::parse(vertex, end, x2ycnt);
-
-        Vertex tmp(end->id() + "_copy", end->seq(), end->contained(), end->index(), end->coverage(), end->extension());
-        for (auto edge : end->edges(Edge::EDGE_DIRECTIONS[i])) {
-          Vertex* verts[2] = {&tmp, edge->end()};
-          Edge* arr[2] = {edge, edge->twin()};
-          Edge* vec[2];
-          for (size_t j = 0; j < 2; ++j) {
-            vec[j] = new Edge(verts[1 - j], arr[j]->dir(), arr[j]->comp(), arr[j]->coord());
-            vec[j]->color(arr[j]->color());
-          }
-          vec[0]->twin(vec[1]);
-          vec[1]->twin(vec[0]);
-
-          graph->addEdge(verts[0], vec[0]);
-          graph->addEdge(verts[1], vec[1]);
-        }
-
-        Vertex* verts[2] = {vertex, &tmp};
-        Edge* arr[2] = {edges[0], edges[0]->twin()};
-        Edge* vec[2];
-        for (size_t j = 0; j < 2; ++j) {
-          vec[j] = new Edge(verts[1 - j], arr[j]->dir(), arr[j]->comp(), arr[j]->coord());
-          vec[j]->color(arr[j]->color());
-        }
-        vec[0]->twin(vec[1]);
-        vec[1]->twin(vec[0]);
-
-        graph->addEdge(verts[0], vec[0]);
-        graph->addEdge(verts[1], vec[1]);
-
-        vertex->removeEdge(edges[0]);
-        Edge* twin = edges[0]->twin();
-        end->removeEdge(twin);
-        SAFE_DELETE(edges[0]);
-        SAFE_DELETE(twin);
-
-        LOG4CXX_INFO(logger, boost::format("[UnitigVisitor] vertex: %s, length: %lu, end: %s, length: %lu, dir: %d, degree: %lu alinkx:%lu alinky:%lu clinkx:%lu clinky:%lu minlink:%lu maxlink:%lu midlink:%lu") % vertex->id() % vertex->seq().length() % end->id() % end->seq().length() % i % end->degrees(Edge::EDGE_DIRECTIONS[i])
-                % x2ycnt[HiFiParser::kLinkAllX] % x2ycnt[HiFiParser::kLinkAllY] % x2ycnt[HiFiParser::kLinkCommonX] % x2ycnt[HiFiParser::kLinkCommonY] % x2ycnt[HiFiParser::kLinkMin] % x2ycnt[HiFiParser::kLinkMax] % x2ycnt[HiFiParser::kLinkMid]);
-
-        assert(vertex->degrees(Edge::EDGE_DIRECTIONS[i]) == 1);
-        graph->merge(vertex, vec[0]);
-
-        ++_unitigs;
-        modified = true;
-      }
-    }
-  }
-  return modified;
-}
-
-void UnitigVisitor::postvisit(Bigraph* graph) {
-  LOG4CXX_INFO(logger, boost::format("[UnitigVisitor]: Walked %lu unitigs") % _unitigs);
-}
 
 //
 // GANVisitor

@@ -357,6 +357,21 @@ struct __attribute__((packed)) vint_t {
     return *this >= (MyInt)val;
   }
 
+#ifdef __APPLE__
+  bool operator<(std::ptrdiff_t val) const {
+    return *this < (MyInt)val;
+  }
+  bool operator>(std::ptrdiff_t val) const {
+    return *this > (MyInt)val;
+  }
+  bool operator<=(std::ptrdiff_t val) const {
+    return *this <= (MyInt)val;
+  }
+  bool operator>=(std::ptrdiff_t val) const {
+    return *this >= (MyInt)val;
+  }
+#endif  // __APPLE__
+
   template <typename XMyInt, uint8_t xbits>
   friend bool operator<(const XMyInt val, const vint_t<XMyInt, xbits>& o);
   template <typename XMyInt, uint8_t xbits>

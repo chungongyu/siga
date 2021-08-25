@@ -54,19 +54,13 @@ class Assembler : public Runner {
       // Visitors
       ChimericVisitor chVisit(options.get<size_t>("min-chimeric-length", 0),
                               options.get<size_t>("max-chimeric-coverage", -1),
-                              options.get<size_t>("max-chimeric-delta", -1),
-                              options.get<size_t>("num-reads", 0),
-                              options.get<size_t>("genome-size", 0),
-                              options.get<double>("uniq-threshold", 0.0));
+                              options.get<size_t>("max-chimeric-delta", -1));
       ContainRemoveVisitor containVisit;
       LoopRemoveVisitor loopVisit;
       MaximumOverlapVisitor moVisit(options.get<size_t>("max-overlap-delta", 0),
-                                    options.find("max-overlap-carefully") != options.not_found(),
-                                    options.get<size_t>("num-reads", 0),
-                                    options.get<size_t>("genome-size", 0),
-                                    options.get<double>("uniq-threshold", 13.0));
+                                    options.find("max-overlap-carefully") != options.not_found());
       StatisticsVisitor statsVisit;
-      TrimVisitor trimVisit(options.get<size_t>("min-branch-length", 150), options.get<size_t>("min-branch-coverage", -1));
+      TrimVisitor trimVisit(options.get<size_t>("min-branch-length", 150), options.get<size_t>("min-branch-coverage", 1));
 
       // Pre-assembly graph stats
       LOG4CXX_INFO(logger, "[Stats] Input graph:");
@@ -120,9 +114,7 @@ class Assembler : public Runner {
       }
       std::unique_ptr<AIVisitor> aiVisit;
       if (model) {
-        aiVisit = std::unique_ptr<AIVisitor>(new AIVisitor(model.get(), 
-                            options.get<size_t>("num-reads", 0),
-                            options.get<size_t>("genome-size", 0)));
+        aiVisit = std::unique_ptr<AIVisitor>(new AIVisitor(model.get()));
       }
 #endif  // HAVE_MLPACK
 
@@ -296,7 +288,7 @@ private:
   static Assembler _runner;
 };
 
-static const std::string shortopts = "c:s:p:t:m:M:x:n:C:l:A:a:d:N:G:T:h";
+static const std::string shortopts = "c:s:p:t:m:M:x:n:C:l:A:a:d:h";
 enum { OPT_HELP = 1, OPT_BATCH_SIZE, OPT_PEMODE, OPT_WITH_IDX, OPT_MAXDIST, OPT_INSERTSIZE, OPT_INSERTSIZE_DELTA, OPT_MAXEDGES, OPT_MAX_OVERLAP_CAREFULLY };
 static const option longopts[] = {
     {"log4cxx",              required_argument,  NULL, 'c'},
@@ -319,9 +311,6 @@ static const option longopts[] = {
     {"min-chimeric-length",  required_argument,  NULL, 'l'},
     {"min-chimeric-coverage",required_argument,  NULL, 'A'},
     {"max-chimeric-delta",   required_argument,  NULL, 'a'},
-    {"num-reads",            required_argument,  NULL, 'N'},
-    {"genome-size",          required_argument,  NULL, 'G'},
-    {"uniq-threshold",       required_argument,  NULL, 'T'},
 #ifdef HAVE_MLPACK
     {"ai-model",             required_argument,  NULL, 'M'},
 #endif  // HAVE_MLPACK

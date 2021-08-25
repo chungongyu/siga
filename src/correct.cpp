@@ -41,13 +41,13 @@ class Correct : public Runner {
       prefix = options.get<std::string>("prefix");
     }
 
-    FMIndex fmi;
-    if (FMIndex::load(prefix + BWT_EXT, fmi)) {
-      // Prepare parameters
-      CorrectProcessor::Options parms(options);
+    // Prepare parameters
+    CorrectProcessor::Options parms(options);
+    CorrectProcessor::Index index;
 
+    if (index.load(prefix, input, parms)) {
       CorrectProcessor processor(parms);
-      if (!processor.process(fmi, input, outfile, options.get<size_t>("threads", kCorrectThreads))) {
+      if (!processor.process(index, input, outfile)) {
         LOG4CXX_ERROR(logger, boost::format("Failed to do error correction for reads %s") % input);
         r = -1;
       }
@@ -80,12 +80,18 @@ class Correct : public Runner {
         "      -p, --prefix=PREFIX              use PREFIX instead of prefix of READSFILE for the names of the index files\n"
         "      -o, --outfile=FILE               write the corrected reads to FILE (default READFILE%s%s)\n"
         "      -t, --threads=NUM                use NUM threads for the computation (default: %d)\n"
+        "          --batch-size=NUM             use NUM batches for each thread (default: 1000)\n"
         "      -a, --algorithm=STR              specify the correction algorithm to use. STR must be one of kmer,overlap. (default: %s)\n"
         "\n"
+        "\nKmer correction parameters:\n"
         "      -k, --kmer-size=N                the length of the kmer to user (default: %d)\n"
         "      -x, --kmer-threshold=N           attempt to correct kmers that are seen less than N times (default: %d)\n"
         "      -i, --kmer-rounds=N              perform up to N rounds of kmer correction (default: %d)\n"
         "      -O, --kmer-count-offset=N        when correcting a kmer, require the count of the new kmer is at least +N higher than the count of the old kmer. (default: %d)\n"
+        "\nOverlap correction parameters:\n"
+        "      -e, --error-rate                 the maximum error rate allowed between two sequences to consider them overlapped (default: 0.04)\n"
+        "      -m, --min-overlap=LEN            minimum overlap required between two reads (default: 45)\n"
+        "      -r, --rounds=NUM                 iteratively correct reads up to a maximum of NUM rounds (default: 1)\n"
         "\n"
         ) % PACKAGE_NAME % EC_EXT % FA_EXT % kCorrectThreads % kCorrectAlgorithm % kCorrectKmerSize % kCorrectKmerThreshold % kCorrectKmerRounds % kCorrectKmerCountOffset << std::endl;
     return 256;
@@ -95,18 +101,21 @@ class Correct : public Runner {
 };
 
 static const std::string shortopts = "c:s:p:o:t:a:k:x:i:O:h";
-enum { OPT_HELP = 1};
+enum { OPT_HELP = 1, OPT_BATCH_SIZE };
 static const option longopts[] = {
     {"log4cxx",             required_argument,  nullptr, 'c'},
     {"ini",                 required_argument,  nullptr, 's'},
     {"prefix",              required_argument,  nullptr, 'p'},
     {"outfile",             required_argument,  nullptr, 'o'},
     {"threads",             required_argument,  nullptr, 't'},
+    {"batch-size",          required_argument,  nullptr, OPT_BATCH_SIZE},
     {"algorithm",           required_argument,  nullptr, 'a'},
     {"kmer-size",           required_argument,  nullptr, 'k'},
     {"kmer-threshold",      required_argument,  nullptr, 'x'},
     {"kmer-rounds",         required_argument,  nullptr, 'i'},
     {"kmer-count-offset",   required_argument,  nullptr, 'O'},
+    {"error-rate",          required_argument,  nullptr, 'e'},
+    {"min-overlap",         required_argument,  nullptr, 'm'},
     {"help",                no_argument,        nullptr, 'h'},
     {nullptr, 0, nullptr, 0},
   };

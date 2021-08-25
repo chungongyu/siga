@@ -58,6 +58,16 @@ public:
 
     typedef std::deque<std::pair<NodePtr, int> > NodePtrQueue;
 
+    struct Step {
+      Step(size_t p = 0, size_t c = -1) : parent(p), current(-1) {
+      }
+      size_t parent;
+      size_t current;
+    };
+    typedef std::deque<std::pair<size_t, const Edge*> > EdgePtrQueue;
+
+    static void walk(EdgePtrQueue& Q, std::function<bool(const Step&, const Edge*)>& visit, size_t step = 0);
+    static void walk(const Vertex* start, Edge::Dir dir, std::function<bool(const Step&, const Edge*)>& visit);
     static size_t build(NodePtrQueue& Q, const Vertex* end, size_t minDistance, size_t maxDistance, size_t maxNodes, NodePtrList* leaves);
     static size_t build(const Vertex* start, std::function<bool(const Edge* edge)> filter, const Vertex* end, size_t minDistance, size_t maxDistance, size_t maxNodes, NodePtrList* leaves);
 
